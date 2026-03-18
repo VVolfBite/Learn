@@ -25,7 +25,11 @@
 
 ### 运行与环境
 #### 解释器与运行方式
-Python 的 3.0 版本，常被称为 Python 3000，或简称 Py3k。相对于 Python 的早期版本，这是一个较大的升级。为了不带入过多的历史包袱，Python 3.0 在设计时没有考虑向下兼容。Python 首先是一门“运行时语言”。可以把解释器理解成一个持续运行的进程，它负责读取源代码、编译为字节码并执行；脚本运行、模块运行、交互式运行三者的差别，主要体现在入口文件的确定方式、`__name__` 的取值，以及导入路径的初始化方式。
+Python 的 3.0 版本，常被称为 Python 3000，或简称 Py3k。相对于 Python 的早期版本，这是一个较大的升级。为了不带入过多的历史包袱，Python 3.0 在设计时没有考虑向下兼容。
+
+Python 解释器不止一种，有 CPython、IPython、Jython、PyPy 等。顾名思义，CPython 就是用 C 语言开发的了，是官方标准实现，拥有良好的生态，所以应用也就最为广泛了。而 IPython 是在 CPython 的基础之上在交互式方面得到增强的解释器（http://ipython.org/）。Jython 是专为 Java 平台设计的 Python 解释器（http://www.jython.org/），它把 Python 代码编译成 Java 字节码执行。PyPy 是 Python 语言（2.7.13和3.5.3）的一种快速、兼容的替代实现（http://pypy.org/），以速度快著称。
+
+Python 首先是一门“运行时语言”。可以把解释器理解成一个持续运行的进程，它负责读取源代码、编译为字节码并执行；脚本运行、模块运行、交互式运行三者的差别，主要体现在入口文件的确定方式、`__name__` 的取值，以及导入路径的初始化方式。
 
 下面把常见运行方式放在一张表里，作为项目启动时的默认选择指南。
 
@@ -210,138 +214,575 @@ print(x if x is not None else 10)  # 0
 
 ##### 数字 Number
 
-Python3 支持 **int、float、bool、complex（复数）**。像大多数语言一样，数值类型的赋值和计算都是很直观的。内置的 type() 函数可以用来查询变量所指的对象类型。**注意：***Python3 中，bool 是 int 的子类，True 和 False 可以和数字相加，* **True==1、False==0** *会返回* **True***，但可以通过* **is** *来判断类型。*
+Python 数字数据类型用于存储数值。数据类型是不允许改变的，这就意味着如果改变数字数据类型的值，将重新分配内存空间。您也可以使用del语句删除一些数字对象的引用。
 
 ```
->>> a, b, c, d = 20, 5.5, True, 4+3j
->>> print(type(a), type(b), type(c), type(d))
-<class 'int'> <class 'float'> <class 'bool'> <class 'complex'>
+var1,var2 = 1,10 # 定义数字变量
+del var1[,var2[,var3[....,varN]]] # 删除数字变量
 ```
+
+Python 支持三种不同的数值类型：
+
+- **整型(int)** - 通常被称为是整型或整数，是正或负整数，不带小数点。Python3 整型是没有限制大小的，可以当作 Long 类型使用，所以 Python3 没有 Python2 的 Long 类型。布尔(bool)是整型的子类型。
+- **浮点型(float)** - 浮点型由整数部分与小数部分组成，浮点型也可以使用科学计数法表示（2.5e2 = 2.5 x 102 = 250）
+- **复数( (complex))** - 复数由实数部分和虚数部分构成，可以用a + bj,或者complex(a,b)表示， 复数的实部a和虚部b都是浮点型。
+
+以下是一些常用的数学函数：
+
+| 函数                                                         | 返回值 ( 描述 )                                              |
+| :----------------------------------------------------------- | :----------------------------------------------------------- |
+| [abs(x)](https://www.runoob.com/python3/python3-func-number-abs.html) | 返回数字的绝对值，如abs(-10) 返回 10                         |
+| [ceil(x)](https://www.runoob.com/python3/python3-func-number-ceil.html) | 返回数字的上入整数，如math.ceil(4.1) 返回 5                  |
+| cmp(x, y)                                                    | 如果 x < y 返回 -1, 如果 x == y 返回 0, 如果 x > y 返回 1。 **Python 3 已废弃，使用 (x>y)-(x<y) 替换**。 |
+| [exp(x)](https://www.runoob.com/python3/python3-func-number-exp.html) | 返回e的x次幂(ex),如math.exp(1) 返回2.718281828459045         |
+| [fabs(x)](https://www.runoob.com/python3/python3-func-number-fabs.html) | 以浮点数形式返回数字的绝对值，如math.fabs(-10) 返回10.0      |
+| [floor(x)](https://www.runoob.com/python3/python3-func-number-floor.html) | 返回数字的下舍整数，如math.floor(4.9)返回 4                  |
+| [log(x)](https://www.runoob.com/python3/python3-func-number-log.html) | 如math.log(math.e)返回1.0,math.log(100,10)返回2.0            |
+| [log10(x)](https://www.runoob.com/python3/python3-func-number-log10.html) | 返回以10为基数的x的对数，如math.log10(100)返回 2.0           |
+| [max(x1, x2,...)](https://www.runoob.com/python3/python3-func-number-max.html) | 返回给定参数的最大值，参数可以为序列。                       |
+| [min(x1, x2,...)](https://www.runoob.com/python3/python3-func-number-min.html) | 返回给定参数的最小值，参数可以为序列。                       |
+| [modf(x)](https://www.runoob.com/python3/python3-func-number-modf.html) | 返回x的整数部分与小数部分，两部分的数值符号与x相同，整数部分以浮点型表示。 |
+| [pow(x, y)](https://www.runoob.com/python3/python3-func-number-pow.html) | x**y 运算后的值。                                            |
+| [round(x [,n\])](https://www.runoob.com/python3/python3-func-number-round.html) | 返回浮点数 x 的四舍五入值，如给出 n 值，则代表舍入到小数点后的位数。**其实准确的说是保留值将保留到离上一位更近的一端。** |
+| [sqrt(x)](https://www.runoob.com/python3/python3-func-number-sqrt.html) | 返回数字x的平方根。                                          |
+
+| 函数                                                         | 描述                                                         |
+| :----------------------------------------------------------- | :----------------------------------------------------------- |
+| [choice(seq)](https://www.runoob.com/python3/python3-func-number-choice.html) | 从序列的元素中随机挑选一个元素，比如random.choice(range(10))，从0到9中随机挑选一个整数。 |
+| [randrange ([start,\] stop [,step])](https://www.runoob.com/python3/python3-func-number-randrange.html) | 从指定范围内，按指定基数递增的集合中获取一个随机数，基数默认值为 1 |
+| [random()](https://www.runoob.com/python3/python3-func-number-random.html) | 随机生成下一个实数，它在[0,1)范围内。                        |
+| [seed([x\])](https://www.runoob.com/python3/python3-func-number-seed.html) | 改变随机数生成器的种子seed。如果你不了解其原理，你不必特别去设定seed，Python会帮你选择seed。 |
+| [shuffle(lst)](https://www.runoob.com/python3/python3-func-number-shuffle.html) | 将序列的所有元素随机排序                                     |
+| [uniform(x, y)](https://www.runoob.com/python3/python3-func-number-uniform.html) | 随机生成下一个实数，它在[x,y]范围内。                        |
+
+| 函数                                                         | 描述                                              |
+| :----------------------------------------------------------- | :------------------------------------------------ |
+| [acos(x)](https://www.runoob.com/python3/python3-func-number-acos.html) | 返回x的反余弦弧度值。                             |
+| [asin(x)](https://www.runoob.com/python3/python3-func-number-asin.html) | 返回x的反正弦弧度值。                             |
+| [atan(x)](https://www.runoob.com/python3/python3-func-number-atan.html) | 返回x的反正切弧度值。                             |
+| [atan2(y, x)](https://www.runoob.com/python3/python3-func-number-atan2.html) | 返回给定的 X 及 Y 坐标值的反正切值。              |
+| [cos(x)](https://www.runoob.com/python3/python3-func-number-cos.html) | 返回x的弧度的余弦值。                             |
+| [hypot(x, y)](https://www.runoob.com/python3/python3-func-number-hypot.html) | 返回欧几里德范数 sqrt(x*x + y*y)。                |
+| [sin(x)](https://www.runoob.com/python3/python3-func-number-sin.html) | 返回的x弧度的正弦值。                             |
+| [tan(x)](https://www.runoob.com/python3/python3-func-number-tan.html) | 返回x弧度的正切值。                               |
+| [degrees(x)](https://www.runoob.com/python3/python3-func-number-degrees.html) | 将弧度转换为角度,如degrees(math.pi/2) ， 返回90.0 |
+| [radians(x)](https://www.runoob.com/python3/python3-func-number-radians.html) | 将角度转换为弧度                                  |
+
+| 常量 | 描述                                  |
+| :--- | :------------------------------------ |
+| pi   | 数学常量 pi（圆周率，一般以π来表示）  |
+| e    | 数学常量 e，e即自然常数（自然常数）。 |
 
 ##### 字符串 String
 
-Python中的字符串用单引号 **'** 或双引号 **"** 括起来，同时使用反斜杠 **\** 转义特殊字符。索引值以 0 为开始值，-1 为从末尾的开始位置。加号 **+** 是字符串的连接符， 星号 ***** 表示复制当前字符串，与之结合的数字为复制的次数。字符串的截取的语法格式如下：
+字符串是 Python 中最常用的数据类型。我们可以使用引号( **'** 或 **"** )来创建字符串。创建字符串很简单，只要为变量分配一个值即可。Python 不支持单字符类型，单字符在 Python 中也是作为一个字符串使用。字符串的截取的语法格式如下：
 
 ```
-string_var [hi:ti]
-str = 'TestString'  # 定义一个字符串变量
+str = 'TestString'  # 定义字符串变量
 
-print(str)           # 打印整个字符串
-print(str[0:-1])     # 打印字符串第一个到倒数第二个字符（不包含倒数第一个字符）
-print(str[0])        # 打印字符串的第一个字符
-print(str[2:5])      # 打印字符串第三到第五个字符（不包含索引为 5 的字符）
-print(str[2:])       # 打印字符串从第三个字符开始到末尾
-print(str * 2)       # 打印字符串两次
-print(str + "TEST")  # 打印字符串和"TEST"拼接在一起
+str[0:-1]	# 打印字符串第一个到倒数第二个字符（不包含倒数第一个字符）
+str[0]		# 打印字符串的第一个字符
+str[2:5]	# 打印字符串第三到第五个字符（不包含索引为 5 的字符）
+str[2:]		# 打印字符串从第三个字符开始到末尾
+
+str * 2		# 打印字符串两次
+str + "TEST"# 打印字符串和"TEST"拼接在一起
 ```
 
+下表实例变量 a 值为字符串 "Hello"，b 变量值为 "Python"：
 
+| 操作符 | 描述                                                         | 实例                            |
+| :----- | :----------------------------------------------------------- | :------------------------------ |
+| +      | 字符串连接                                                   | a + b 输出结果： HelloPython    |
+| *      | 重复输出字符串                                               | a*2 输出结果：HelloHello        |
+| []     | 通过索引获取字符串中字符                                     | a[1] 输出结果 **e**             |
+| [ : ]  | 截取字符串中的一部分，遵循**左闭右开**原则，str[0:2] 是不包含第 3 个字符的。 | a[1:4] 输出结果 **ell**         |
+| in     | 成员运算符 - 如果字符串中包含给定的字符返回 True             | **'H' in a** 输出结果 True      |
+| not in | 成员运算符 - 如果字符串中不包含给定的字符返回 True           | **'M' not in a** 输出结果 True  |
+| r/R    | 原始字符串 - 原始字符串：所有的字符串都是直接按照字面的意思来使用，没有转义特殊或不能打印的字符。 原始字符串除在字符串的第一个引号前加上字母 **r**（可以大小写）以外，与普通字符串有着几乎完全相同的语法。 | `print( r'\n' ) print( R'\n' )` |
+| %      | 格式字符串                                                   | 请看下一节内容。                |
 
-#### 容器：list/tuple/dict/set
+以下是一些常用的内建函数：
 
-容器是订单系统的数据骨架。你用 list 保存明细，用 dict 表达订单字段，用 set 做去重，用 tuple 表达轻量不可变结构。面试里容器的分水岭通常在三个地方：你是否能把语义说清楚，你是否有复杂度直觉，你是否理解哈希与可变性对 dict/set 的约束。
+| 序号 | 方法及描述                                                   |
+| :--- | :----------------------------------------------------------- |
+| 1    | [capitalize()](https://www.runoob.com/python3/python3-string-capitalize.html) 将字符串的第一个字符转换为大写 |
+| 2    | [center(width, fillchar)](https://www.runoob.com/python3/python3-string-center.html)返回一个指定的宽度 width 居中的字符串，fillchar 为填充的字符，默认为空格。 |
+| 3    | [count(str, beg= 0,end=len(string))](https://www.runoob.com/python3/python3-string-count.html) 返回 str 在 string 里面出现的次数，如果 beg 或者 end 指定则返回指定范围内 str 出现的次数 |
+| 4    | [bytes.decode(encoding="utf-8", errors="strict")](https://www.runoob.com/python3/python3-string-decode.html) Python3 中没有 decode 方法，但我们可以使用 bytes 对象的 decode() 方法来解码给定的 bytes 对象，这个 bytes 对象可以由 str.encode() 来编码返回。 |
+| 5    | [encode(encoding='UTF-8',errors='strict')](https://www.runoob.com/python3/python3-string-encode.html) 以 encoding 指定的编码格式编码字符串，如果出错默认报一个ValueError 的异常，除非 errors 指定的是'ignore'或者'replace' |
+| 6    | [endswith(suffix, beg=0, end=len(string))](https://www.runoob.com/python3/python3-string-endswith.html) 检查字符串是否以 suffix 结束，如果 beg 或者 end 指定则检查指定的范围内是否以 suffix 结束，如果是，返回 True,否则返回 False。 |
+| 7    | [expandtabs(tabsize=8)](https://www.runoob.com/python3/python3-string-expandtabs.html) 把字符串 string 中的 tab 符号转为空格，tab 符号默认的空格数是 8 。 |
+| 8    | [find(str, beg=0, end=len(string))](https://www.runoob.com/python3/python3-string-find.html) 检测 str 是否包含在字符串中，如果指定范围 beg 和 end ，则检查是否包含在指定范围内，如果包含返回开始的索引值，否则返回-1 |
+| 9    | [index(str, beg=0, end=len(string))](https://www.runoob.com/python3/python3-string-index.html) 跟find()方法一样，只不过如果str不在字符串中会报一个异常。 |
+| 10   | [isalnum()](https://www.runoob.com/python3/python3-string-isalnum.html) 检查字符串是否由字母和数字组成，即字符串中的所有字符都是字母或数字。如果字符串至少有一个字符，并且所有字符都是字母或数字，则返回 True；否则返回 False。 |
+| 11   | [isalpha()](https://www.runoob.com/python3/python3-string-isalpha.html) 如果字符串至少有一个字符并且所有字符都是字母或中文字则返回 True, 否则返回 False |
+| 12   | [isdigit()](https://www.runoob.com/python3/python3-string-isdigit.html) 如果字符串只包含数字则返回 True 否则返回 False.. |
+| 13   | [islower()](https://www.runoob.com/python3/python3-string-islower.html) 如果字符串中包含至少一个区分大小写的字符，并且所有这些(区分大小写的)字符都是小写，则返回 True，否则返回 False |
+| 14   | [isnumeric()](https://www.runoob.com/python3/python3-string-isnumeric.html) 如果字符串中只包含数字字符，则返回 True，否则返回 False |
+| 15   | [isspace()](https://www.runoob.com/python3/python3-string-isspace.html) 如果字符串中只包含空白，则返回 True，否则返回 False. |
+| 16   | [istitle()](https://www.runoob.com/python3/python3-string-istitle.html) 如果字符串是标题化的(见 title())则返回 True，否则返回 False |
+| 17   | [isupper()](https://www.runoob.com/python3/python3-string-isupper.html) 如果字符串中包含至少一个区分大小写的字符，并且所有这些(区分大小写的)字符都是大写，则返回 True，否则返回 False |
+| 18   | [join(seq)](https://www.runoob.com/python3/python3-string-join.html) 以指定字符串作为分隔符，将 seq 中所有的元素(的字符串表示)合并为一个新的字符串 |
+| 19   | [len(string)](https://www.runoob.com/python3/python3-string-len.html) 返回字符串长度 |
+| 20   | [ljust(width[, fillchar\])](https://www.runoob.com/python3/python3-string-ljust.html) 返回一个原字符串左对齐,并使用 fillchar 填充至长度 width 的新字符串，fillchar 默认为空格。 |
+| 21   | [lower()](https://www.runoob.com/python3/python3-string-lower.html) 转换字符串中所有大写字符为小写. |
+| 22   | [lstrip()](https://www.runoob.com/python3/python3-string-lstrip.html) 截掉字符串左边的空格或指定字符。 |
+| 23   | [maketrans()](https://www.runoob.com/python3/python3-string-maketrans.html) 创建字符映射的转换表，对于接受两个参数的最简单的调用方式，第一个参数是字符串，表示需要转换的字符，第二个参数也是字符串表示转换的目标。 |
+| 24   | [max(str)](https://www.runoob.com/python3/python3-string-max.html) 返回字符串 str 中最大的字母。 |
+| 25   | [min(str)](https://www.runoob.com/python3/python3-string-min.html) 返回字符串 str 中最小的字母。 |
+| 26   | [replace(old, new [, max\])](https://www.runoob.com/python3/python3-string-replace.html) 把 将字符串中的 old 替换成 new,如果 max 指定，则替换不超过 max 次。 |
+| 27   | [rfind(str, beg=0,end=len(string))](https://www.runoob.com/python3/python3-string-rfind.html) 类似于 find()函数，不过是从右边开始查找. |
+| 28   | [rindex( str, beg=0, end=len(string))](https://www.runoob.com/python3/python3-string-rindex.html) 类似于 index()，不过是从右边开始. |
+| 29   | [rjust(width,[, fillchar\])](https://www.runoob.com/python3/python3-string-rjust.html) 返回一个原字符串右对齐,并使用fillchar(默认空格）填充至长度 width 的新字符串 |
+| 30   | [rstrip()](https://www.runoob.com/python3/python3-string-rstrip.html) 删除字符串末尾的空格或指定字符。 |
+| 31   | [split(str="", num=string.count(str))](https://www.runoob.com/python3/python3-string-split.html) 以 str 为分隔符截取字符串，如果 num 有指定值，则仅截取 num+1 个子字符串 |
+| 32   | [splitlines([keepends\])](https://www.runoob.com/python3/python3-string-splitlines.html) 按照行('\r', '\r\n', \n')分隔，返回一个包含各行作为元素的列表，如果参数 keepends 为 False，不包含换行符，如果为 True，则保留换行符。 |
+| 33   | [startswith(substr, beg=0,end=len(string))](https://www.runoob.com/python3/python3-string-startswith.html) 检查字符串是否是以指定子字符串 substr 开头，是则返回 True，否则返回 False。如果beg 和 end 指定值，则在指定范围内检查。 |
+| 34   | [strip([chars\])](https://www.runoob.com/python3/python3-string-strip.html) 在字符串上执行 lstrip()和 rstrip() |
+| 35   | [swapcase()](https://www.runoob.com/python3/python3-string-swapcase.html) 将字符串中大写转换为小写，小写转换为大写 |
+| 36   | [title()](https://www.runoob.com/python3/python3-string-title.html) 返回"标题化"的字符串,就是说所有单词都是以大写开始，其余字母均为小写(见 istitle()) |
+| 37   | [translate(table, deletechars="")](https://www.runoob.com/python3/python3-string-translate.html) 根据 table 给出的表(包含 256 个字符)转换 string 的字符, 要过滤掉的字符放到 deletechars 参数中 |
+| 38   | [upper()](https://www.runoob.com/python3/python3-string-upper.html) 转换字符串中的小写字母为大写 |
+| 39   | [zfill (width)](https://www.runoob.com/python3/python3-string-zfill.html) 返回长度为 width 的字符串，原字符串右对齐，前面填充0 |
+| 40   | [isdecimal()](https://www.runoob.com/python3/python3-string-isdecimal.html) 检查字符串是否只包含十进制字符，如果是返回 true，否则返回 false。 |
 
-语义层面，list 有序且可变，适合明细与流水。tuple 有序且不可变，适合表达一个固定结构的键或返回值。dict 用键做索引，适合快速查找与字段映射。set 适合去重与成员判断。复杂度直觉不是让你背 O 记号，而是让你知道何时该建索引。例如你在订单列表里频繁按 `order_id` 查找，如果你每次都遍历 list，随着订单量上来会明显变慢；把 list 构建成 dict 索引是一种非常典型的工程优化，这不是算法题，而是数据表示方式的选择。
+###### 格式化与转义字符 
 
-哈希约束决定了键必须稳定。可变对象如 list/dict 不可哈希，不能当键；tuple 只有当元素都可哈希时才可哈希。工程里最稳的键通常是不可变标识字段组成的 tuple，例如 `(order_id, channel)`。你不需要在基础章节教人怎么自定义 hash，但你要形成一个直觉：缓存键与去重键必须稳定且可解释，宁可用明确的 tuple，也不要用“看起来方便”的可变结构。
+Python 支持格式化字符串的输出 。尽管这样可能会用到非常复杂的表达式，但最基本的用法是将一个值插入到一个有字符串格式符 %s 的字符串中。在 Python 中，字符串格式化使用与 C 中 sprintf 函数一样的语法。
 
-遍历与修改是容器的另一类基础坑。遍历 list 时删除元素会导致索引移动从而漏处理；遍历 dict 时修改结构会导致异常或不可预期行为。订单系统里做过滤更推荐构造新列表或先收集再修改。你在面试里讲清楚“遍历期间不改结构，必要时先收集再改”，非常加分，因为这类 bug 在线上出现过太多次。
+| 符  号 | 描述                                 |
+| :----- | :----------------------------------- |
+| %c     | 格式化字符及其ASCII码                |
+| %s     | 格式化字符串                         |
+| %d     | 格式化整数                           |
+| %u     | 格式化无符号整型                     |
+| %o     | 格式化无符号八进制数                 |
+| %x     | 格式化无符号十六进制数               |
+| %X     | 格式化无符号十六进制数（大写）       |
+| %f     | 格式化浮点数字，可指定小数点后的精度 |
+| %e     | 用科学计数法格式化浮点数             |
+| %E     | 作用同%e，用科学计数法格式化浮点数   |
+| %g     | %f和%e的简写                         |
+| %G     | %f 和 %E 的简写                      |
+| %p     | 用十六进制数格式化变量的地址         |
 
-下面用表把容器选择策略写成工程语言。面试里你按这张表讲，会更像写过真实项目。
+格式化操作符辅助指令:
 
-| 容器  | 适合的工作             | 不适合的工作   | 订单系统例子           |
-| ----- | ---------------------- | -------------- | ---------------------- |
-| list  | 有序明细、批处理序列   | 频繁按键查找   | items 明细、分页批处理 |
-| tuple | 不可变小结构、可哈希键 | 频繁修改       | (order_id, channel)    |
-| dict  | 字段映射、索引查找     | 表达业务顺序   | 按 id 建索引           |
-| set   | 去重、成员判断         | 保留顺序、计数 | 去重回调 id            |
+| 符号  | 功能                                                         |
+| :---- | :----------------------------------------------------------- |
+| *     | 定义宽度或者小数点精度                                       |
+| -     | 用做左对齐                                                   |
+| +     | 在正数前面显示加号( + )                                      |
+| <sp>  | 在正数前面显示空格                                           |
+| #     | 在八进制数前面显示零('0')，在十六进制前面显示'0x'或者'0X'(取决于用的是'x'还是'X') |
+| 0     | 显示的数字前面填充'0'而不是默认的空格                        |
+| %     | '%%'输出一个单一的'%'                                        |
+| (var) | 映射变量(字典参数)                                           |
+| m.n.  | m 是显示的最小总宽度,n 是小数点后的位数(如果可用的话)        |
 
-示例把订单列表转成按 id 的索引，同时用 set 去重，并演示遍历时不要原地删的安全做法。示例仍然保持订单系统语境。
+**f-string**：f-string 是 python3.6 之后版本添加的，称之为字面量格式化字符串，是新的格式化字符串的语法。**f-string** 格式化字符串以 **f** 开头，后面跟着字符串，字符串中的表达式用大括号 {} 包起来，它会将变量或表达式计算后的值替换进去，用了这种方式明显更简单了，不用再去判断使用 %s，还是 %d。
 
-```python
-# ordersys/container_demo2.py
-orders = [
-    {"id": 1001, "channel": "A"},
-    {"id": 1002, "channel": "B"},
-    {"id": 1001, "channel": "A"},
-]
+```
+name = 'Runoob'
+'Hello %s' % name
+'Hello Runoob'
 
-seen = set()
-unique = []
-for o in orders:
-    oid = o["id"]
-    if oid in seen:
-        continue
-    seen.add(oid)
-    unique.append(o)
+name = 'Runoob'
+f'Hello {name}' # 替换变量
+'Hello Runoob'
+f'{1+2}'     # 使用表达式
+'3'
 
-index = {o["id"]: o for o in unique}
-print(index[1002]["channel"])
+w = {'name': 'Runoob', 'url': 'www.runoob.com'}
+f'{w["name"]}: {w["url"]}'
+'Runoob: www.runoob.com'
+```
 
-to_delete = []
-for o in unique:
-    if o["channel"] == "B":
-        to_delete.append(o)
-for o in to_delete:
-    unique.remove(o)
-print([o["id"] for o in unique])
+在需要在字符中使用特殊字符时，python 用反斜杠 **\** 转义字符。如下表：
+
+| 转义字符    | 描述                                                         | 实例                                                         |
+| :---------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| \(在行尾时) | 续行符                                                       | `>>> print("line1 \ ... line2 \ ... line3") line1 line2 line3 >>> ` |
+| \\          | 反斜杠符号                                                   | `>>> print("\\") \`                                          |
+| \'          | 单引号                                                       | `>>> print('\'') '`                                          |
+| \"          | 双引号                                                       | `>>> print("\"") "`                                          |
+| \a          | 响铃                                                         | `>>> print("\a")`执行后电脑有响声。                          |
+| \b          | 退格(Backspace)                                              | `>>> print("Hello \b World!") Hello World!`                  |
+| \000        | 空                                                           | `>>> print("\000") >>> `                                     |
+| \n          | 换行                                                         | `>>> print("\n")  >>>`                                       |
+| \v          | 纵向制表符                                                   | `>>> print("Hello \v World!") Hello        World! >>>`       |
+| \t          | 横向制表符                                                   | `>>> print("Hello \t World!") Hello    World! >>>`           |
+| \r          | 回车，将 **\r** 后面的内容移到字符串开头，并逐一替换开头部分的字符，直至将 **\r** 后面的内容完全替换完成。 | `>>> print("Hello\rWorld!") World! >>> print('google runoob taobao\r123456') 123456 runoob taobao` |
+| \f          | 换页                                                         | `>>> print("Hello \f World!") Hello        World! >>> `      |
+| \yyy        | 八进制数，y 代表 0~7 的字符，例如：\012 代表换行。           | `>>> print("\110\145\154\154\157\40\127\157\162\154\144\41") Hello World!` |
+| \xyy        | 十六进制数，以 \x 开头，y 代表的字符，例如：\x0a 代表换行    | `>>> print("\x48\x65\x6c\x6c\x6f\x20\x57\x6f\x72\x6c\x64\x21") Hello World!` |
+| \other      | 其它的字符以普通格式输出                                     |                                                              |
+
+##### 布尔 Bool
+
+布尔类型即 True 或 False。在 Python 中，True 和 False 都是关键字，表示布尔值。布尔类型可以用来控制程序的流程，比如判断某个条件是否成立，或者在某个条件满足时执行某段代码。
+
+布尔类型只有两个值：True 和 False。布尔类型可以和其他数据类型进行比较，布尔类型也可以被转换成其他数据类型，比如数字、字符串等。这时，Python 会将 True 视为 1，False 视为 0。布尔类型也可以和逻辑运算符一起使用，包括 and、or 和 not。这些运算符可以用来组合多个布尔表达式，生成一个新的布尔值。可以使用 `bool()` 函数将其他类型的值转换为布尔值。以下值在转换为布尔值时为 `False`：`None`、`False`、零 (`0`、`0.0`、`0j`)、空序列（如 `''`、`()`、`[]`）和空映射（如 `{}`）。其他所有值转换为布尔值时均为 `True`。
+
+**注意:** 在 Python 中，所有非零的数字和非空的字符串、列表、元组等数据类型都被视为 True，只有 **0、空字符串、空列表、空元组**等被视为 False。因此，在进行布尔类型转换时，需要注意数据类型的真假性。
+
+##### 列表 List
+
+序列是 Python 中最基本的数据结构。序列中的每个值都有对应的位置值，称之为索引，第一个索引是 0，第二个索引是 1，依此类推。Python 有 6 个序列的内置类型，但最常见的是列表和元组。列表都可以进行的操作包括索引，切片，加，乘，检查成员。此外，Python 已经内置确定序列的长度以及确定最大和最小的元素的方法。列表是最常用的 Python 数据类型，它可以作为一个方括号内的逗号分隔值出现。列表的数据项不需要具有相同的类型。创建一个列表，只要把逗号分隔的不同的数据项使用方括号括起来即可。与字符串的索引一样，列表索引从 **0** 开始，第二个索引是 **1**，依此类推。通过索引列表可以进行截取、组合等操作。可以使用 append() 方法来添加列表项，使用 del 语句来删除列表中的元素，\+ 号用于组合列表，* 号用于重复列表。
+
+```
+list = ['Google', 'Runoob', "Zhihu", "Taobao", "Wiki"] # 定义列表
+
+list[1]	# 取第二个元素 Runoob 
+list[1:-2] # 从第二位开始（包含）截取到倒数第二位（不包含） ['Runoob', 'Zhihu']
+
+list1 = ['Google', 'Runoob', 'Taobao']
+list1.append('Baidu') # 追加数据
+del list1[0]	# 删除数据
+
+list2 = list + list1 # +追加
+list2 = list * 2 # *重复
 
 ```
 
-容器这一节最终要形成的能力是选对表达方式。订单系统里很多性能与正确性问题，不是因为 for 写错了，而是因为数据结构选错了。你把“语义、哈希稳定、遍历不改结构”这三点讲清楚，基础容器面试基本就稳。
+以下是一些常用函数与方法。
+
+Python包含以下函数:
+
+| 序号 | 函数                                                         |
+| :--- | :----------------------------------------------------------- |
+| 1    | [len(list)](https://www.runoob.com/python3/python3-att-list-len.html) 列表元素个数 |
+| 2    | [max(list)](https://www.runoob.com/python3/python3-att-list-max.html) 返回列表元素最大值 |
+| 3    | [min(list)](https://www.runoob.com/python3/python3-att-list-min.html) 返回列表元素最小值 |
+| 4    | [list(seq)](https://www.runoob.com/python3/python3-att-list-list.html) 将元组转换为列表 |
+
+Python包含以下方法:
+
+| 序号 | 方法                                                         |
+| :--- | :----------------------------------------------------------- |
+| 1    | [list.append(obj)](https://www.runoob.com/python3/python3-att-list-append.html) 在列表末尾添加新的对象 |
+| 2    | [list.count(obj)](https://www.runoob.com/python3/python3-att-list-count.html) 统计某个元素在列表中出现的次数 |
+| 3    | [list.extend(seq)](https://www.runoob.com/python3/python3-att-list-extend.html) 在列表末尾一次性追加另一个序列中的多个值（用新列表扩展原来的列表） |
+| 4    | [list.index(obj)](https://www.runoob.com/python3/python3-att-list-index.html) 从列表中找出某个值第一个匹配项的索引位置 |
+| 5    | [list.insert(index, obj)](https://www.runoob.com/python3/python3-att-list-insert.html) 将对象插入列表 |
+| 6    | [list.pop([index=-1\])](https://www.runoob.com/python3/python3-att-list-pop.html) 移除列表中的一个元素（默认最后一个元素），并且返回该元素的值 |
+| 7    | [list.remove(obj)](https://www.runoob.com/python3/python3-att-list-remove.html) 移除列表中某个值的第一个匹配项 |
+| 8    | [list.reverse()](https://www.runoob.com/python3/python3-att-list-reverse.html) 反向列表中元素 |
+| 9    | [list.sort( key=None, reverse=False)](https://www.runoob.com/python3/python3-att-list-sort.html) 对原列表进行排序 |
+| 10   | [list.clear()](https://www.runoob.com/python3/python3-att-list-clear.html) 清空列表 |
+| 11   | [list.copy()](https://www.runoob.com/python3/python3-att-list-copy.html) 复制列表 |
+
+##### 元组 Tuple
+
+Python 的元组与列表类似，不同之处在于元组的元素不能修改。元组使用小括号 **( )**，列表使用方括号 **[ ]**。元组创建很简单，只需要在括号中添加元素，并使用逗号隔开即可。元组中只包含一个元素时，需要在元素后面添加逗号 **,** ，否则括号会被当作运算符使用。元组与字符串类似，下标索引从 0 开始，可以进行截取，组合等。元组中的元素值是不允许修改的，但我们可以对元组进行连接组合。元组中的元素值是不允许删除的，但我们可以使用del语句来删除整个元组。与字符串一样，元组之间可以使用 **+**、**+=**和 ***** 号进行运算。这就意味着他们可以组合和复制，运算后会生成一个新的元组。因为元组也是一个序列，所以我们可以访问元组中的指定位置的元素，也可以截取索引中的一段元素。
 
 ```
-容器这块最常见的坑还包括共享可变对象导致的跨请求污染，例如把列表当成全局缓存然后在请求里 append。你不需要把它写成清单，但你要在脑子里一直保留“可变对象会被共享引用”这个底线，这会让你在读代码时更敏感，也会让你在面试里更像一个能上生产的人。
+tuple = ( 'abcd', 786 , 2.23, 'runoob', 70.2  ) # 定义一个元组
+tuple2 = ('1')
+tup1 = ()    # 空元组
+tup2 = (20,) # 一个元素，需要在元素后添加逗号
+
+tuple             	# 输出完整元组
+tuple[0]          	# 输出元组的第一个元素
+tuple[1:3]        	# 输出从第二个元素开始到第三个元素
+tuple[2:]        	# 输出从第三个元素开始的所有元素
+tuple2 * 2     		# 输出两次元组
+tuple2 + tinytuple 	# 连接元组
+
+tup1 = ()    # 空元组
+tup2 = (20,) # 一个元素，需要在元素后添加逗号
+
+del tup # 删除元组
+
 
 ```
 
-容器这块常见的坑也要能自然讲出来。一个是把可变对象当作共享默认值或共享缓存，导致跨请求污染；另一个是遍历时修改容器，导致漏处理；还有一个是把 dict 的键当成“稳定顺序”，在较新版本里插入顺序确实会保留，但工程上如果你依赖这个特性来表达业务语义，就要写得非常明确，否则读代码的人会误解你的意图。这里的底线是：容器是表达，不是魔法，选对容器比写对循环更重要。
+Python元组包含了以下内置函数
 
-#### 切片与拷贝
+| 序号 | 方法及描述                               | 实例                                                         |
+| :--- | :--------------------------------------- | :----------------------------------------------------------- |
+| 1    | len(tuple) 计算元组元素个数。            | `>>> tuple1 = ('Google', 'Runoob', 'Taobao') >>> len(tuple1) 3 >>> ` |
+| 2    | max(tuple) 返回元组中元素最大值。        | `>>> tuple2 = ('5', '4', '8') >>> max(tuple2) '8' >>> `      |
+| 3    | min(tuple) 返回元组中元素最小值。        | `>>> tuple2 = ('5', '4', '8') >>> min(tuple2) '4' >>> `      |
+| 4    | tuple(iterable) 将可迭代系列转换为元组。 | `>>> list1= ['Google', 'Taobao', 'Runoob', 'Baidu'] >>> tuple1=tuple(list1) >>> tuple1 ('Google', 'Taobao', 'Runoob', 'Baidu')` |
 
-这一节的核心是让你在订单系统里写批处理与隔离修改时不踩坑。切片会创建新容器但共享元素引用，因此属于浅拷贝；需要隔离时更推荐显式重建关键层级，而不是无脑深拷贝。
+##### 集合 Set
 
-```python
-订单系统里不建议把 deepcopy 当成默认工具，原因是它会递归复制整个对象图，成本可能很高，而且可能把你不想复制的对象也复制走，例如连接、锁、文件句柄这类资源对象。更稳的工程策略是只复制你需要隔离的那一层数据结构，并把“隔离边界”写得显式可读，这样后续维护的人也知道你为什么复制。
+集合（set）是一个无序的不重复元素序列。集合中的元素不会重复，并且可以进行交集、并集、差集等常见的集合操作。可以使用大括号 **{ }** 创建集合，元素之间用逗号 **,** 分隔， 或者也可以使用 **set()** 函数创建集合。**注意：**创建一个空集合必须用 **set()** 而不是 **{ }**，因为 **{ }** 是用来创建一个空字典。添加元素可以用add方法也可以用update方法。移除元素用remove方法或者discard方法。也可以使用pop方法随机删除集合中的一个元素。使用clear我们可以直接清空一个集合。
 
-如果你在面试里被追问“那什么时候用 deepcopy”，回答通常是：当对象图结构清晰、数据量可控、并且你确实需要一份完全隔离的快照时可以用，但依然要结合剖析与场景；多数业务代码更推荐显式重建关键字段。
+```
+thisset = set(("Google", "Runoob", "Taobao"))
+thisset.add("Facebook")
+thisset.update({1,3})
+thisset.update([1,4],[5,6])  
+thisset.remove("Taobao")
+thisset.discard("Facebook")  # 不存在不会发生错误
+x = thisset.pop()
+thisset.clear()
+```
 
-如果你确实需要一份完全隔离的快照，并且对象图结构清晰、数据量可控，deepcopy 也可以使用，但它不应成为默认，因为它的成本与副作用很难凭直觉评估，最好配合剖析与明确的隔离需求再决定。
-# ordersys/copy_demo.py
-import copy
+| 方法                                                         | 描述                                                         |
+| :----------------------------------------------------------- | :----------------------------------------------------------- |
+| [add()](https://www.runoob.com/python3/ref-set-add.html)     | 为集合添加元素                                               |
+| [clear()](https://www.runoob.com/python3/ref-set-clear.html) | 移除集合中的所有元素                                         |
+| [copy()](https://www.runoob.com/python3/ref-set-copy.html)   | 拷贝一个集合                                                 |
+| [difference()](https://www.runoob.com/python3/ref-set-difference.html) | 返回多个集合的差集                                           |
+| [difference_update()](https://www.runoob.com/python3/ref-set-difference_update.html) | 移除集合中的元素，该元素在指定的集合也存在。                 |
+| [discard()](https://www.runoob.com/python3/ref-set-discard.html) | 删除集合中指定的元素                                         |
+| [intersection()](https://www.runoob.com/python3/ref-set-intersection.html) | 返回集合的交集                                               |
+| [intersection_update()](https://www.runoob.com/python3/ref-set-intersection_update.html) | 返回集合的交集。                                             |
+| [isdisjoint()](https://www.runoob.com/python3/ref-set-isdisjoint.html) | 判断两个集合是否包含相同的元素，如果没有返回 True，否则返回 False。 |
+| [issubset()](https://www.runoob.com/python3/ref-set-issubset.html) | 判断指定集合是否为该方法参数集合的子集。                     |
+| [issuperset()](https://www.runoob.com/python3/ref-set-issuperset.html) | 判断该方法的参数集合是否为指定集合的子集                     |
+| [pop()](https://www.runoob.com/python3/ref-set-pop.html)     | 随机移除元素                                                 |
+| [remove()](https://www.runoob.com/python3/ref-set-remove.html) | 移除指定元素                                                 |
+| [symmetric_difference()](https://www.runoob.com/python3/ref-set-symmetric_difference.html) | 返回两个集合中不重复的元素集合。                             |
+| [symmetric_difference_update()](https://www.runoob.com/python3/ref-set-symmetric_difference_update.html) | 移除当前集合中在另外一个指定集合相同的元素，并将另外一个指定集合中不同的元素插入到当前集合中。 |
+| [union()](https://www.runoob.com/python3/ref-set-union.html) | 返回两个集合的并集                                           |
+| [update()](https://www.runoob.com/python3/ref-set-update.html) | 给集合添加元素                                               |
+| [len()](https://www.runoob.com/python3/python3-string-len.html) | 计算集合元素个数                                             |
 
-orders = [
-    {"id": 1001, "items": [{"sku": "A", "qty": 1}]},
-    {"id": 1002, "items": [{"sku": "B", "qty": 2}]},
-]
+##### 字典 Dictionary
 
-page = orders[:1]
-page[0]["items"][0]["qty"] = 9
-print(orders[0]["items"][0]["qty"])  # 9，切片不隔离内部对象
+字典是另一种可变容器模型，且可存储任意类型对象。字典的每个键值 **key=>value** 对用冒号 **:** 分割，每个对之间用逗号(**,**)分割，整个字典包括在花括号 **{}** 中。**注意：****dict** 作为 Python 的关键字和内置函数，变量名不建议命名为 **dict**。键必须是唯一的，但值则不必。值可以取任何数据类型，但键必须是不可变的，如字符串，数字。
 
-safe = [{"id": o["id"], "items": [dict(x) for x in o["items"]]} for o in orders]
-safe[0]["items"][0]["qty"] = 7
-print(orders[0]["items"][0]["qty"])  # 9，原对象不再被影响
+构造函数 dict() 可以直接从键值对序列中构建字典，也可以使用大括号 **{ }** 创建字典。另外，字典类型也有一些内置的函数，例如 clear()、keys()、values() 等。在同一个字典中，键(key)必须是唯一的。向字典添加新内容的方法是增加新的键/值对，修改或删除已有键/值对。能删单一的元素也能清空字典，清空只需一项操作。显式删除一个字典用del命令。
 
-deep = copy.deepcopy(orders)
-deep[0]["items"][0]["qty"] = 5
-print(orders[0]["items"][0]["qty"])  # 9
+```
+tinydict = {'Name': 'Runoob', 'Age': 7, 'Class': 'First'}
+ 
+print ("tinydict['Name']: ", tinydict['Name'])
+print ("tinydict['Age']: ", tinydict['Age'])
+tinydict['Age'] = 8               # 更新 Age
+tinydict['School'] = "菜鸟教程"  # 添加信息
+del tinydict['Name'] # 删除键 'Name'
+tinydict.clear()     # 清空字典
+del tinydict         # 删除字典
 
 ```
 
-### 
+Python字典包含了以下内置函数：
+
+| 序号 | 函数及描述                                                   | 实例                                                         |
+| :--- | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| 1    | len(dict) 计算字典元素个数，即键的总数。                     | `>>> tinydict = {'Name': 'Runoob', 'Age': 7, 'Class': 'First'} >>> len(tinydict) 3` |
+| 2    | str(dict) 输出字典，可以打印的字符串表示。                   | `>>> tinydict = {'Name': 'Runoob', 'Age': 7, 'Class': 'First'} >>> str(tinydict) "{'Name': 'Runoob', 'Class': 'First', 'Age': 7}"` |
+| 3    | type(variable) 返回输入的变量类型，如果变量是字典就返回字典类型。 | `>>> tinydict = {'Name': 'Runoob', 'Age': 7, 'Class': 'First'} >>> type(tinydict) <class 'dict'>` |
+
+Python字典包含了以下内置方法：
+
+| 序号 | 函数及描述                                                   |
+| :--- | :----------------------------------------------------------- |
+| 1    | [dict.clear()](https://www.runoob.com/python3/python3-att-dictionary-clear.html) 删除字典内所有元素 |
+| 2    | [dict.copy()](https://www.runoob.com/python3/python3-att-dictionary-copy.html) 返回一个字典的浅复制 |
+| 3    | [dict.fromkeys()](https://www.runoob.com/python3/python3-att-dictionary-fromkeys.html) 创建一个新字典，以序列seq中元素做字典的键，val为字典所有键对应的初始值 |
+| 4    | [dict.get(key, default=None)](https://www.runoob.com/python3/python3-att-dictionary-get.html) 返回指定键的值，如果键不在字典中返回 default 设置的默认值 |
+| 5    | [key in dict](https://www.runoob.com/python3/python3-att-dictionary-in.html) 如果键在字典dict里返回true，否则返回false |
+| 6    | [dict.items()](https://www.runoob.com/python3/python3-att-dictionary-items.html) 以列表返回一个视图对象 |
+| 7    | [dict.keys()](https://www.runoob.com/python3/python3-att-dictionary-keys.html) 返回一个视图对象 |
+| 8    | [dict.setdefault(key, default=None)](https://www.runoob.com/python3/python3-att-dictionary-setdefault.html) 和get()类似, 但如果键不存在于字典中，将会添加键并将值设为default |
+| 9    | [dict.update(dict2)](https://www.runoob.com/python3/python3-att-dictionary-update.html) 把字典dict2的键/值对更新到dict里 |
+| 10   | [dict.values()](https://www.runoob.com/python3/python3-att-dictionary-values.html) 返回一个视图对象 |
+| 11   | [dict.pop(key[,default\])](https://www.runoob.com/python3/python3-att-dictionary-pop.html) 删除字典 key（键）所对应的值，返回被删除的值。 |
+| 12   | [dict.popitem()](https://www.runoob.com/python3/python3-att-dictionary-popitem.html) 返回并删除字典中的最后一对键和值。 |
+
+##### 字节 Bytes
+
+在 Python3 中，bytes 类型表示的是不可变的二进制序列（byte sequence）。与字符串类型不同的是，bytes 类型中的元素是整数值（0 到 255 之间的整数），而不是 Unicode 字符。bytes 类型通常用于处理二进制数据，比如图像文件、音频文件、视频文件等等。在网络编程中，也经常使用 bytes 类型来传输二进制数据。创建 bytes 对象的方式有多种，最常见的方式是使用 b 前缀：此外，也可以使用 bytes() 函数将其他类型的对象转换为 bytes 类型。与字符串类型类似，bytes 类型也支持许多操作和方法，如切片、拼接、查找、替换等等。同时，由于 bytes 类型是不可变的，因此在进行修改操作时需要创建一个新的 bytes 对象。bytes() 函数的第一个参数是要转换的对象，第二个参数是编码方式，如果省略第二个参数，则默认使用 UTF-8 编码：
+
+```
+x = bytes("hello", encoding="utf-8"
+```
+
+#### 数据类型转换
+
+有时候，我们需要对数据内置的类型进行转换，数据类型的转换，一般情况下你只需要将数据类型作为函数名即可。Python 数据类型转换可以分为两种：隐式类型转换 - 自动完成，显式类型转换 - 需要使用类型函数来转换。
+
+##### 隐式类型转换
+
+在隐式类型转换中，Python 会自动将一种数据类型转换为另一种数据类型，不需要我们去干预。以下实例中，我们对两种不同类型的数据进行运算，较低数据类型（整数）就会转换为较高数据类型（浮点数）以避免数据丢失。
+
+```
+num_int = 123
+num_flo = 1.23
+
+num_new = num_int + num_flo
+
+print("num_int 数据类型为:",type(num_int))
+print("num_flo 数据类型为:",type(num_flo))
+
+print("num_new 值为:",num_new)
+print("num_new 数据类型为:",type(num_new))
+
+num_int 数据类型为: <class 'int'>
+num_flo 数据类型为: <class 'float'>
+num_new: 值为: 124.23
+num_new 数据类型为: <class 'float'>
+```
+
+##### 显式类型转换
+
+在显式类型转换中，用户将对象的数据类型转换为所需的数据类型。 我们使用 int()、float()、str() 等预定义函数来执行显式类型转换。
+
+```
+num_int = 123
+num_str = "456"
+
+print("num_int 数据类型为:",type(num_int))
+print("类型转换前，num_str 数据类型为:",type(num_str))
+
+num_str = int(num_str)    # 强制转换为整型
+print("类型转换后，num_str 数据类型为:",type(num_str))
+
+num_sum = num_int + num_str
+
+print("num_int 与 num_str 相加结果为:",num_sum)
+print("sum 数据类型为:",type(num_sum))
+```
+
+##### 常用转换函数
+
+| 函数                                                         | 描述                                                |
+| :----------------------------------------------------------- | :-------------------------------------------------- |
+| [int(x [,base\])](https://www.runoob.com/python3/python-func-int.html) | 将x转换为一个整数                                   |
+| [float(x)](https://www.runoob.com/python3/python-func-float.html) | 将x转换到一个浮点数                                 |
+| [complex(real [,imag\])](https://www.runoob.com/python3/python-func-complex.html) | 创建一个复数                                        |
+| [str(x)](https://www.runoob.com/python3/python-func-str.html) | 将对象 x 转换为字符串                               |
+| [repr(x)](https://www.runoob.com/python3/python-func-repr.html) | 将对象 x 转换为表达式字符串                         |
+| [eval(str)](https://www.runoob.com/python3/python-func-eval.html) | 用来计算在字符串中的有效Python表达式,并返回一个对象 |
+| [tuple(s)](https://www.runoob.com/python3/python3-func-tuple.html) | 将序列 s 转换为一个元组                             |
+| [list(s)](https://www.runoob.com/python3/python3-att-list-list.html) | 将序列 s 转换为一个列表                             |
+| [set(s)](https://www.runoob.com/python3/python-func-set.html) | 转换为可变集合                                      |
+| [dict(d)](https://www.runoob.com/python3/python-func-dict.html) | 创建一个字典。d 必须是一个 (key, value)元组序列。   |
+| [frozenset(s)](https://www.runoob.com/python3/python-func-frozenset.html) | 转换为不可变集合                                    |
+| [chr(x)](https://www.runoob.com/python3/python-func-chr.html) | 将一个整数转换为一个字符                            |
+| [ord(x)](https://www.runoob.com/python3/python-func-ord.html) | 将一个字符转换为它的整数值                          |
+| [hex(x)](https://www.runoob.com/python3/python-func-hex.html) | 将一个整数转换为一个十六进制字符串                  |
+| [oct(x)](https://www.runoob.com/python3/python-func-oct.html) | 将一个整数转换为一个八进制字符串                    |
+
+#### 运算符
+
+##### 算术运算符
+
+以下假设变量 **a=10**，变量 **b=21**：
+
+| 运算符 | 描述                                            | 实例                   |
+| :----- | :---------------------------------------------- | :--------------------- |
+| +      | 加 - 两个对象相加                               | a + b 输出结果 31      |
+| -      | 减 - 得到负数或是一个数减去另一个数             | a - b 输出结果 -11     |
+| *      | 乘 - 两个数相乘或是返回一个被重复若干次的字符串 | a * b 输出结果 210     |
+| /      | 除 - x 除以 y                                   | b / a 输出结果 2.1     |
+| %      | 取模 - 返回除法的余数                           | b % a 输出结果 1       |
+| **     | 幂 - 返回x的y次幂                               | a**b 为10的21次方      |
+| //     | 取整除 - 往小的方向取整数                       | 9//2 = 4   -9//2 = -5` |
+
+##### 比较运算符
+
+以下假设变量 a 为 10，变量 b 为20：
+
+| 运算符 | 描述                                                         | 实例                  |
+| :----- | :----------------------------------------------------------- | :-------------------- |
+| ==     | 等于 - 比较对象是否相等                                      | (a == b) 返回 False。 |
+| !=     | 不等于 - 比较两个对象是否不相等                              | (a != b) 返回 True。  |
+| >      | 大于 - 返回x是否大于y                                        | (a > b) 返回 False。  |
+| <      | 小于 - 返回x是否小于y。所有比较运算符返回1表示真，返回0表示假。这分别与特殊的变量True和False等价。注意，这些变量名的大写。 | (a < b) 返回 True。   |
+| >=     | 大于等于 - 返回x是否大于等于y。                              | (a >= b) 返回 False。 |
+| <=     | 小于等于 - 返回x是否小于等于y。                              | (a <= b) 返回 True。  |
+
+##### 赋值运算符
+
+以下假设变量a为10，变量b为20：
+
+| 运算符 | 描述                                                         | 实例                                                         |
+| :----- | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| =      | 简单的赋值运算符                                             | c = a + b 将 a + b 的运算结果赋值为 c                        |
+| +=     | 加法赋值运算符                                               | c += a 等效于 c = c + a                                      |
+| -=     | 减法赋值运算符                                               | c -= a 等效于 c = c - a                                      |
+| *=     | 乘法赋值运算符                                               | c *= a 等效于 c = c * a                                      |
+| /=     | 除法赋值运算符                                               | c /= a 等效于 c = c / a                                      |
+| %=     | 取模赋值运算符                                               | c %= a 等效于 c = c % a                                      |
+| **=    | 幂赋值运算符                                                 | c **= a 等效于 c = c ** a                                    |
+| //=    | 取整除赋值运算符                                             | c //= a 等效于 c = c // a                                    |
+| :=     | 海象运算符，这个运算符的主要目的是在表达式中同时进行赋值和返回赋值的值。**Python3.8 版本新增运算符**。 | 在这个示例中，赋值表达式可以避免调用 len() 两次:`if (n := len(a)) > 10:    print(f"List is too long ({n} elements, expected <= 10)")` |
+
+##### 位运算符
+
+按位运算符是把数字看作二进制来进行计算的。下表中变量 a 为 60，b 为 13二进制格式如下：
+
+| 运算符 | 描述                                                         | 实例                                                         |
+| :----- | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| &      | 按位与运算符：参与运算的两个值,如果两个相应位都为1,则该位的结果为1,否则为0 | (a & b) 输出结果 12 ，二进制解释： 0000 1100                 |
+| \|     | 按位或运算符：只要对应的二个二进位有一个为1时，结果位就为1。 | (a \| b) 输出结果 61 ，二进制解释： 0011 1101                |
+| ^      | 按位异或运算符：当两对应的二进位相异时，结果为1              | (a ^ b) 输出结果 49 ，二进制解释： 0011 0001                 |
+| ~      | 按位取反运算符：对数据的每个二进制位取反,即把1变为0,把0变为1。**~x** 类似于 **-x-1** | (~a ) 输出结果 -61 ，二进制解释： 1100 0011， 在一个有符号二进制数的补码形式。 |
+| <<     | 左移动运算符：运算数的各二进位全部左移若干位，由"<<"右边的数指定移动的位数，高位丢弃，低位补0。 | a << 2 输出结果 240 ，二进制解释： 1111 0000                 |
+| >>     | 右移动运算符：把">>"左边的运算数的各二进位全部右移若干位，">>"右边的数指定移动的位数 | a >> 2 输出结果 15 ，二进制解释： 0000 1111                  |
+
+##### 逻辑运算符
+
+以下假设变量 a 为 10, b为 20:
+
+| 运算符 | 逻辑表达式 | 描述                                                         | 实例                    |
+| :----- | :--------- | :----------------------------------------------------------- | :---------------------- |
+| and    | x and y    | 布尔"与" - 如果 x 为 False，x and y 返回 x 的值，否则返回 y 的计算值。 | (a and b) 返回 20。     |
+| or     | x or y     | 布尔"或" - 如果 x 是 True，它返回 x 的值，否则它返回 y 的计算值。 | (a or b) 返回 10。      |
+| not    | not x      | 布尔"非" - 如果 x 为 True，返回 False 。如果 x 为 False，它返回 True。 | not(a and b) 返回 False |
+
+##### 成员运算符
+
+测试实例中包含了一系列的成员，包括字符串，列表或元组。
+
+| 运算符 | 描述                                                    | 实例                                              |
+| :----- | :------------------------------------------------------ | :------------------------------------------------ |
+| in     | 如果在指定的序列中找到值返回 True，否则返回 False。     | x 在 y 序列中 , 如果 x 在 y 序列中返回 True。     |
+| not in | 如果在指定的序列中没有找到值返回 True，否则返回 False。 | x 不在 y 序列中 , 如果 x 不在 y 序列中返回 True。 |
+
+##### 身份运算符
+
+身份运算符用于比较两个对象的存储单元
+
+| 运算符 | 描述                                        | 实例                                                         |
+| :----- | :------------------------------------------ | :----------------------------------------------------------- |
+| is     | is 是判断两个标识符是不是引用自一个对象     | **x is y**, 类似 **id(x) == id(y)** , 如果引用的是同一个对象则返回 True，否则返回 False |
+| is not | is not 是判断两个标识符是不是引用自不同对象 | **x is not y** ， 类似 **id(x) != id(y)**。如果引用的不是同一个对象则返回结果 True，否则返回 False。 |
+
+**注：** [id()](https://www.runoob.com/python/python-func-id.html) 函数用于获取对象内存地址。
+
+##### 运算符优先级
+
+以下表格列出了从最高到最低优先级的所有运算符， 相同单元格内的运算符具有相同优先级。 运算符均指二元运算，除非特别指出。 相同单元格内的运算符从左至右分组（除了幂运算是从右至左分组）：
+
+| 运算符                                                       | 描述                               |
+| :----------------------------------------------------------- | :--------------------------------- |
+| `(expressions...)`,`[expressions...]`, `{key: value...}`, `{expressions...}` | 圆括号的表达式                     |
+| `x[index]`, `x[index:index]`, `x(arguments...)`, `x.attribute` | 读取，切片，调用，属性引用         |
+| await x                                                      | await 表达式                       |
+| `**`                                                         | 乘方(指数)                         |
+| `+x`, `-x`, `~x`                                             | 正，负，按位非 NOT                 |
+| `*`, `@`, `/`, `//`, `%`                                     | 乘，矩阵乘，除，整除，取余         |
+| `+`, `-`                                                     | 加和减                             |
+| `<<`, `>>`                                                   | 移位                               |
+| `&`                                                          | 按位与 AND                         |
+| `^`                                                          | 按位异或 XOR                       |
+| `|`                                                          | 按位或 OR                          |
+| `in,not in, is,is not, <, <=, >, >=, !=, ==`                 | 比较运算，包括成员检测和标识号检测 |
+| `not x`                                                      | 逻辑非 NOT                         |
+| `and`                                                        | 逻辑与 AND                         |
+| `or`                                                         | 逻辑或 OR                          |
+| `if -- else`                                                 | 条件表达式                         |
+| `lambda`                                                     | lambda 表达式                      |
+| `:=`                                                         | 赋值表达式                         |
 
 #### 数值与精度
 
-金额与计数这类数值在订单系统里属于高风险字段，面试几乎必问。问题不在于你会不会算，而在于你是否能解释清楚为什么 float 不能直接用于金额，以及工程上怎么把风险压下去。`float` 的核心问题是它用二进制表示小数，很多十进制小数无法被精确表示，于是会产生误差，这个误差一旦进入累计、折扣、税费、分摊，最后会变成对账差异。
+float 不能直接用于金额，以及工程上怎么把风险压下去。`float` 的核心问题是它用二进制表示小数，很多十进制小数无法被精确表示，于是会产生误差，这个误差一旦进入累计、折扣、税费、分摊，最后会变成对账差异。`int` 在 Python 里是任意精度整数，不会像某些语言那样溢出回绕，代价是大整数计算会更慢一些。订单号、用户 id、金额分通常都落在 `int` 上，这让你不用担心溢出，但你仍然要注意系统边界，例如数据库字段类型的上限、JSON 数字在某些语言端的精度上限、以及前端展示的格式化规则。工程里对外接口如果可能出现超大整数，最好是把它当字符串传输，避免跨语言精度坑。
 
-同时你也需要对 Python 的整数有基本认识。`int` 在 Python 里是任意精度整数，不会像某些语言那样溢出回绕，代价是大整数计算会更慢一些。订单系统里订单号、用户 id、金额分通常都落在 `int` 上，这让你不用担心溢出，但你仍然要注意系统边界，例如数据库字段类型的上限、JSON 数字在某些语言端的精度上限、以及前端展示的格式化规则。工程里对外接口如果可能出现超大整数，更稳的做法是把它当字符串传输，避免跨语言精度坑。
+处理金额最常见的方案是用最小货币单位的整数表示，例如分，配合明确的舍入与单位转换策略。确实需要十进制精确规则计算时用 `decimal.Decimal`，但输入必须来自字符串或整数，不能来自 float。除此之外还经常会用万分比或基点表示比例，避免 float 漂移。看到 `discount_bp`、`rate_bp` 这类命名，通常就是以万分比表达比例。
 
-工程上处理金额最常见的方案是用最小货币单位的整数表示，例如分，配合明确的舍入与单位转换策略。确实需要十进制精确规则计算时用 `decimal.Decimal`，但输入必须来自字符串或整数，不能来自 float。除此之外还经常会用万分比或基点表示比例，避免 float 漂移。订单系统里你看到 `discount_bp`、`rate_bp` 这类命名，通常就是以万分比表达比例。
+下面的表展示数值策略按存储、计算、展示的链路。
 
-下面的表把数值策略按存储、计算、展示的链路写清楚。面试时你按链路讲，会显得更工程。
-
-| 场景 | 推荐类型 | 推荐原因 | 常见踩坑 |
+| 场景 | 推荐类型 | 推荐原因 | 注意 |
 | --- | --- | --- | --- |
 | 金额存储 | `int`（分） | 精确、快、便于索引 | 展示时忘记换算 |
 | 比例 | `int`（万分比） | 避免漂移 | 用 float 累计误差 |
@@ -349,281 +790,97 @@ print(orders[0]["items"][0]["qty"])  # 9
 | 时间戳/计数 | `int` | 不溢出 | 对外精度边界 |
 | 近似值 | `float` | 性能好 | 不能用于对账字段 |
 
-示例沿用订单系统的折扣逻辑，分别用 Decimal、整数分和 float 做对照，并展示 Decimal 的输入边界。
+#### 注释
 
-```python
+在 Python3 中，注释不会影响程序的执行，但是会使代码更易于阅读和理解。Python 中的注释有**单行注释**和**多行注释**。
 
-对外接口的一个现实坑是跨语言精度。某些语言或前端环境对大整数的精度支持有限，如果订单号或流水号可能超出安全范围，工程上更稳的做法是把它当字符串传输，把“标识”与“可计算数值”分开处理。
-# ordersys/money_demo.py
-from decimal import Decimal, getcontext
-
-getcontext().prec = 28
-
-price_yuan = "19.90"
-discount = "0.15"
-
-price_dec = Decimal(price_yuan)
-discount_dec = Decimal(discount)
-final_dec = price_dec * (Decimal("1") - discount_dec)
-print(final_dec)
-
-price_cents = 1990
-discount_bp = 1500
-final_cents = price_cents * (10000 - discount_bp) // 10000
-print(final_cents)
-
-bad = 0.1 + 0.2
-print(bad)
+**Python 中单行注释以 \**#\** 开头**。在 Python中，多行字符串（由三个单引号 **'''** 或三个双引号 **"""** 包围的文本块）在某些情况下可以被视为一种实现多行注释的技巧。**多行注释用三个单引号 \**'''\** 或者三个双引号 \**"""\** 将注释括起来**。在 Python 中，多行注释是由三个单引号 **'''** 或三个双引号 **"""** 来定义的，而且这种注释方式并不能嵌套使用。当你开始一个多行注释块时，Python 会一直将后续的行都当作注释，直到遇到另一组三个单引号或三个双引号。**嵌套多行注释会导致语法错误。**一般来说，单行注释用于普通注释；而多行注释用于文档说明，函数说明等等。
 
 ```
+# 这是一个注释 print("Hello, World!")
 
+'''
+这是多行注释，用三个单引号
+这是多行注释，用三个单引号 
+这是多行注释，用三个单引号
+'''
+
+"""
+这是多行注释（字符串），用三个双引号
+这是多行注释（字符串），用三个双引号 
+这是多行注释（字符串），用三个双引号
+"""
+
+print("Hello, World!")
+
+def a():
+    '''这是文档字符串'''
+    pass
+print(a.__doc__)
 ```
 
-```
-数值这一节面试经常会顺带问到舍入。工程里不要靠默认行为，尤其是 Decimal 的舍入规则与上下文精度要统一，否则同一笔订单在不同服务里算出来可能不一致。把单位、精度、舍入策略写成显式规则，是金额场景的底线。
-
-```python
-# ordersys/money_demo.py
-from decimal import Decimal, getcontext
-
-getcontext().prec = 28
-
-price_yuan = "19.90"
-discount = "0.15"
-
-price_dec = Decimal(price_yuan)
-discount_dec = Decimal(discount)
-final_dec = price_dec * (Decimal("1") - discount_dec)
-print(final_dec)
-
-price_cents = 1990
-discount_bp = 1500
-final_cents = price_cents * (10000 - discount_bp) // 10000
-print(final_cents)
-
-bad = 0.1 + 0.2
-print(bad)
-
-```
-
-```
-
-数值这一节面试经常会顺带问到取整与舍入。工程里不要靠默认行为，尤其是 Decimal 的舍入规则与上下文精度要统一，否则同一笔订单在不同服务里算出来可能不一致。你可以把这句话当成底线：金额相关的运算必须有明确的单位、明确的舍入策略、明确的输入来源。
-
-```
-面试里讲法可以非常工程化：金额不要用 float；核心链路用整数分，规则复杂或需要精确小数时用 Decimal，并保证 Decimal 的输入来自字符串或整数；展示时再统一格式化。你能把“为什么”和“怎么做”都讲清楚，基本就能过这一块。
-
-#### 字符串与格式化
-字符串在订单系统里出现频率极高，既有业务字段，例如订单号、渠道名、状态值，也有工程层的日志、HTTP 参数、签名输入。Python 的字符串 `str` 是 Unicode，不可变，这两个性质决定了你怎么写拼接、怎么处理编码边界，以及为什么某些看起来很简单的写法会在性能或正确性上出问题。
-
-不可变的后果是任何拼接都会产生新对象。你在循环里反复用 `+` 拼接大段文本，会制造大量临时字符串；这个问题在日志、报表导出、拼接错误信息这类场景里非常常见。工程上少量拼接用 f-string，批量拼接用 `join`。日志输出尽量让 logging 做延迟格式化，避免在日志级别被关闭时仍然付出拼接成本。面试里讲清楚“不变性导致临时对象”和“join 一次性拼接”的动机就足够。
-
-字符串处理还有一个很工程的点是规范化。订单系统会处理来自不同渠道的输入，可能带空格、全角字符、不同大小写。你不需要在基础章节把文本清洗写成一门课，但你要形成默认动作：进入业务前做最小规范化，例如 `strip()` 去掉前后空白，必要时做大小写归一，必要时做白名单校验。这样做的价值是让业务逻辑只面对一种形态，测试也更简单。编码边界同样要集中在 IO 层，业务层尽量只处理 `str`，签名与加密边界再 encode 成 bytes。
-
-下面用表把订单系统里常见的字符串场景、推荐手段与主要风险拉平。你面试时按场景讲，比背 API 更自然。
-
-| 场景 | 常用手段 | 订单系统里的例子 | 主要风险 |
-| --- | --- | --- | --- |
-| 拼接输出 | f-string, `join` | 日志、CSV | 循环 `+` 性能差 |
-| 清理输入 | `strip`, `replace` | 渠道字段 | 空白导致验签失败 |
-| 简单校验 | `startswith`, `endswith`, `in` | 订单号前缀 | 规则复杂需正则 |
-| 编码边界 | `encode`, `decode` | 签名、传输 | 默认编码导致不一致 |
-
-示例围绕订单日志与报表输出，同时把输入规范化与签名输入带出来。代码保持订单系统语境一致。
-
-```python
-# ordersys/string_demo.py
-import hashlib
-
-order_id = 1001
-raw_channel = "  A  "
-channel = raw_channel.strip()
-
-msg = f"order={order_id}, channel={channel}"
-print(msg)
-
-lines = [f"{1000+i},NEW" for i in range(3)]
-csv_body = "id,status\n" + "
-".join(lines) + "
-"
-print(csv_body)
-
-payload = f"订单:{order_id}|渠道:{channel}"
-sig = hashlib.sha256(payload.encode("utf-8")).hexdigest()
-print(sig)
-
-```
-
-```
-
-字符串这一节面试常会追问正则。工程上更稳的原则是先用内置方法解决大多数简单校验，规则确实需要模式匹配再用 `re`，避免在热路径里写出难以维护或潜在性能问题的正则。
-
-# ordersys/string_demo.py
-import hashlib
-
-order_id = 1001
-status = "PAID"
-msg = f"order={order_id}, status={status}"
-print(msg)
-
-lines = []
-for i in range(3):
-    lines.append(f"{1000+i},NEW")
-csv_body = "id,status\n" + "
-".join(lines) + "
-"
-print(csv_body)
-
-payload = "订单:1001"
-sig = hashlib.sha256(payload.encode("utf-8")).hexdigest()
-print(sig)
-
-```
-字符串这节面试常会被追问到一些“细碎但致命”的点，例如用 `strip()` 处理用户输入、用 `startswith/endswith` 做前后缀判断、以及用 `in` 做子串判断。你不需要把这些写成清单，但你要形成一个习惯：文本处理优先用内置方法，规则复杂才用正则；并且把编码的显式性当作工程卫生，不依赖默认行为。
-
-#### 容器：list/tuple/dict/set
-容器是订单系统的数据骨架。你用 list 保存明细，用 dict 表达订单字段，用 set 做去重，用 tuple 表达轻量不可变结构。面试里容器的分水岭通常在三个地方：你是否能把语义说清楚，你是否有复杂度直觉，你是否理解哈希与可变性对 dict/set 的约束。
-
-语义层面，list 有序且可变，适合明细与流水。tuple 有序且不可变，适合表达一个固定结构的键或返回值。dict 用键做索引，适合快速查找与字段映射。set 适合去重与成员判断。复杂度直觉不是让你背 O 记号，而是让你知道何时该建索引。例如你在订单列表里频繁按 `order_id` 查找，如果你每次都遍历 list，随着订单量上来会明显变慢；把 list 构建成 dict 索引是一种非常典型的工程优化，这不是算法题，而是数据表示方式的选择。
-
-哈希约束决定了键必须稳定。可变对象如 list/dict 不可哈希，不能当键；tuple 只有当元素都可哈希时才可哈希。工程里最稳的键通常是不可变标识字段组成的 tuple，例如 `(order_id, channel)`。你不需要在基础章节教人怎么自定义 hash，但你要形成一个直觉：缓存键与去重键必须稳定且可解释，宁可用明确的 tuple，也不要用“看起来方便”的可变结构。
-
-遍历与修改是容器的另一类基础坑。遍历 list 时删除元素会导致索引移动从而漏处理；遍历 dict 时修改结构会导致异常或不可预期行为。订单系统里做过滤更推荐构造新列表或先收集再修改。你在面试里讲清楚“遍历期间不改结构，必要时先收集再改”，非常加分，因为这类 bug 在线上出现过太多次。
-
-下面用表把容器选择策略写成工程语言。面试里你按这张表讲，会更像写过真实项目。
-
-| 容器 | 适合的工作 | 不适合的工作 | 订单系统例子 |
-| --- | --- | --- | --- |
-| list | 有序明细、批处理序列 | 频繁按键查找 | items 明细、分页批处理 |
-| tuple | 不可变小结构、可哈希键 | 频繁修改 | (order_id, channel) |
-| dict | 字段映射、索引查找 | 表达业务顺序 | 按 id 建索引 |
-| set | 去重、成员判断 | 保留顺序、计数 | 去重回调 id |
-
-示例把订单列表转成按 id 的索引，同时用 set 去重，并演示遍历时不要原地删的安全做法。示例仍然保持订单系统语境。
-
-```python
-# ordersys/container_demo2.py
-orders = [
-    {"id": 1001, "channel": "A"},
-    {"id": 1002, "channel": "B"},
-    {"id": 1001, "channel": "A"},
-]
-
-seen = set()
-unique = []
-for o in orders:
-    oid = o["id"]
-    if oid in seen:
-        continue
-    seen.add(oid)
-    unique.append(o)
-
-index = {o["id"]: o for o in unique}
-print(index[1002]["channel"])
-
-to_delete = []
-for o in unique:
-    if o["channel"] == "B":
-        to_delete.append(o)
-for o in to_delete:
-    unique.remove(o)
-print([o["id"] for o in unique])
-
-```
-容器这一节最终要形成的能力是选对表达方式。订单系统里很多性能与正确性问题，不是因为 for 写错了，而是因为数据结构选错了。你把“语义、哈希稳定、遍历不改结构”这三点讲清楚，基础容器面试基本就稳。
-
-```
-
-容器这块最常见的坑还包括共享可变对象导致的跨请求污染，例如把列表当成全局缓存然后在请求里 append。你不需要把它写成清单，但你要在脑子里一直保留“可变对象会被共享引用”这个底线，这会让你在读代码时更敏感，也会让你在面试里更像一个能上生产的人。
-
-```
-容器这块常见的坑也要能自然讲出来。一个是把可变对象当作共享默认值或共享缓存，导致跨请求污染；另一个是遍历时修改容器，导致漏处理；还有一个是把 dict 的键当成“稳定顺序”，在较新版本里插入顺序确实会保留，但工程上如果你依赖这个特性来表达业务语义，就要写得非常明确，否则读代码的人会误解你的意图。这里的底线是：容器是表达，不是魔法，选对容器比写对循环更重要。
-
-#### 切片与拷贝
-这一节的核心是让你在订单系统里写批处理与隔离修改时不踩坑。切片会创建新容器但共享元素引用，因此属于浅拷贝；需要隔离时更推荐显式重建关键层级，而不是无脑深拷贝。
-
-```python
-
-订单系统里不建议把 deepcopy 当成默认工具，原因是它会递归复制整个对象图，成本可能很高，而且可能把你不想复制的对象也复制走，例如连接、锁、文件句柄这类资源对象。更稳的工程策略是只复制你需要隔离的那一层数据结构，并把“隔离边界”写得显式可读，这样后续维护的人也知道你为什么复制。
-
-如果你在面试里被追问“那什么时候用 deepcopy”，回答通常是：当对象图结构清晰、数据量可控、并且你确实需要一份完全隔离的快照时可以用，但依然要结合剖析与场景；多数业务代码更推荐显式重建关键字段。
-
-如果你确实需要一份完全隔离的快照，并且对象图结构清晰、数据量可控，deepcopy 也可以使用，但它不应成为默认，因为它的成本与副作用很难凭直觉评估，最好配合剖析与明确的隔离需求再决定。
-# ordersys/copy_demo.py
-import copy
-
-orders = [
-    {"id": 1001, "items": [{"sku": "A", "qty": 1}]},
-    {"id": 1002, "items": [{"sku": "B", "qty": 2}]},
-]
-
-page = orders[:1]
-page[0]["items"][0]["qty"] = 9
-print(orders[0]["items"][0]["qty"])  # 9，切片不隔离内部对象
-
-safe = [{"id": o["id"], "items": [dict(x) for x in o["items"]]} for o in orders]
-safe[0]["items"][0]["qty"] = 7
-print(orders[0]["items"][0]["qty"])  # 9，原对象不再被影响
-
-deep = copy.deepcopy(orders)
-deep[0]["items"][0]["qty"] = 5
-print(orders[0]["items"][0]["qty"])  # 9
-
-```
 ### 控制流与函数
-#### 分支与循环（含 for-else）
-控制流本身不难，但 Python 有一些容易忽略的小语义，面试经常借此确认你是否真的理解语言细节。`for-else` 表达的是遍历完整仍未命中，而不是没有进入循环。订单系统里你经常要做查找、早停、未命中兜底，如果你不知道 `for-else`，往往会引入额外的标志变量，让代码啰嗦且容易出错。
 
-分支语义里另一个必须讲清楚的点是真值测试。`if x:` 会把对象转成布尔语义，空容器、空字符串、0、None 都会被当成 False。订单系统里判断“是否传入 amount”时，如果 amount 合法为 0，用 `if amount:` 会误判成缺省。工程里更稳的方式是用 `is None` 判断缺省，或者把缺省值设计成显式 None。这个点在面试里很容易被追问，你只要能把“缺省”和“合法的 0”区分清楚就行。
+#### 分支与循环
+##### 条件控制
 
-Python 3.10+ 的 `match` 在订单状态机这类场景里很适合做规则表达，但它不是必须依赖的写法。工程里是否采用取决于团队版本与风格；面试里你知道它能解决“分支更像规则表”的问题就够了。更重要的是无论用 if 还是 match，都要把兜底逻辑写完整，避免遗漏状态导致线上出现“默默跳过”。
+Python 条件语句是通过一条或多条语句的执行结果（True 或者 False）来决定执行的代码块。
 
-下面用表把常见控制流语义对照一下，再用示例把 for-else 与 match 放进订单语境中。示例的重点是把意图写清楚。
+**if 语句**：每个条件后面要使用冒号 **:**，表示接下来是满足条件后要执行的语句块。使用缩进来划分语句块，相同缩进数的语句在一起组成一个语句块。
 
-| 写法 | else 何时执行 | 订单系统典型用法 |
-| --- | --- | --- |
-| `for ... break ... else ...` | 没有 break | 未找到订单时创建占位 |
-| `while ... break ... else ...` | 没有 break | 重试耗尽后告警 |
-| `continue` | 跳过本轮 | 过滤无效行、去重 |
-
-```python
-# ordersys/flow_demo.py
-orders = [{"id": 1001, "status": "NEW"}, {"id": 1002, "status": "PAID"}]
-target = 1003
-
-for o in orders:
-    if o["id"] == target:
-        print("found", o)
-        break
+```
+if condition_1:
+    statement_block_1
+elif condition_2:
+    statement_block_2
 else:
-    print("not found, create placeholder order")
+    statement_block_3
+```
 
-status = "PAID"
-match status:
-    case "NEW":
-        print("need payment")
-    case "PAID":
-        print("ready to ship")
+**match...case...语句**：Python 3.10 增加了 **match...case** 的条件判断，不需要再使用一连串的 **if-else** 来判断了。match 后的对象会依次与 case 后的内容进行匹配，如果匹配成功，则执行匹配到的表达式，否则直接跳过，**_** 可以匹配一切。`match`语句后跟一个表达式，然后使用`case`语句来定义不同的模式。`case`后跟一个模式，可以是具体值、变量、通配符等。可以使用`if`关键字在`case`中添加条件。`_`通常用作通配符，匹配任何值。
+
+```
+match subject:
+    case <pattern_1>:
+        <action_1>
+    case <pattern_2>:
+        <action_2>
+    case <pattern_3>:
+        <action_3>
     case _:
-        print("unknown status")
+        <action_wildcard>
+```
+
+##### 循环
+
+Python 中的循环语句有 for 和 while。
+
+**for语句**：Python for 循环可以遍历任何可迭代对象。当循环执行完毕（即遍历完 iterable 中的所有元素）后，会执行 else 子句中的代码，如果在循环过程中遇到了 break 语句，则会中断循环，此时不会执行 else 子句。
 
 ```
-控制流的底线是让读代码的人一眼看懂你的意图。订单系统里读代码的人往往不是你自己，而是同事与未来的你。把缺省判断写清楚，把早停写清楚，把兜底逻辑写清楚，基础流程就算扎实。
-
-```python
-# ordersys/loop_demo.py
-orders = [{"id": 1001, "status": "NEW"}, {"id": 1002, "status": "PAID"}]
-target = 1003
-
-for o in orders:
-    if o["id"] == target:
-        print("found", o)
-        break
+for iter in iterable:
+    # 循环主体
 else:
-    print("not found, create placeholder order")
+    # 循环结束后执行的代码
+```
+
+**while语句**：expr 条件语句为 true 则执行 statement(s) 语句块，如果为 false，则执行additional_statement(s)。
 
 ```
+while <expr>:
+    <statement(s)>
+else:
+    <additional_statement(s)>
+```
+
+**注意**：for循环遍历的是一个可迭代体，这通常要求该迭代体提供next与iter方法。如果你需要遍历数字序列，可以使用内置 range() 函数。它会生成可迭代数列。
+
+**break** 语句可以跳出 for 和 while 的循环体。如果你从 for 或 while 循环中终止，任何对应的循环 else 块将不执行。
+
+**continue** 语句被用来告诉 Python 跳过当前循环块中的剩余语句，然后继续进行下一轮循环。
+
 #### 函数与参数规则
+
 函数这一节的关键不在 `def`，而在参数绑定规则与签名设计。订单系统里最常见的函数是服务层方法，例如创建订单、更新状态、查询订单，它们通常同时包含必填参数、可选参数、以及一些容易误用但影响行为的参数，例如 timeout、retry、dry_run。Python 允许你通过参数语法把调用约束直接写进签名里，让错误尽量在调用点暴露，而不是运行到深处才发现。
 
 参数绑定规则里最容易被面试追问的是默认参数求值时机。默认值在函数定义时求值，而不是在每次调用时求值，所以可变对象作为默认值会被所有调用共享。订单系统里如果你写一个函数 `def add_item(order, items=[]): ...`，第一次调用 append 的结果会被第二次调用继承，这会造成跨请求污染。工程里要么用 None 作为默认值并在函数体内初始化，要么把默认值设计为不可变对象。
