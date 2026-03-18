@@ -79,91 +79,6 @@ python -m venv --without-pip env_name # 创建不带pip的虚拟环境
 python -m venv --system-site-packages env_name # 创建继承系统包的虚拟环境
 ```
 
-#### 包与模块
-
-##### 模块
-
-Python 提供了一个机制，可以将函数、类、变量和可执行代码存放在单个 `.py` 文件中，这个文件被称为模块（Module）。模块可以被脚本或交互式解释器实例导入和使用，以便将代码组织成可重用单元，方便管理和维护。每个模块都有一个内置属性 `__name__`：如果模块是直接运行的入口文件，`__name__` 的值为 `"__main__"`；如果模块被导入，`__name__` 的值为模块名（通常是文件名，不含 `.py` 后缀，或包路径形式）。内置函数 `dir()` 可以返回模块内定义的所有名称，以字符串列表形式呈现。Python 自带一些标准模块库，如下：
-
-| 模块名        | 功能描述                                      |
-| :------------ | :-------------------------------------------- |
-| `math`        | 数学运算（平方根、三角函数等）                |
-| `os`          | 操作系统相关功能（文件、目录操作等）          |
-| `sys`         | 系统参数和函数                                |
-| `random`      | 生成随机数                                    |
-| `datetime`    | 处理日期和时间                                |
-| `json`        | 处理 JSON 数据                                |
-| `re`          | 正则表达式操作                                |
-| `collections` | 提供额外数据结构（`defaultdict`、`deque` 等） |
-| `itertools`   | 迭代器工具                                    |
-| `functools`   | 高阶函数工具（如 `reduce`、`lru_cache`）      |
-
-```python
-# 模块示例
-# module1.py
-def func1():
-    print("func1 in module1")
-
-if __name__ == "__main__":
-    print("module1 is running as main")
-    func1()
-```
-
-##### 包
-
-包（Package）是管理 Python 模块命名空间的一种形式，采用“点模块名称”的方式组织模块。例如模块名 `package1.module2` 表示包 `package1` 中的子模块 `module2`。包可以防止不同模块或库的全局变量冲突和模块重名问题。在导入包时，Python 会根据 `sys.path` 中的路径寻找包含 `__init__.py` 的目录。目录中必须包含 `__init__.py`（可以为空），该文件会在包被导入时执行，可以包含初始化代码，也可定义 `__all__` 列表变量，用于控制 `from package import *` 导入的内容。例如：
-
-```python
-# package1/__init__.py
-__all__ = ["module2", "module3"]
-```
-
-包内模块可使用相对导入或绝对导入：
-
-```python
-# package1/module1.py 导入 package1/module2.py
-from . import module2       # 相对导入
-from package1 import module2 # 绝对导入
-```
-
-##### 导入方式
-
-Python 提供两种主要导入语法，分别用于引入整个模块或包，或者从模块或包中导入特定符号。
-
-* **import module1[, module2[,... moduleN] as alisa1[, alisa2[,... alisaN]** ：import 整个模块或包，他的效果是告诉解析器要从外部导入包/模块，之后的使用可以用 `module.func`来访问导入的包/模块下的名称。
-
-```python
-# import 整个模块或包
-import module1
-import module2 as m2
-
-module1.func1()
-m2.func2()
-```
-
-* **from module1 import func1**： import的是对应包/模块，他的效果是告诉解析器要从外部包/模块导入命名名称到本地的命名空间，之后的使用可以直接使用 `func`来直接访问导入的包/模块下的名称
-
-```python
-# from xxx import yyy
-from module1 import func1
-from module2 import func2 as f2
-func1()
-f2()
-```
-
-导入解析遵循模块搜索路径 (`sys.path`)：第一个匹配的包或模块被认为是顶层包。相对导入使用 `.` / `..`，基于当前模块所在包层级，绝对导入以顶层包或 `sys.path` 路径开始解析。注意，导入是相对包而言的，而非模块而言的。示例：
-
-```python
-# 包和模块导入示例
-import package1.module2
-from package1 import module2
-from . import module2
-from .. import module3
-from ..subpackage import module4
-```
-
-绝对导入路径从顶层包开始，相对导入路径基于模块所在包，`__name__` 永远是 "__main__" 的模块作为主程序入口，主模块应使用绝对路径引用。
-
 ### 数据与表达式
 
 #### 变量
@@ -790,34 +705,6 @@ float 不能直接用于金额，以及工程上怎么把风险压下去。`floa
 | 时间戳/计数 | `int` | 不溢出 | 对外精度边界 |
 | 近似值 | `float` | 性能好 | 不能用于对账字段 |
 
-#### 注释
-
-在 Python3 中，注释不会影响程序的执行，但是会使代码更易于阅读和理解。Python 中的注释有**单行注释**和**多行注释**。
-
-**Python 中单行注释以 \**#\** 开头**。在 Python中，多行字符串（由三个单引号 **'''** 或三个双引号 **"""** 包围的文本块）在某些情况下可以被视为一种实现多行注释的技巧。**多行注释用三个单引号 \**'''\** 或者三个双引号 \**"""\** 将注释括起来**。在 Python 中，多行注释是由三个单引号 **'''** 或三个双引号 **"""** 来定义的，而且这种注释方式并不能嵌套使用。当你开始一个多行注释块时，Python 会一直将后续的行都当作注释，直到遇到另一组三个单引号或三个双引号。**嵌套多行注释会导致语法错误。**一般来说，单行注释用于普通注释；而多行注释用于文档说明，函数说明等等。
-
-```
-# 这是一个注释 print("Hello, World!")
-
-'''
-这是多行注释，用三个单引号
-这是多行注释，用三个单引号 
-这是多行注释，用三个单引号
-'''
-
-"""
-这是多行注释（字符串），用三个双引号
-这是多行注释（字符串），用三个双引号 
-这是多行注释（字符串），用三个双引号
-"""
-
-print("Hello, World!")
-
-def a():
-    '''这是文档字符串'''
-    pass
-print(a.__doc__)
-```
 
 ### 控制流与函数
 
@@ -881,1538 +768,1556 @@ else:
 
 #### 函数与参数规则
 
-函数这一节的关键不在 `def`，而在参数绑定规则与签名设计。订单系统里最常见的函数是服务层方法，例如创建订单、更新状态、查询订单，它们通常同时包含必填参数、可选参数、以及一些容易误用但影响行为的参数，例如 timeout、retry、dry_run。Python 允许你通过参数语法把调用约束直接写进签名里，让错误尽量在调用点暴露，而不是运行到深处才发现。
+##### 函数定义
 
-参数绑定规则里最容易被面试追问的是默认参数求值时机。默认值在函数定义时求值，而不是在每次调用时求值，所以可变对象作为默认值会被所有调用共享。订单系统里如果你写一个函数 `def add_item(order, items=[]): ...`，第一次调用 append 的结果会被第二次调用继承，这会造成跨请求污染。工程里要么用 None 作为默认值并在函数体内初始化，要么把默认值设计为不可变对象。
+函数是组织好的，可重复使用的，用来实现单一，或相关联功能的代码段。函数能提高应用的模块性，和代码的重复利用率。你可以定义一个由自己想要功能的函数，以下是简单的规则：
 
-关键字专用参数是签名设计里非常实用的能力。把容易写错或影响行为的参数做成关键字专用，例如 source、dry_run、timeout，能显著提升调用点可读性。面试里如果被问“为什么要用 *”，你可以说这是在用语言特性防止误用，它让调用点必须写出参数名，从而减少歧义。
-
-下面把常见参数形态放到表里，方便你在读代码时快速判断函数的意图。这里的重点是把签名当成契约，而不是把参数当成随便堆的口袋。
-
-| 形态 | 作用 | 订单系统里常见用途 |
-| --- | --- | --- |
-| 位置参数 | 强制顺序 | user_id、amount_cents |
-| 关键字参数 | 提升可读性 | source="web" |
-| `*` 强制关键字 | 避免误用 | timeout、dry_run |
-| `*args` | 收集位置参数 | 工具函数封装 |
-| `**kwargs` | 收集关键字参数 | 透传选项但需谨慎 |
-
-示例把“创建订单”与“追加明细”放在同一个语境里，同时演示默认参数坑的正确写法。后面面向对象章节会继续复用 Order 这个模型，这样整份笔记的示例能形成统一项目，而不是一节一个孤岛。
-
-```python
-
-在真实工程里，解包经常和参数规则一起出现。`*seq` 用来把序列按位置参数展开，`**mapping` 用来把字典按关键字参数展开。订单系统里你会经常把一份“订单字典”解包到构造函数里，或者把通用的调用参数通过 `**kwargs` 透传给下游库。这里的底线是透传要克制，最好在边界处做白名单过滤，避免把不该传的参数悄悄传下去。
-
-解包也常用于把多个映射合并成一个配置对象。工程里更推荐用显式合并，避免后面的覆盖前面的这类行为被忽略。你在面试里只要能说清楚：`**` 的后者会覆盖前者，且解包只是一种语法形式，本质仍然遵循参数绑定规则，就算过关。
-
-```python
-
-```python
-# ordersys/unpack_demo.py
-def create_order(user_id: int, amount_cents: int, *, source: str = "web") -> dict:
-    return {"user_id": user_id, "amount_cents": amount_cents, "source": source}
-
-args = (7, 3000)
-kwargs = {"source": "app"}
-print(create_order(*args, **kwargs))
-
-base_cfg = {"timeout_s": 2.0, "retries": 2}
-env_cfg = {"timeout_s": 5.0}
-merged = {**base_cfg, **env_cfg}
-print(merged)
+- 函数代码块以 **def** 关键词开头，后接函数标识符名称和圆括号 **()**。
+- 任何传入参数和自变量必须放在圆括号中间，圆括号之间可以用于定义参数。
+- 函数的第一行语句可以选择性地使用文档字符串—用于存放函数说明。
+- 函数内容以冒号 **:** 起始，并且缩进。
+- **return [表达式]** 结束函数，选择性地返回一个值给调用方，不带表达式的 return 相当于返回 None。
 
 ```
+#!/usr/bin/python3
 
-```
-# ordersys/service.py
-from dataclasses import dataclass
-from typing import Optional
+def hello() :
+    print("Hello World!")
 
-@dataclass
-class Order:
-    id: int
-    user_id: int
-    amount_cents: int
-    source: str
-    items: list[str]
-
-def create_order(user_id: int, amount_cents: int, *, source: str = "web", dry_run: bool = False) -> Order:
-    if dry_run:
-        return Order(id=-1, user_id=user_id, amount_cents=amount_cents, source=source, items=[])
-    return Order(id=1001, user_id=user_id, amount_cents=amount_cents, source=source, items=[])
-
-def add_items(order: Order, items: Optional[list[str]] = None) -> None:
-    if items is None:
-        items = []
-    order.items.extend(items)
-
-o = create_order(7, 3000, source="app")
-add_items(o, ["apple", "banana"])
-print(o.items)
-
+hello()
 ```
 
-```
+##### 函数调用
+
+定义一个函数：给了函数一个名称，指定了函数里包含的参数，和代码块结构。这个函数的基本结构完成以后，你可以通过另一个函数调用执行，也可以直接从 Python 命令提示符执行。
 
 ```
-函数这一节你最后要形成的能力是写出可读、可调用、可测试的接口。面试里你讲参数规则，不要停留在语法名词，而要讲签名如何减少误用、如何表达契约、如何避免共享默认值这类线上坑。
-
-#### 作用域与闭包入门
-作用域遵循 LEGB，闭包常见坑是循环变量 late binding。订单系统里生成回调或规则函数时，建议用默认参数冻结变量，避免所有闭包引用同一个最终值。
-
-```python
-# ordersys/closure_demo.py
-def make_checkers_good(channels):
-    checkers = []
-    for ch in channels:
-        def checker(order, ch=ch):
-            return order.get("channel") == ch
-        checkers.append(checker)
-    return checkers
-
-order = {"id": 1001, "channel": "A"}
-checkers = make_checkers_good(["A", "B"])
-print([f(order) for f in checkers])
-
+# 定义函数
+def printme( str ):
+   # 打印任何传入的字符串
+   print (str)
+   return
+ 
+# 调用函数
+printme("我要调用用户自定义函数!")
+printme("再次调用同一函数")
 ```
+
+##### 函数参数
+
+必需参数须以正确的顺序传入函数。调用时的数量必须和声明时的一样。
+
+关键字参数和函数调用关系紧密，函数调用使用关键字参数来确定传入的参数值。使用关键字参数允许函数调用时参数的顺序与声明时不一致，因为 Python 解释器能够用参数名匹配参数值。
+
+调用函数时，如果没有传递参数，则会使用默认参数。以下实例中如果没有传入 age 参数，则使用默认值。
+
+你可能需要一个函数能处理比当初声明时更多的参数。这些参数叫做不定长参数，和上述 2 种参数不同，声明时不会命名。
+
+Python3.8 新增了一个函数形参语法 / 用来指明函数形参必须使用指定位置参数，不能使用关键字参数的形式。
+
 ### 异常与 IO
-#### 异常体系与资源释放
-异常是 Python 里最重要的错误表达机制之一。订单系统的异常来源很多，例如参数校验失败、数据库超时、第三方接口错误、数据不一致。面试问异常，往往不是问语法，而是看你是否具备错误边界的概念：哪里应该抛，哪里应该捕，捕了以后是否要转换，怎么保证资源释放，怎么保留根因信息，怎么让日志与告警能快速定位到业务对象。
+#### 异常体系
+异常是 Python 里最重要的错误表达机制之一。Python 有两种错误很容易辨认：语法错误和异常。Python assert（断言）用于判断一个表达式，在表达式条件为 false 的时候触发异常。
 
-工程上把异常分层会更清晰。契约错误通常属于编程错误或调用方错误，例如类型不对、必填字段缺失、参数超范围，这类错误更倾向于尽早失败，让问题暴露在开发或测试阶段。运行时错误通常来自外部依赖或环境，例如网络超时、IO 失败、第三方返回异常，这类错误需要在边界处捕获并转换成业务语义，让上层能做统一策略，例如重试、降级或返回合理错误码。订单系统里最常见的边界是适配器层，例如支付网关、库存服务、风控服务，这些地方应该把底层异常转换为更明确的业务异常，并保留根因。
+Python 的语法错误或者称之为解析错，也就是编写的代码不符合语法规范而导致错误。运行期检测到的错误被称为异常。大多数的异常都不会被程序处理，都以错误信息的形式展现在这里。但是用户可以手动处理异常。
 
-异常链是面试高频点。你在捕获低层异常后如果要抛出更有业务语义的异常，应当用 `raise NewError(...) from e` 保留因果链。裸 `raise` 用于原样继续抛出；`raise e` 会破坏原始堆栈信息，工程里不推荐。保留根因的价值很直接：线上排查能看到最初的失败原因，而不是只剩一句“处理失败”。
+##### 异常捕获
 
-资源释放是异常题的核心落地点。最基本的保证来自 `try/finally`，无论中间是否抛异常，finally 都会执行；`with` 是更推荐的工程写法，它把获取与释放封装成协议，让资源成对出现。订单系统里典型资源包括文件句柄、连接、锁。只要涉及这些资源，就应该优先想到 with 或 finally，而不是靠“最后一行 close”。
+异常捕捉可以使用 **try/except/else/finally** 语句。
 
-下面用表把异常处理模式按策略拉平。面试里如果你按这张表去讲，会比背语法更像工程经验。
+![img](https://www.runoob.com/wp-content/uploads/2019/07/try_except_else_finally.png)
 
-| 场景 | 处理方式 | 关键点 | 订单系统例子 |
-| --- | --- | --- | --- |
-| 契约错误 | 直接抛出 | 让 bug 尽早暴露 | amount 不是 int |
-| 外部依赖失败 | 捕获并转换 | 保留根因，补充上下文 | 网关超时 -> PaymentError |
-| 资源操作 | with 或 finally | 释放必达 | 导入文件、持锁区 |
-| 记录异常 | logger.exception | 堆栈 + 业务标识 | order_id、channel |
+```
+try:
+    runoob()
+except AssertionError as error:
+    print(error)
+else:
+    try:
+        with open('file.log') as file:
+            read_data = file.read()
+    except FileNotFoundError as fnf_error:
+        print(fnf_error)
+finally:
+    print('这句话，无论异常是否发生都会执行。')
+```
 
-示例用导入订单文件展示异常转换与异常链，并保证文件资源释放。你在工程里还会把这一层的业务异常交给上层做统一处理，但边界处的转换与根因保留必须先做好。
+##### 异常抛出
 
-```python
-# ordersys/importer2.py
-from dataclasses import dataclass
+Python 使用 raise 语句抛出一个指定的异常。raise 唯一的一个参数指定了要被抛出的异常。它必须是一个异常的实例或者是异常的类（也就是 Exception 的子类）。
 
-class OrderImportError(Exception):
+```
+raise [Exception [, args [, traceback]]]
+```
+
+##### 自定义异常
+
+你可以通过创建一个新的异常类来拥有自己的异常。异常类继承自 Exception 类，可以直接继承，或者间接继承:
+
+```
+>>> class MyError(Exception):
+        def __init__(self, value):
+            self.value = value
+        def __str__(self):
+            return repr(self.value)
+   
+>>> try:
+        raise MyError(2*2)
+    except MyError as e:
+        print('My exception occurred, value:', e.value)
+   
+My exception occurred, value: 4
+>>> raise MyError('oops!')
+Traceback (most recent call last):
+  File "<stdin>", line 1, in ?
+__main__.MyError: 'oops!'
+```
+
+在这个例子中，类 Exception 默认的 __init__() 被覆盖。当创建一个模块有可能抛出多种不同的异常时，一种通常的做法是为这个包建立一个基础异常类，然后基于这个基础类为不同的错误情况创建不同的子类
+
+##### 断言
+
+Python assert（断言）用于判断一个表达式，在表达式条件为 false 的时候触发异常。断言可以在条件不满足程序运行的情况下直接返回错误，而不必等待程序运行后出现崩溃的情况。
+
+```
+assert expression [, arguments]
+# 等价于
+if not expression:
+    raise AssertionError(arguments)
+```
+
+
+
+#### 文件与IO
+
+##### 文件
+
+文件的工程底线是显式编码、with 保证关闭、按行/按块流式处理避免大文件爆内存。Python **open()** 方法用于打开一个文件，并返回文件对象。在对文件进行处理过程都需要使用到这个函数，如果该文件无法被打开，会抛出 **OSError**。**注意：**使用 **open()** 方法一定要保证关闭文件对象，即调用 **close()** 方法。
+
+**open()** 函数常用形式是接收两个参数：文件名(file)和模式(mode)。完整的语法格式为：
+
+```
+open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None)
+```
+
+参数说明：file: 必需，文件路径（相对或者绝对路径）；mode: 可选，文件打开模式；buffering: 设置缓冲；encoding: 一般使用utf8；errors: 报错级别；newline: 区分换行符；closefd: 传入的file参数类型；opener: 设置自定义开启器，开启器的返回值必须是一个打开的文件描述符。
+
+mode 参数有：
+
+| 模式 | 描述                                                         |
+| :--- | :----------------------------------------------------------- |
+| t    | 文本模式 (默认)。                                            |
+| x    | 写模式，新建一个文件，如果该文件已存在则会报错。             |
+| b    | 二进制模式。                                                 |
+| +    | 打开一个文件进行更新(可读可写)。                             |
+| U    | 通用换行模式（**Python 3 不支持**）。                        |
+| r    | 以只读方式打开文件。文件的指针将会放在文件的开头。这是默认模式。 |
+| rb   | 以二进制格式打开一个文件用于只读。文件指针将会放在文件的开头。这是默认模式。一般用于非文本文件如图片等。 |
+| r+   | 打开一个文件用于读写。文件指针将会放在文件的开头。           |
+| rb+  | 以二进制格式打开一个文件用于读写。文件指针将会放在文件的开头。一般用于非文本文件如图片等。 |
+| w    | 打开一个文件只用于写入。如果该文件已存在则打开文件，并从开头开始编辑，即原有内容会被删除。如果该文件不存在，创建新文件。 |
+| wb   | 以二进制格式打开一个文件只用于写入。如果该文件已存在则打开文件，并从开头开始编辑，即原有内容会被删除。如果该文件不存在，创建新文件。一般用于非文本文件如图片等。 |
+| w+   | 打开一个文件用于读写。如果该文件已存在则打开文件，并从开头开始编辑，即原有内容会被删除。如果该文件不存在，创建新文件。 |
+| wb+  | 以二进制格式打开一个文件用于读写。如果该文件已存在则打开文件，并从开头开始编辑，即原有内容会被删除。如果该文件不存在，创建新文件。一般用于非文本文件如图片等。 |
+| a    | 打开一个文件用于追加。如果该文件已存在，文件指针将会放在文件的结尾。也就是说，新的内容将会被写入到已有内容之后。如果该文件不存在，创建新文件进行写入。 |
+| ab   | 以二进制格式打开一个文件用于追加。如果该文件已存在，文件指针将会放在文件的结尾。也就是说，新的内容将会被写入到已有内容之后。如果该文件不存在，创建新文件进行写入。 |
+| a+   | 打开一个文件用于读写。如果该文件已存在，文件指针将会放在文件的结尾。文件打开时会是追加模式。如果该文件不存在，创建新文件用于读写。 |
+| ab+  | 以二进制格式打开一个文件用于追加。如果该文件已存在，文件指针将会放在文件的结尾。如果该文件不存在，创建新文件用于读写。 |
+
+默认为文本模式，如果要以二进制模式打开，加上 **b** 。file 对象使用 open 函数来创建，下表列出了 file 对象常用的函数：
+
+| 序号 | 方法及描述                                                   |
+| :--- | :----------------------------------------------------------- |
+| 1    | [file.close()](https://www.runoob.com/python3/python3-file-close.html)关闭文件。关闭后文件不能再进行读写操作。 |
+| 2    | [file.flush()](https://www.runoob.com/python3/python3-file-flush.html)刷新文件内部缓冲，直接把内部缓冲区的数据立刻写入文件, 而不是被动的等待输出缓冲区写入。 |
+| 3    | [file.fileno()](https://www.runoob.com/python3/python3-file-fileno.html)返回一个整型的文件描述符(file descriptor FD 整型), 可以用在如os模块的read方法等一些底层操作上。 |
+| 4    | [file.isatty()](https://www.runoob.com/python3/python3-file-isatty.html)如果文件连接到一个终端设备返回 True，否则返回 False。 |
+| 5    | [file.next()](https://www.runoob.com/python3/python3-file-next.html)**Python 3 中的 File 对象不支持 next() 方法。**返回文件下一行。 |
+| 6    | [file.read([size\])](https://www.runoob.com/python3/python3-file-read.html)从文件读取指定的字节数，如果未给定或为负则读取所有。 |
+| 7    | [file.readline([size\])](https://www.runoob.com/python3/python3-file-readline.html)读取整行，包括 "\n" 字符。 |
+| 8    | [file.readlines([sizeint\])](https://www.runoob.com/python3/python3-file-readlines.html)读取所有行并返回列表，若给定sizeint>0，返回总和大约为sizeint字节的行, 实际读取值可能比 sizeint 较大, 因为需要填充缓冲区。 |
+| 9    | [file.seek(offset[, whence\])](https://www.runoob.com/python3/python3-file-seek.html)移动文件读取指针到指定位置 |
+| 10   | [file.tell()](https://www.runoob.com/python3/python3-file-tell.html)返回文件当前位置。 |
+| 11   | [file.truncate([size\])](https://www.runoob.com/python3/python3-file-truncate.html)从文件的首行首字符开始截断，截断文件为 size 个字符，无 size 表示从当前位置截断；截断之后后面的所有字符被删除，其中 windows 系统下的换行代表2个字符大小。 |
+| 12   | [file.write(str)](https://www.runoob.com/python3/python3-file-write.html)将字符串写入文件，返回的是写入的字符长度。 |
+| 13   | [file.writelines(sequence)](https://www.runoob.com/python3/python3-file-writelines.html)向文件写入一个序列字符串列表，如果需要换行则要自己加入每行的换行符。 |
+
+##### IO
+
+Python 提供了 [input() 内置函数](https://www.runoob.com/python3/python3-func-input.html)从标准输入读入一行文本，默认的标准输入是键盘。
+
+python的pickle模块实现了基本的数据序列和反序列化。
+
+通过pickle模块的序列化操作我们能够将程序中运行的对象信息保存到文件中去，永久存储。
+
+通过pickle模块的反序列化操作，我们能够从文件中创建上一次程序保存的对象。
+
+基本接口：
+
+```
+pickle.dump(obj, file, [,protocol])
+```
+
+有了 pickle 这个对象, 就能对 file 以读取的形式打开:
+
+```
+x = pickle.load(file)
+```
+
+**注解：**从 file 中读取一个字符串，并将它重构为原来的python对象。
+
+### 算法与数据结构
+
+#### 栈
+
+在 Python 中，可以使用列表（list）来实现栈的功能。栈是一种后进先出（LIFO, Last-In-First-Out）数据结构，意味着最后添加的元素最先被移除。列表提供了一些方法，使其非常适合用于栈操作，特别是 **append()** 和 **pop()** 方法。用 append() 方法可以把一个元素添加到栈顶，用不指定索引的 pop() 方法可以把一个元素从栈顶释放出来。
+
+```
+class Stack:
+    def __init__(self):
+        self.stack = []
+
+    def push(self, item):
+        self.stack.append(item)
+
+    def pop(self):
+        if not self.is_empty():
+            return self.stack.pop()
+        else:
+            raise IndexError("pop from empty stack")
+
+    def peek(self):
+        if not self.is_empty():
+            return self.stack[-1]
+        else:
+            raise IndexError("peek from empty stack")
+
+    def is_empty(self):
+        return len(self.stack) == 0
+
+    def size(self):
+        return len(self.stack)
+
+# 使用示例
+stack = Stack()
+stack.push(1)
+stack.push(2)
+stack.push(3)
+
+print("栈顶元素:", stack.peek())  # 输出: 栈顶元素: 3
+print("栈大小:", stack.size())    # 输出: 栈大小: 3
+
+print("弹出元素:", stack.pop())  # 输出: 弹出元素: 3
+print("栈是否为空:", stack.is_empty())  # 输出: 栈是否为空: False
+print("栈大小:", stack.size())    # 输出: 栈大小: 2
+```
+
+#### 队列
+
+collections.deque 是 Python 标准库的一部分，非常适合用于实现队列。队列是一种先进先出（FIFO, First-In-First-Out）的数据结构，意味着最早添加的元素最先被移除。使用列表时，如果频繁地在列表的开头插入或删除元素，性能会受到影响，因为这些操作的时间复杂度是 O(n)。
+
+```
+from collections import deque
+
+# 创建一个空队列
+queue = deque()
+
+# 向队尾添加元素
+queue.append('a')
+queue.append('b')
+queue.append('c')
+
+print("队列状态:", queue)  # 输出: 队列状态: deque(['a', 'b', 'c'])
+
+# 从队首移除元素
+first_element = queue.popleft()
+print("移除的元素:", first_element)  # 输出: 移除的元素: a
+print("队列状态:", queue)            # 输出: 队列状态: deque(['b', 'c'])
+
+# 查看队首元素（不移除）
+front_element = queue[0]
+print("队首元素:", front_element)    # 输出: 队首元素: b
+
+# 检查队列是否为空
+is_empty = len(queue) == 0
+print("队列是否为空:", is_empty)     # 输出: 队列是否为空: False
+
+# 获取队列大小
+size = len(queue)
+print("队列大小:", size)            # 输出: 队列大小: 2
+```
+
+#### 堆
+
+
+
+### 注释
+
+在 Python3 中，注释不会影响程序的执行，但是会使代码更易于阅读和理解。Python 中的注释有**单行注释**和**多行注释**。
+
+**Python 中单行注释以 \**#\** 开头**。在 Python中，多行字符串（由三个单引号 **'''** 或三个双引号 **"""** 包围的文本块）在某些情况下可以被视为一种实现多行注释的技巧。**多行注释用三个单引号 \**'''\** 或者三个双引号 \**"""\** 将注释括起来**。在 Python 中，多行注释是由三个单引号 **'''** 或三个双引号 **"""** 来定义的，而且这种注释方式并不能嵌套使用。当你开始一个多行注释块时，Python 会一直将后续的行都当作注释，直到遇到另一组三个单引号或三个双引号。**嵌套多行注释会导致语法错误。**一般来说，单行注释用于普通注释；而多行注释用于文档说明，函数说明等等。
+
+```
+# 这是一个注释 print("Hello, World!")
+
+'''
+这是多行注释，用三个单引号
+这是多行注释，用三个单引号 
+这是多行注释，用三个单引号
+'''
+
+"""
+这是多行注释（字符串），用三个双引号
+这是多行注释（字符串），用三个双引号 
+这是多行注释（字符串），用三个双引号
+"""
+
+print("Hello, World!")
+
+def a():
+    '''这是文档字符串'''
     pass
-
-@dataclass
-class ImportedOrder:
-    id: int
-    status: str
-
-def parse_line(line: str) -> ImportedOrder:
-    parts = line.strip().split(",")
-    if len(parts) != 2:
-        raise ValueError(f"bad format: {line!r}")
-    return ImportedOrder(id=int(parts[0]), status=parts[1])
-
-def import_orders(path: str) -> list[ImportedOrder]:
-    orders: list[ImportedOrder] = []
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            for line in f:
-                if not line.strip():
-                    continue
-                orders.append(parse_line(line))
-        return orders
-    except Exception as e:
-        raise OrderImportError(f"import failed: path={path}") from e
-
-```
-异常这一节的工程落点可以用一句话总结：边界处捕获并转换，保留根因，用 with/finally 保证释放，不随意吞掉异常；上层负责策略，例如是否重试、是否告警、如何对外返回。后面工程化章节会把“策略层面”的超时重试与幂等串起来，这里先把语言层面的异常机制讲透。
-
-#### 文件与路径
-文件 IO 的工程底线是显式编码、with 保证关闭、按行/按块流式处理避免大文件爆内存。订单系统里导入/导出最常见的就是 CSV 这类文本文件，路径推荐用 pathlib 让跨平台更稳。
-
-```python
-# ordersys/exporter.py
-from pathlib import Path
-
-def export_orders_csv(orders, out_dir: str) -> Path:
-    out_path = Path(out_dir) / "orders.csv"
-    with out_path.open("w", encoding="utf-8", newline="") as f:
-        f.write("id,status\n")
-        for o in orders:
-            f.write(f"{o['id']},{o['status']}\n")
-    return out_path
-
-orders = [{"id": 1001, "status": "NEW"}, {"id": 1002, "status": "PAID"}]
-print(export_orders_csv(orders, "."))
-
-```
-#### 标准库常用入口
-标准库不是背目录，而是形成“场景到模块”的稳定联想。订单系统里最常见的就是时间、路径、计数聚合、序列化。把这些模块用熟，比引入一堆第三方库更稳。
-
-```python
-
-面试里你可以把这节收成一句口径：我优先用标准库把常见需求做稳，只有当标准库不足或维护成本更高时才引入第三方依赖，这样依赖更少、升级更可控、交付更可复现。
-# ordersys/stdlib_demo.py
-from collections import Counter
-from datetime import datetime, timedelta
-import json
-
-orders = [{"id": 1001, "status": "NEW"}, {"id": 1002, "status": "PAID"}, {"id": 1003, "status": "NEW"}]
-stat = Counter(o["status"] for o in orders)
-print(stat)
-
-expires_at = datetime.utcnow() + timedelta(minutes=30)
-print(expires_at.isoformat())
-
-payload = json.dumps(orders, ensure_ascii=False)
-print(payload)
-
-```
-### 调试与习惯
-#### 调试、日志与常见坑
-调试与日志的目标是把现象变成可定位的信息。订单系统日志至少要带业务标识与异常堆栈；不要吞异常，不要为了日志提前拼大字符串。
-
-```python
-
-订单系统的线上排查往往要求你把一次请求在多个模块的日志串起来。最小可用的做法是引入一个 request_id，并在这一请求的所有日志里带上它。标准库层面可以用 `contextvars` 在异步场景里传递上下文，保证同一个 request_id 在协程切换后仍然可用。线程场景下如果你用线程池执行任务，也要注意上下文是否需要显式传递，工程里很多团队会用中间件或框架提供的上下文能力做统一封装。
-
-下面的示例用 `contextvars` 存 request_id，并通过一个 logging Filter 把它注入到每条日志里。示例不依赖框架，但结构就是你在 Web 服务里会用到的那套。
-
-```python
-
-```python
-# ordersys/request_context_demo.py
-import logging
-import contextvars
-import uuid
-
-request_id_var = contextvars.ContextVar("request_id", default="-")
-
-class RequestIdFilter(logging.Filter):
-    def filter(self, record: logging.LogRecord) -> bool:
-        record.request_id = request_id_var.get()
-        return True
-
-handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s request_id=%(request_id)s %(message)s"))
-
-root = logging.getLogger("ordersys")
-root.setLevel(logging.INFO)
-root.addHandler(handler)
-root.addFilter(RequestIdFilter())
-
-def handle_request() -> None:
-    token = request_id_var.set(str(uuid.uuid4()))
-    try:
-        root.info("start")
-        root.info("do something")
-        root.info("end")
-    finally:
-        request_id_var.reset(token)
-
-handle_request()
-
+print(a.__doc__)
 ```
 
-```
+### 常用标准库
 
-面试里你不需要背 contextvars 的 API，但你要能讲清楚目标：给每条日志加上可关联的请求标识，让一次请求在多个模块间可追踪；同步框架通常用中间件实现，异步框架用 contextvars 能更自然地贯穿协程上下文。
-# ordersys/logging_demo.py
-import logging
+Python 标准库非常庞大，所提供的组件涉及范围十分广泛，使用标准库我们可以让您轻松地完成各种任务。
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s order_id=%(order_id)s %(message)s"
-)
-logger = logging.getLogger("ordersys")
+以下是一些 Python3 标准库中的模块：
 
-def process(order_id: int) -> None:
-    try:
-        if order_id < 0:
-            raise ValueError("bad id")
-        logger.info("ok", extra={"order_id": order_id})
-    except Exception:
-        logger.exception("failed", extra={"order_id": order_id})
-        raise
+- os 模块：os 模块提供了许多与操作系统交互的函数，例如创建、移动和删除文件和目录，以及访问环境变量等。
+- sys 模块：sys 模块提供了与 Python 解释器和系统相关的功能，例如解释器的版本和路径，以及与 stdin、stdout 和 stderr 相关的信息。
+- time 模块：time 模块提供了处理时间的函数，例如获取当前时间、格式化日期和时间、计时等。
+- datetime 模块：datetime 模块提供了更高级的日期和时间处理函数，例如处理时区、计算时间差、计算日期差等。
+- random 模块：random 模块提供了生成随机数的函数，例如生成随机整数、浮点数、序列等。
+- math 模块：math 模块提供了数学函数，例如三角函数、对数函数、指数函数、常数等。
+- re 模块：re 模块提供了正则表达式处理函数，可以用于文本搜索、替换、分割等。
+- json 模块：json 模块提供了 JSON 编码和解码函数，可以将 Python 对象转换为 JSON 格式，并从 JSON 格式中解析出 Python 对象。
+- urllib 模块：urllib 模块提供了访问网页和处理 URL 的功能，包括下载文件、发送 POST 请求、处理 cookies 等。
 
-process(1001)
+### 调试
+调试与日志的目标是把现象变成可定位的信息。
 
-```
 ## 面向对象
 
 ### 类的基本能力
 #### 类/实例/属性/方法
-Python 的面向对象在工程里更像是一套组织代码与表达边界的工具，而不是为了“用类而用类”。订单系统里最自然的对象通常是领域模型，例如订单、订单项、支付单，以及围绕它们的服务与仓储。面试里问类与实例，核心是在确认你是否理解实例数据放在哪里、方法如何绑定、属性查找顺序是什么，这些决定了你写出来的代码是清晰还是会出现诡异的覆盖与共享问题。
+Python从设计之初就已经是一门面向对象的语言，正因为如此，在Python中创建一个类和对象是很容易的。和其它编程语言相比。Python 在尽可能不增加新的语法和语义的情况下加入了类机制。Python中的类提供了面向对象编程的所有基本功能：类的继承机制允许多个基类，派生类可以覆盖基类中的任何方法，方法中可以调用基类中的同名方法。对象可以包含任意数量和类型的数据。
 
-类是模板，实例是运行时对象。实例的状态通常放在实例自己的属性里，类属性更多用来表达常量或共享配置。方法在定义时只是函数，访问时会变成绑定方法，也就是把实例作为第一个参数自动传入。这个机制解释了为什么实例方法的签名里会有 `self`，也解释了为什么你从类上访问同一个函数时得到的是未绑定的函数对象。
+##### 类定义
 
-属性查找顺序是一个必须讲清楚的点，因为它会直接影响你对 bug 的定位。一个最常见的真实问题是你以为自己改的是实例字段，实际上改的是类属性，导致所有实例共享了一个可变对象。另一个常见问题是实例属性覆盖了同名类属性，造成你以为配置改了，其实只是某个实例影子覆盖。你需要在脑子里有一个稳定的模型：访问 `obj.x` 时，解释器先尝试通过 `__getattribute__` 查找，优先处理数据描述符，其次看实例字典，再看类字典与基类链，最后才会触发 `__getattr__` 作为兜底。你不必把每个术语背下来，但你要知道“描述符优先级高于实例字典”这一点，因为 property 的行为就依赖它。
+类实例化后，可以使用其属性，实际上，创建一个类之后，可以通过类名访问其属性。
 
-下面把常见对象要素放在一张表里，它既是面试回答的骨架，也是你写代码时的默认约束。订单系统里字段多、流程长，靠签名与属性约束减少误用，会比靠注释更可靠。
+```
+class ClassName:
+    <statement-1>
+    .
+    .
+    .
+    <statement-N>
+```
 
-| 概念 | 存放位置 | 访问方式 | 订单系统里的例子 |
-| --- | --- | --- | --- |
-| 实例属性 | 每个对象一份 | `order.status` | 订单状态、金额、明细 |
-| 类属性 | 类对象共享 | `Order.STATUS_NEW` | 状态常量、默认配置 |
-| 实例方法 | 绑定到实例 | `order.mark_paid()` | 订单行为 |
-| 类方法 | 绑定到类 | `Order.from_dict(...)` | 构造器、工厂方法 |
-| 静态方法 | 不自动绑定 | `Order.validate(...)` | 与类相关的工具函数 |
+##### 类实例
 
-示例实现一个最小的 Order 类，展示类属性、实例属性、实例方法与类方法的差别。示例后半段故意展示“类属性放可变对象”的风险，这是订单系统里非常典型的线上坑。
+类可以被实例化为一个具体的对象，对象可以使用self来指代自己，用以说明指向实例对象。
+
+```
+#!/usr/bin/python3
+ 
+class MyClass:
+ 
+x = MyClass()
+```
+
+##### 类属性
+
+属性引用使用和 Python 中所有的属性引用一样的标准语法：**obj.name**。
+
+类对象创建后，类命名空间中所有的命名都是有效属性名。
+
+```
+#!/usr/bin/python3
+ 
+class MyClass:
+    """一个简单的类实例"""
+    i = 12345
+    def f(self):
+        return 'hello world'
+ 
+# 实例化类
+x = MyClass()
+ 
+# 访问类的属性和方法
+print("MyClass 类的属性 i 为：", x.i)
+print("MyClass 类的方法 f 输出为：", x.f())
+```
+
+**__private_attrs**：两个下划线开头，声明该属性为私有，不能在类的外部被使用或直接访问。在类内部的方法中使用时 **self.__private_attrs**。
+
+##### 类方法
+
+在类的内部，使用 **def** 关键字来定义一个方法，与一般函数定义不同，类方法必须包含参数 self, 且为第一个参数，self 代表的是类的实例。在类的内部，使用 def 关键字来定义一个方法，与一般函数定义不同，类方法必须包含参数 **self**，且为第一个参数，**self** 代表的是类的实例。**self** 的名字并不是规定死的，也可以使用 **this**，但是最好还是按照约定使用 **self**。
+
+```
+#!/usr/bin/python3
+ 
+#类定义
+class people:
+    #定义基本属性
+    name = ''
+    age = 0
+    #定义私有属性,私有属性在类外部无法直接进行访问
+    __weight = 0
+    #定义构造方法
+    def __init__(self,n,a,w):
+        self.name = n
+        self.age = a
+        self.__weight = w
+    def speak(self):
+        print("%s 说: 我 %d 岁。" %(self.name,self.age))
+ 
+# 实例化类
+p = people('runoob',10,30)
+p.speak()
+```
+
+- **__init__ :** 构造函数，在生成对象时调用
+- **__del__ :** 析构函数，释放对象时使用
+- **__repr__ :** 打印，转换
+- **__setitem__ :** 按照索引赋值
+- **__getitem__:** 按照索引获取值
+- **__len__:** 获得长度
+- **__cmp__:** 比较运算
+- **__call__:** 函数调用
+- **__add__:** 加运算
+- **__sub__:** 减运算
+- **__mul__:** 乘运算
+- **__truediv__:** 除运算
+- **__mod__:** 求余运算
+- **__pow__:** 乘方
+
+#### 继承
+##### 继承
+Python 同样支持类的继承，如果一种语言不支持继承，类就没有什么意义。子类（派生类 DerivedClassName）会继承父类（基类 BaseClassName）的属性和方法。除了类，还可以用表达式，基类定义在另一个模块中时这一点非常有用。Python同样有限的支持多继承形式。
+
+```
+class DerivedClassName(BaseClassName):
+    <statement-1>
+    .
+    .
+    .
+    <statement-N>
+    
+class DerivedClassName(modname.BaseClassName):
+
+class DerivedClassName(Base1, Base2, Base3):
+    <statement-1>
+    .
+    .
+    .
+    <statement-N>
+```
+
+#### 多态
+
+##### 多态
+
+如果你的父类方法的功能不能满足你的需求，你可以在子类重写你父类的方法.[super() 函数](https://www.runoob.com/python/python-func-super.html)是用于调用父类(超类)的一个方法。 Python同样支持运算符重载，我们可以对类的专有方法进行重载
+
+```
+#!/usr/bin/python3
+ 
+class Parent:        # 定义父类
+   def myMethod(self):
+      print ('调用父类方法')
+ 
+class Child(Parent): # 定义子类
+   def myMethod(self):
+      print ('调用子类方法')
+ 
+c = Child()          # 子类实例
+c.myMethod()         # 子类调用重写方法
+super(Child,c).myMethod() #用子类对象调用父类已被覆盖的方法
+
+
+#!/usr/bin/python3
+ 
+class Vector:
+   def __init__(self, a, b):
+      self.a = a
+      self.b = b
+ 
+   def __str__(self):
+      return 'Vector (%d, %d)' % (self.a, self.b)
+   
+   def __add__(self,other):
+      return Vector(self.a + other.a, self.b + other.b)
+ 
+v1 = Vector(2,10)
+v2 = Vector(5,-2)
+print (v1 + v2)
+```
+
+#### 生命周期
+
+如果在子类中需要父类的构造方法就需要显式地调用父类的构造方法，或者不重写父类的构造方法。
+
+子类不重写 **__init__**，实例化子类时，会自动调用父类定义的 **__init__**。如果重写了**__init__** 时，实例化子类，就不会调用父类已经定义的 **__init__**。
+
+python也有简单的析构函数，**`__del__` 不是可靠的资源释放机制**。它什么时候调用，未必完全由你控制。对象被垃圾回收时才可能触发。
+
+| 方式      | 时机   | 稳定性 |
+| --------- | ------ | ------ |
+| __init__  | 构建时 | 推荐   |
+| `__del__` | 不确定 | 不推荐 |
+
+## 并发
+
+### 多线程
+
+多线程类似于同时执行多个不同程序，多线程运行有如下优点：
+
+- 使用线程可以把占据长时间的程序中的任务放到后台去处理。
+- 用户界面可以更加吸引人，比如用户点击了一个按钮去触发某些事件的处理，可以弹出一个进度条来显示处理的进度。
+- 程序的运行速度可能加快。
+- 在一些等待的任务实现上如用户输入、文件读写和网络收发数据等，线程就比较有用了。在这种情况下我们可以释放一些珍贵的资源如内存占用等等。
+
+每个独立的线程有一个程序运行的入口、顺序执行序列和程序的出口。但是线程不能够独立执行，必须依存在应用程序中，由应用程序提供多个线程执行控制。
+
+每个线程都有他自己的一组CPU寄存器，称为线程的上下文，该上下文反映了线程上次运行该线程的CPU寄存器的状态。
+
+指令指针和堆栈指针寄存器是线程上下文中两个最重要的寄存器，线程总是在进程得到上下文中运行的，这些地址都用于标志拥有线程的进程地址空间中的内存。
+
+- 线程可以被抢占（中断）。
+- 在其他线程正在运行时，线程可以暂时搁置（也称为睡眠） -- 这就是线程的退让。
+
+线程可以分为:
+
+- **内核线程：**由操作系统内核创建和撤销。
+- **用户线程：**不需要内核支持而在用户程序中实现的线程。
+
+Python3 线程中常用的两个模块为：
+
+- **_thread**
+- **threading(推荐使用)**
+
+thread 模块已被废弃。用户可以使用 threading 模块代替。所以，在 Python3 中不能再使用"thread" 模块。为了兼容性，Python3 将 thread 重命名为 "_thread"。
+
+### 异步
+
+### GIL 
+
+
+
+## 语言特性
+
+### 命名空间与作用域
+
+作用域遵循 LEGB。作用域就是一个 Python 程序可以直接访问命名空间的正文区域。在一个 python 程序中，直接访问一个变量，会从内到外依次访问所有的作用域直到找到，否则会报未定义的错误。Python 中，程序的变量并不是在哪个位置都可以访问的，访问权限决定于这个变量是在哪里赋值的。变量的作用域决定了在哪一部分程序可以访问哪个特定的变量名称。Python 的作用域一共有 4 种，分别是：
+
+- **L（Local）**：最内层，包含局部变量，比如一个函数/方法内部。
+- **E（Enclosing）**：包含了非局部(non-local)也非全局(non-global)的变量。比如两个嵌套函数，一个函数（或类） A 里面又包含了一个函数 B ，那么对于 B 中的名称来说 A 中的作用域就为 nonlocal。
+- **G（Global）**：当前脚本的最外层，比如当前模块的全局变量。
+- **B（Built-in）**： 包含了内建的变量/关键字等，最后被搜索。
+- 查找变量时的顺序是： **L –> E –> G –> B**。
+
+Python 中只有模块（module），类（class）以及函数（def、lambda）才会引入新的作用域，其它的代码块（如 if/elif/else/、try/except、for/while等）是不会引入新的作用域的，也就是说这些语句内定义的变量，外部也可以访问。定义在函数内部的变量拥有一个局部作用域，定义在函数外的拥有全局作用域。局部变量只能在其被声明的函数内部访问，而全局变量可以在整个程序范围内访问。在函数内部声明的变量只在函数内部的作用域中有效，调用函数时，这些内部变量会被加入到函数内部的作用域中，并且不会影响到函数外部的同名变量。
+
+```
+total = 0 # 这是一个全局变量
+# 可写函数说明
+def sum( arg1, arg2 ):
+    #返回2个参数的和."
+    total = arg1 + arg2 # total在这里是局部变量.
+    print ("函数内是局部变量 : ", total)
+    return total
+ 
+#调用sum函数
+sum( 10, 20 )
+print ("函数外是全局变量 : ", total)
+```
+
+当内部作用域想修改全局作用域的变量时，就要用到 global 关键字。
+
+如果要修改嵌套作用域（enclosing 作用域，外层非全局作用域）中的变量则需要 nonlocal 关键字。
+
+```
+#!/usr/bin/python3
+ 
+num = 1
+def fun1():
+    global num  # 需要使用 global 关键字声明
+    print(num) 
+    num = 123
+    print(num)
+fun1()
+print(num)
+
+1
+123
+123
+
+#!/usr/bin/python3
+ 
+def outer():
+    num = 10
+    def inner():
+        nonlocal num   # nonlocal关键字声明
+        num = 100
+        print(num)
+    inner()
+    print(num)
+outer()
+
+100
+100
+```
+
+### 包与模块
+
+#### 模块
+
+Python 提供了一个机制，可以将函数、类、变量和可执行代码存放在单个 `.py` 文件中，这个文件被称为模块（Module）。模块可以被脚本或交互式解释器实例导入和使用，以便将代码组织成可重用单元，方便管理和维护。每个模块都有一个内置属性 `__name__`：如果模块是直接运行的入口文件，`__name__` 的值为 `"__main__"`；如果模块被导入，`__name__` 的值为模块名（通常是文件名，不含 `.py` 后缀，或包路径形式）。内置函数 `dir()` 可以返回模块内定义的所有名称，以字符串列表形式呈现。Python 自带一些标准模块库，如下：
+
+| 模块名        | 功能描述                                      |
+| :------------ | :-------------------------------------------- |
+| `math`        | 数学运算（平方根、三角函数等）                |
+| `os`          | 操作系统相关功能（文件、目录操作等）          |
+| `sys`         | 系统参数和函数                                |
+| `random`      | 生成随机数                                    |
+| `datetime`    | 处理日期和时间                                |
+| `json`        | 处理 JSON 数据                                |
+| `re`          | 正则表达式操作                                |
+| `collections` | 提供额外数据结构（`defaultdict`、`deque` 等） |
+| `itertools`   | 迭代器工具                                    |
+| `functools`   | 高阶函数工具（如 `reduce`、`lru_cache`）      |
 
 ```python
-# ordersys/oop_order.py
-from __future__ import annotations
+# 模块示例
+# module1.py
+def func1():
+    print("func1 in module1")
 
-class Order:
-    STATUS_NEW = "NEW"
-    STATUS_PAID = "PAID"
-    DEFAULT_TAGS = []  # 仅用于演示风险，工程里不要这样写
+if __name__ == "__main__":
+    print("module1 is running as main")
+    func1()
+```
 
-    def __init__(self, order_id: int, user_id: int, amount_cents: int) -> None:
-        self.id = order_id
-        self.user_id = user_id
-        self.amount_cents = amount_cents
-        self.status = Order.STATUS_NEW
-        self.tags = []  # 每个实例一份
+#### 包
 
-    def mark_paid(self) -> None:
-        self.status = Order.STATUS_PAID
+包（Package）是管理 Python 模块命名空间的一种形式，采用“点模块名称”的方式组织模块。例如模块名 `package1.module2` 表示包 `package1` 中的子模块 `module2`。包可以防止不同模块或库的全局变量冲突和模块重名问题。在导入包时，Python 会根据 `sys.path` 中的路径寻找包含 `__init__.py` 的目录。目录中必须包含 `__init__.py`（可以为空），该文件会在包被导入时执行，可以包含初始化代码，也可定义 `__all__` 列表变量，用于控制 `from package import *` 导入的内容。例如：
+
+```python
+# package1/__init__.py
+__all__ = ["module2", "module3"]
+```
+
+包内模块可使用相对导入或绝对导入：
+
+```python
+# package1/module1.py 导入 package1/module2.py
+from . import module2       # 相对导入
+from package1 import module2 # 绝对导入
+```
+
+#### 导入方式
+
+Python 提供两种主要导入语法，分别用于引入整个模块或包，或者从模块或包中导入特定符号。
+
+* **import module1[, module2[,... moduleN] as alisa1[, alisa2[,... alisaN]** ：import 整个模块或包，他的效果是告诉解析器要从外部导入包/模块，之后的使用可以用 `module.func`来访问导入的包/模块下的名称。
+
+```python
+# import 整个模块或包
+import module1
+import module2 as m2
+
+module1.func1()
+m2.func2()
+```
+
+* **from module1 import func1**： import的是对应包/模块，他的效果是告诉解析器要从外部包/模块导入命名名称到本地的命名空间，之后的使用可以直接使用 `func`来直接访问导入的包/模块下的名称
+
+```python
+# from xxx import yyy
+from module1 import func1
+from module2 import func2 as f2
+func1()
+f2()
+```
+
+导入解析遵循模块搜索路径 (`sys.path`)：第一个匹配的包或模块被认为是顶层包。相对导入使用 `.` / `..`，基于当前模块所在包层级，绝对导入以顶层包或 `sys.path` 路径开始解析。注意，导入是相对包而言的，而非模块而言的。示例：
+
+```python
+# 包和模块导入示例
+import package1.module2
+from package1 import module2
+from . import module2
+from .. import module3
+from ..subpackage import module4
+```
+
+绝对导入路径从顶层包开始，相对导入路径基于模块所在包，`__name__` 永远是 "__main__" 的模块作为主程序入口，主模块应使用绝对路径引用。
+
+### Lambdas表达式
+
+Python 使用 **lambda** 来创建匿名函数。lambda 函数是一种小型、匿名的、内联函数，它可以具有任意数量的参数，但只能有一个表达式。匿名函数不需要使用 **def** 关键字定义完整函数。lambda 函数通常用于编写简单的、单行的函数，通常在需要函数作为参数传递的情况下使用，例如在 map()、filter()、reduce() 等函数中。
+
+**lambda 函数特点：**
+
+- lambda 函数是匿名的，它们没有函数名称，只能通过赋值给变量或作为参数传递给其他函数来使用。
+- lambda 函数通常只包含一行代码，这使得它们适用于编写简单的函数。
+
+**lambda 语法格式：**
+
+```
+lambda arguments: expression
+```
+
+- `lambda`是 Python 的关键字，用于定义 lambda 函数。
+- `arguments` 是参数列表，可以包含零个或多个参数，但必须在冒号(`:`)前指定。
+- `expression` 是一个表达式，用于计算并返回函数的结果。
+
+lambda 函数也可以设置多个参数，参数使用逗号 **,** 隔开。lambda 函数通常与内置函数如 map()、filter() 和 reduce() 一起使用，以便在集合上执行操作。
+
+### Decorators 装饰器
+
+装饰器（decorators）是 Python 中的一种高级功能，它允许你动态地修改函数或类的行为。装饰器是一种函数，它接受一个函数作为参数，并返回一个新的函数或修改原来的函数。
+
+![img](https://www.runoob.com/wp-content/uploads/2024/03/decorators-python-1.png)
+
+#### 函数装饰器
+
+装饰器的语法使用 **@decorator_name** 来应用在函数或方法上。
+
+Python 还提供了一些内置的装饰器，比如 **@staticmethod** 和 **@classmethod**，用于定义静态方法和类方法。Python 装饰允许在不修改原有函数代码的基础上，动态地增加或修改函数的功能，装饰器本质上是一个接收函数作为输入并返回一个新的包装过后的函数的对象。**解析：**decorator 是一个装饰器函数，它接受一个函数 func 作为参数，并返回一个内部函数 wrapper，在 wrapper 函数内部，你可以执行一些额外的操作，然后调用原始函数 func，并返回其结果。
+
+- `decorator_function` 是装饰器，它接收一个函数 `original_function` 作为参数。
+- `wrapper` 是内部函数，它是实际会被调用的新函数，它包裹了原始函数的调用，并在其前后增加了额外的行为。
+- 当我们使用 `@decorator_function` 前缀在 `target_function` 定义前，Python会自动将 `target_function` 作为参数传递给 `decorator_function`，然后将返回的 `wrapper` 函数替换掉原来的 `target_function`。
+
+装饰器通过 **@** 符号应用在函数定义之前，例如：
+
+```
+@time_logger
+def target_function():
+    pass
+```
+
+等同于：
+
+```
+def target_function():
+    pass
+target_function = time_logger(target_function)
+```
+
+这会将 target_function 函数传递给 decorator 装饰器，并将返回的函数重新赋值给 target_function。从而，每次调用 target_function 时，实际上是调用了经过装饰器处理后的函数。
+
+通过装饰器，开发者可以在保持代码整洁的同时，灵活且高效地扩展程序的功能。带参数的装饰器
+
+如果原函数需要参数，可以在装饰器的 wrapper 函数中传递参数。
+
+#### 类装饰器
+
+除了函数装饰器，Python 还支持类装饰器。
+
+类装饰器（Class Decorator）是一种用于动态修改类行为的装饰器，它接收一个类作为参数，并返回一个新的类或修改后的类。
+
+类装饰器可以用于：
+
+- 添加/修改类的方法或属性
+- 拦截实例化过程
+- 实现单例模式、日志记录、权限检查等功能
+
+**类装饰器有两种常见形式：**
+
+- 函数形式的类装饰器（接收类作为参数，返回新类）
+- 类形式的类装饰器（实现 **__call__** 方法，使其可调用）
+
+```
+def log_class(cls):
+    """类装饰器，在调用方法前后打印日志"""
+    class Wrapper:
+        def __init__(self, *args, **kwargs):
+            self.wrapped = cls(*args, **kwargs)  # 实例化原始类
+        
+        def __getattr__(self, name):
+            """拦截未定义的属性访问，转发给原始类"""
+            return getattr(self.wrapped, name)
+        
+        def display(self):
+            print(f"调用 {cls.__name__}.display() 前")
+            self.wrapped.display()
+            print(f"调用 {cls.__name__}.display() 后")
+    
+    return Wrapper  # 返回包装后的类
+
+@log_class
+class MyClass:
+    def display(self):
+        print("这是 MyClass 的 display 方法")
+
+obj = MyClass()
+obj.display()
+```
+
+#### 内置装饰器
+
+Python 提供了一些内置的装饰器，例如：
+
+1. **`@staticmethod`**: 将方法定义为静态方法，不需要实例化类即可调用。
+2. **`@classmethod`**: 将方法定义为类方法，第一个参数是类本身（通常命名为 `cls`）。
+3. **`@property`**: 将方法转换为属性，使其可以像属性一样访问。
+
+```
+class MyClass:
+    @staticmethod
+    def static_method():
+        print("This is a static method.")
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Order":
-        return cls(order_id=int(data["id"]), user_id=int(data["user_id"]), amount_cents=int(data["amount_cents"]))
-
-o1 = Order(1001, 7, 3000)
-o2 = Order(1002, 8, 4000)
-Order.DEFAULT_TAGS.append("shared")
-o1.tags.append("private")
-print(Order.DEFAULT_TAGS, o1.tags, o2.tags)
-
-```
-
-```
-
-方法绑定这一点面试也经常追问。你可以把 `Order.mark_paid` 看成函数对象，`o1.mark_paid` 看成把 `o1` 绑定进去之后得到的可调用对象。理解这个差别，你就能解释很多看似“魔法”的行为，比如为什么装饰器能拦截方法调用，为什么把函数挂到类上就自动变成方法。
-
-```python
-
-```python
-# ordersys/method_binding_demo.py
-class X:
-    def f(self) -> str:
-        return "ok"
-
-x = X()
-print(X.f)      # 类上拿到的是函数对象
-print(x.f)      # 实例上拿到的是绑定方法
-print(X.f(x))   # 手动传 self
-print(x.f())    # 自动传 self
-
-```
-这一节最后你要记住的不是语法，而是模型：实例存数据，类存常量或共享策略；方法是函数加绑定；属性查找有优先级，描述符能拦截读写；把可变对象放在类属性上是常见坑。
-
-#### 构造与生命周期
-构造与生命周期这一节，面试常用来考两件事。第一件是对象创建过程里哪些钩子会被调用，尤其是 `__init__` 与 `__new__` 的区别。第二件是资源型对象的生命周期如何管理，例如数据库连接、文件句柄、锁，什么时候创建、什么时候释放，如何避免“对象被垃圾回收时才释放资源”这种不确定行为。订单系统里绝大多数对象不需要自定义 `__new__`，但你需要知道它存在，知道它在不可变对象或单例模式里可能出现。
-
-`__init__` 负责初始化已经创建好的实例，它不能返回新对象。`__new__` 负责创建实例，它必须返回一个实例。你在工程里最常见的 `__new__` 场景通常来自第三方库或不可变类型的派生，例如你想派生一个不可变的订单号类型，或者你看到某些库用 `__new__` 做缓存与复用。业务类大多数只用 `__init__` 就足够。
-
-生命周期管理上，Python 有垃圾回收，但不要把资源释放寄托在 `__del__` 上，因为它不保证及时执行，也不保证一定执行。工程里资源型对象用上下文管理器或显式 close 方法更稳。订单系统里最常见的资源型对象是数据库连接与 HTTP 连接，你希望它们的释放时机可控且可测试，而不是“看 GC 心情”。
-
-下面的表把常见生命周期策略放在一起。面试里回答时可以先讲语义，再讲工程结论：资源释放要显式，要可验证。
-
-| 方式 | 释放时机 | 稳定性 | 订单系统适用场景 |
-| --- | --- | --- | --- |
-| `with` 上下文 | 块结束立即释放 | 最稳 | 文件、连接、锁 |
-| 显式 `close()` | 调用点决定 | 可控但易漏 | 长生命周期对象 |
-| `__del__` | 不确定 | 不推荐 | 兜底，不能当主方案 |
-
-示例用一个连接对象展示 `__enter__/__exit__` 的基本形态。真正的数据库连接会更复杂，但这个模式会一直复用。
-
-```python
-# ordersys/repo_conn.py
-class RepoConnection:
-    def __init__(self) -> None:
-        self._opened = True
-
-    def close(self) -> None:
-        self._opened = False
-
-    def __enter__(self) -> "RepoConnection":
-        return self
-
-    def __exit__(self, exc_type, exc, tb) -> None:
-        self.close()
-
-with RepoConnection() as conn:
-    print("opened", conn._opened)
-print("closed", conn._opened)
-
-```
-面试里如果继续问“对象什么时候会被释放”，更稳的回答是把焦点拉回工程结论：业务对象由 GC 管，资源对象由 with 或 close 管。你把这两个层面分开讲，通常会让人觉得你有线上经验。
-
-### 继承与结构
-#### 继承、super 与 MRO
-继承、super 与 MRO 是 Python 面向对象里最容易被问到的机制题。订单系统里虽然不鼓励深继承树，但你仍然会遇到继承，例如不同渠道的支付适配器、不同类型订单的差异化校验。面试问继承不只是问语法，而是在确认你是否理解方法解析顺序，也就是在多继承时到底调用了哪个方法，`super()` 究竟做了什么。
-
-Python 的 MRO 是一种线性化规则，它决定了属性和方法的查找顺序。`super()` 并不是“调用父类”，它是沿着 MRO 链条去找下一个实现。这个差别在单继承里看不出来，在多继承里是核心。工程里如果你要用多继承，通常是为了组合能力而不是复用状态，并且你必须遵守 cooperative multiple inheritance 的写法，也就是每一层都用 `super()`，每一层都只做自己那一部分初始化，否则很容易出现某个父类的 `__init__` 没被调用。
-
-下面先用单继承的支付适配器演示 super 的直观含义，再用一个带 mixin 的例子说明为什么 super 是“沿 MRO 找下一个”。你在面试里能把这点讲清楚，就已经达到了多数团队对 Python OOP 的要求。
-
-```python
-# ordersys/inherit_demo.py
-class PaymentBase:
-    def pay(self, order_id: int) -> str:
-        return f"base pay {order_id}"
-
-class ChannelA(PaymentBase):
-    def pay(self, order_id: int) -> str:
-        base = super().pay(order_id)
-        return base + " via A"
-
-p = ChannelA()
-print(p.pay(1001))
-print(ChannelA.mro())
-
-```
-
-```
-
-多继承的例子用两个 mixin 叠加行为，再由最终类组合起来。每一层都用 super，并且每一层都调用同名方法，这样链条才会完整。你会看到调用顺序严格按 MRO 走，这就是 cooperative 的意义。
-
-```python
-
-```python
-# ordersys/mro_demo.py
-class LogMixin:
-    def process(self, order_id: int) -> str:
-        return "log(" + super().process(order_id) + ")"
-
-class MetricMixin:
-    def process(self, order_id: int) -> str:
-        return "metric(" + super().process(order_id) + ")"
-
-class CoreProcessor:
-    def process(self, order_id: int) -> str:
-        return f"core:{order_id}"
-
-class Processor(LogMixin, MetricMixin, CoreProcessor):
-    pass
-
-p = Processor()
-print(p.process(1001))
-print(Processor.mro())
-
-```
-
-```
-
-工程结论很清晰：业务层避免复杂多继承，能用组合就用组合；确实要用时，优先用 mixin 叠加无状态行为，并严格遵守 cooperative super 的写法。面试里你把“super 是按 MRO 找下一个”讲对，基本就稳。
-
-```python
-
-```
-
-```
-多继承的例子用两个 mixin 叠加行为，再由最终类组合起来。每一层都用 super，并且每一层都调用同名方法，这样链条才会完整。你会看到调用顺序严格按 MRO 走，这就是 cooperative 的意义。
-
-工程结论很清晰：业务层避免复杂多继承，能用组合就用组合；确实要用时，优先用 mixin 叠加无状态行为，并严格遵守 cooperative super 的写法。面试里你把“super 是按 MRO 找下一个”讲对，基本就稳。
-
-#### 抽象与协议式设计
-抽象与协议式设计这一节，面试常见的切入点是“Python 没有接口，那怎么约束调用方”。真实答案是 Python 倾向于鸭子类型，约束更多来自约定与测试，但在工程里也会用抽象基类与类型标注来表达契约。订单系统的典型场景是支付渠道适配器。你希望所有渠道都提供同样的方法，例如 `pay`、`refund`，并且你希望在实现不完整时能尽早失败。
-
-抽象基类用 `abc.ABC` 与 `@abstractmethod` 表达必须实现的方法。如果子类没有实现抽象方法，实例化时就会报错，这是一种运行时约束。协议式设计更偏向静态检查层面，通常配合 typing 的 Protocol 来表达结构契约，这会让你在开发阶段就能通过类型检查发现不匹配，但它不会像 ABC 那样在运行时阻止实例化。工程里两者经常配合使用：关键边界用 ABC 做硬约束，代码提示与静态检查用 Protocol 做软约束，最终可靠性仍然靠测试与灰度。
-
-下面的表把两种方式的取舍列出来。你在面试里不需要站队，但要能说出它们各自解决什么问题。
-
-| 方式 | 约束发生在哪 | 优点 | 代价 | 订单系统常见用法 |
-| --- | --- | --- | --- | --- |
-| ABC | 运行时 | 漏实现立刻失败 | 需要继承体系 | 支付网关、仓储接口 |
-| Protocol | 类型检查期 | 灵活，不要求继承 | 依赖工具链 | 服务层依赖的能力约束 |
-
-示例仍用支付适配器演示 ABC 的最小写法。你在面试里可以顺势补一句：如果团队使用 mypy/pyright，会把 Protocol 用在更多位置，让依赖关系更清晰。
-
-```python
-# ordersys/payment_abc.py
-from abc import ABC, abstractmethod
-
-class PaymentGateway(ABC):
-    @abstractmethod
-    def pay(self, order_id: int, amount_cents: int) -> str:
-        raise NotImplementedError
-
-    @abstractmethod
-    def refund(self, order_id: int, amount_cents: int) -> str:
-        raise NotImplementedError
-
-class ChannelAGateway(PaymentGateway):
-    def pay(self, order_id: int, amount_cents: int) -> str:
-        return f"A pay {order_id} {amount_cents}"
-
-    def refund(self, order_id: int, amount_cents: int) -> str:
-        return f"A refund {order_id} {amount_cents}"
-
-g = ChannelAGateway()
-print(g.pay(1001, 3000))
-
-```
-
-```
-
-```
-这一节的工程落点是：接口不是为了写接口，而是为了让边界更稳。订单系统的边界往往在外部依赖处，例如支付渠道、短信通知、风控服务。把边界用抽象表达出来，替换实现时成本会更低，测试也更容易写。
-
-### 属性与建模
-#### property 与描述符
-`property` 与描述符这一节是 Python 面向对象的高频机制题，也是工程里能写出更稳 API 的关键能力。订单系统里经常需要做字段校验与派生字段，例如金额分必须非负，订单状态只能走合法迁移路径，展示字段需要由内部字段计算得出。如果你把所有校验都写成外部函数，调用方很容易绕过；如果你把校验放进属性访问里，模型会更自洽。
-
-`property` 本质上是描述符的一种应用。描述符协议定义了 `__get__`、`__set__`、`__delete__`，当类属性是描述符对象时，访问行为会被它接管。你在面试里最需要讲清楚的是两点：property 为什么能拦截读写，以及它适合表达哪些不变量。订单系统里常见的用法是把“设置字段”变成一个受控入口，例如金额必须非负，状态迁移必须合法。另一个常见用法是只读派生属性，让展示逻辑不污染业务字段。
-
-下面的示例用 property 把“金额分到元”的展示和“金额必须非负”的校验放到模型里。这样写的好处是模型本身就保证了基本不变量，调用方即使不小心也更难写出错误状态。
-
-```python
-# ordersys/property_demo.py
-class Order:
-    def __init__(self, amount_cents: int) -> None:
-        self._amount_cents = 0
-        self.amount_cents = amount_cents
+    def class_method(cls):
+        print(f"This is a class method of {cls.__name__}.")
 
     @property
-    def amount_cents(self) -> int:
-        return self._amount_cents
+    def name(self):
+        return self._name
 
-    @amount_cents.setter
-    def amount_cents(self, value: int) -> None:
-        if value < 0:
-            raise ValueError("amount_cents must be >= 0")
-        self._amount_cents = value
+    @name.setter
+    def name(self, value):
+        self._name = value
 
-    @property
-    def amount_yuan(self) -> str:
-        return f"{self._amount_cents / 100:.2f}"
+# 使用
+MyClass.static_method()
+MyClass.class_method()
 
-o = Order(1990)
-print(o.amount_yuan)
-
+obj = MyClass()
+obj.name = "Alice"
+print(obj.name)
 ```
 
+### 迭代器与生成器 
+
+#### 迭代器
+
+迭代是 Python 最强大的功能之一，是访问集合元素的一种方式。迭代器是一个可以记住遍历的位置的对象。迭代器对象从集合的第一个元素开始访问，直到所有的元素被访问完结束。迭代器只能往前不会后退。迭代器有两个基本的方法：**iter()** 和 **next()**。字符串，列表或元组对象都可用于创建迭代器。迭代器对象可以使用常规for**语句进行遍历**。也可以使用 next() 函数。
+
+```
+#!/usr/bin/python3
+ 
+list=[1,2,3,4]
+it = iter(list)    # 创建迭代器对象
+for x in it:
+    print (x, end=" ")
+
+
+#!/usr/bin/python3
+ 
+import sys         # 引入 sys 模块
+ 
+list=[1,2,3,4]
+it = iter(list)    # 创建迭代器对象
+ 
+while True:
+    try:
+        print (next(it))
+    except StopIteration:
+        sys.exit()
 ```
 
-订单系统里更常见的“更稳 API”其实是状态迁移。与其让外部直接 `order.status = "PAID"`，不如把迁移封装成方法，并在内部校验合法性。property 能拦截赋值，但它更适合校验单字段不变量；状态迁移往往涉及多字段与规则，方法比 setter 更清晰，也更好测试。这个点在面试里讲出来，会比单纯展示 property 更像工程经验。
+##### 创建迭代器
+
+把一个类作为一个迭代器使用需要在类中实现两个方法 __iter__() 与 __next__() 。如果你已经了解的面向对象编程，就知道类都有一个构造函数，Python 的构造函数为 __init__(), 它会在对象初始化的时候执行。
+
+__iter__() 方法返回一个特殊的迭代器对象， 这个迭代器对象实现了 __next__() 方法并通过 StopIteration 异常标识迭代的完成。
+
+__next__() 方法（Python 2 里是 next()）会返回下一个迭代器对象。StopIteration 异常用于标识迭代的完成，防止出现无限循环的情况，在 __next__() 方法中我们可以设置在完成指定循环次数后触发 StopIteration 异常来结束迭代。
+
+```
+class MyNumbers:
+  def __iter__(self):
+    self.a = 1
+    return self
+ 
+  def __next__(self):
+    if self.a <= 20:
+      x = self.a
+      self.a += 1
+      return x
+    else:
+      raise StopIteration
+ 
+myclass = MyNumbers()
+myiter = iter(myclass)
+ 
+for x in myiter:
+  print(x)
+```
+
+#### 生成器
+
+在 Python 中，使用了 **yield** 的函数被称为生成器（generator）。**yield** 是一个关键字，用于定义生成器函数，生成器函数是一种特殊的函数，可以在迭代过程中逐步产生值，而不是一次性返回所有结果。跟普通函数不同的是，生成器是一个返回迭代器的函数，只能用于迭代操作，更简单点理解生成器就是一个迭代器。当在生成器函数中使用 **yield** 语句时，函数的执行将会暂停，并将 **yield** 后面的表达式作为当前迭代的值返回。然后，每次调用生成器的 **next()** 方法或使用 **for** 循环进行迭代时，函数会从上次暂停的地方继续执行，直到再次遇到 **yield** 语句。这样，生成器函数可以逐步产生值，而不需要一次性计算并返回所有结果。调用一个生成器函数，返回的是一个迭代器对象。
+
+```
+def countdown(n):
+    while n > 0:
+        yield n
+        n -= 1
+ 
+# 创建生成器对象
+generator = countdown(5)
+ 
+# 通过迭代生成器获取值
+print(next(generator))  # 输出: 5
+print(next(generator))  # 输出: 4
+print(next(generator))  # 输出: 3
+ 
+# 使用 for 循环迭代生成器
+for value in generator:
+    print(value)  # 输出: 2 1
+```
+
+### 正则表达式
+
+正则表达式是一个特殊的字符序列，它能帮助你方便的检查一个字符串是否与某种模式匹配。在 Python 中，使用 **re** 模块来处理正则表达式。re 模块提供了一组函数，允许你在字符串中进行模式匹配、搜索和替换操作。**re** 模块使 Python 语言拥有完整的正则表达式功能。
+
+#### re.match函数
+
+re.match 尝试从字符串的起始位置匹配一个模式，如果不是起始位置匹配成功的话，match() 就返回 None。
+
+**函数语法**：
+
+```
+re.match(pattern, string, flags=0)
+```
+
+函数参数说明：
+
+| 参数    | 描述                                                         |
+| :------ | :----------------------------------------------------------- |
+| pattern | 匹配的正则表达式                                             |
+| string  | 要匹配的字符串。                                             |
+| flags   | 标志位，用于控制正则表达式的匹配方式，如：是否区分大小写，多行匹配等等。参见：[正则表达式修饰符 - 可选标志](https://www.runoob.com/python3/python3-reg-expressions.html#flags) |
+
+匹配成功 **re.match** 方法返回一个匹配的对象，否则返回 **None**。
+
+我们可以使用 **group(num)** 或 **groups()** 匹配对象函数来获取匹配表达式。
+
+| 匹配对象方法 | 描述                                                         |
+| :----------- | :----------------------------------------------------------- |
+| group(num=0) | 匹配的整个表达式的字符串，group() 可以一次输入多个组号，在这种情况下它将返回一个包含那些组所对应值的元组。 |
+| groups()     | 返回一个包含所有小组字符串的元组，从 1 到 所含的小组号。     |
+
+#### re.search方法
+
+re.search 扫描整个字符串并返回第一个成功的匹配。
+
+函数语法：
+
+```
+re.search(pattern, string, flags=0)
+```
+
+函数参数说明：
+
+| 参数    | 描述                                                         |
+| :------ | :----------------------------------------------------------- |
+| pattern | 匹配的正则表达式                                             |
+| string  | 要匹配的字符串。                                             |
+| flags   | 标志位，用于控制正则表达式的匹配方式，如：是否区分大小写，多行匹配等等。参见：[正则表达式修饰符 - 可选标志](https://www.runoob.com/python3/python3-reg-expressions.html#flags) |
+
+匹配成功re.search方法返回一个匹配的对象，否则返回None。
+
+我们可以使用group(num) 或 groups() 匹配对象函数来获取匹配表达式。
+
+| 匹配对象方法 | 描述                                                         |
+| :----------- | :----------------------------------------------------------- |
+| group(num=0) | 匹配的整个表达式的字符串，group() 可以一次输入多个组号，在这种情况下它将返回一个包含那些组所对应值的元组。 |
+| groups()     | 返回一个包含所有小组字符串的元组，从 1 到 所含的小组号。     |
+
+#### 检索和替换
+
+Python 的re模块提供了re.sub用于替换字符串中的匹配项。
+
+语法：
+
+```
+re.sub(pattern, repl, string, count=0, flags=0)
+```
+
+参数：
+
+- pattern : 正则中的模式字符串。
+- repl : 替换的字符串，也可为一个函数。
+- string : 要被查找替换的原始字符串。
+- count : 模式匹配后替换的最大次数，默认 0 表示替换所有的匹配。
+- flags : 编译时用的匹配模式，数字形式。
+
+前三个为必选参数，后两个为可选参数。
+
+#### compile 函数
+
+compile 函数用于编译正则表达式，生成一个正则表达式（ Pattern ）对象，供 match() 和 search() 这两个函数使用。
+
+语法格式为：
+
+```
+re.compile(pattern[, flags])
+```
+
+参数：
+
+- pattern : 一个字符串形式的正则表达式
+
+- flags 可选，表示匹配模式，比如忽略大小写，多行模式等，具体参数为：
+
+- - re.IGNORECASE 或 re.I
+  - re.L 表示特殊字符集 \w, \W, \b, \B, \s, \S 依赖于当前环境
+  - re.MULTILINE 或 re.M - 多行模式，改变 ^ 和 $ 的行为，使它们匹配字符串的每一行的开头和结尾。
+  - re.DOTALL 或 re.S - 使 **.** 匹配包括换行符在内的任意字符。
+  - re.ASCII - 使 \w, \W, \b, \B, \d, \D, \s, \S 仅匹配 ASCII 字符。
+  - re.VERBOSE 或 re.X - 忽略空格和注释，可以更清晰地组织复杂的正则表达式。
+
+  这些标志可以单独使用，也可以通过按位或（|）组合使用。例如，re.IGNORECASE | re.MULTILINE 表示同时启用忽略大小写和多行模式。
+
+当匹配成功时返回一个 Match 对象，其中：
+
+- `group([group1, …])` 方法用于获得一个或多个分组匹配的字符串，当要获得整个匹配的子串时，可直接使用 `group()` 或 `group(0)`；
+- `start([group])` 方法用于获取分组匹配的子串在整个字符串中的起始位置（子串第一个字符的索引），参数默认值为 0；
+- `end([group])` 方法用于获取分组匹配的子串在整个字符串中的结束位置（子串最后一个字符的索引+1），参数默认值为 0；
+- `span([group])` 方法返回 `(start(group), end(group))`。
+
+#### findall
+
+在字符串中找到正则表达式所匹配的所有子串，并返回一个列表，如果有多个匹配模式，则返回元组列表，如果没有找到匹配的，则返回空列表。
+
+**注意：** match 和 search 是匹配一次 findall 匹配所有。
+
+语法格式为：
+
+```
+re.findall(pattern, string, flags=0)
+或
+pattern.findall(string[, pos[, endpos]])
+```
+
+参数：
+
+- **pattern** 匹配模式。
+- **string** 待匹配的字符串。
+- **pos** 可选参数，指定字符串的起始位置，默认为 0。
+- **endpos** 可选参数，指定字符串的结束位置，默认为字符串的长度。
+
+#### re.finditer
+
+和 findall 类似，在字符串中找到正则表达式所匹配的所有子串，并把它们作为一个迭代器返回。
+
+```
+re.finditer(pattern, string, flags=0)
+```
+
+参数：
+
+| 参数    | 描述                                                         |
+| :------ | :----------------------------------------------------------- |
+| pattern | 匹配的正则表达式                                             |
+| string  | 要匹配的字符串。                                             |
+| flags   | 标志位，用于控制正则表达式的匹配方式，如：是否区分大小写，多行匹配等等。参见：[正则表达式修饰符 - 可选标志](https://www.runoob.com/python3/python3-reg-expressions.html#flags) |
+
+#### re.split
+
+split 方法按照能够匹配的子串将字符串分割后返回列表，它的使用形式如下：
+
+```
+re.split(pattern, string[, maxsplit=0, flags=0])
+```
+
+参数：
+
+| 参数     | 描述                                                         |
+| :------- | :----------------------------------------------------------- |
+| pattern  | 匹配的正则表达式                                             |
+| string   | 要匹配的字符串。                                             |
+| maxsplit | 分割次数，maxsplit=1 分割一次，默认为 0，不限制次数。        |
+| flags    | 标志位，用于控制正则表达式的匹配方式，如：是否区分大小写，多行匹配等等。参见：[正则表达式修饰符 - 可选标志](https://www.runoob.com/python3/python3-reg-expressions.html#flags) |
+
+#### re.RegexObject
+
+re.compile() 返回 RegexObject 对象。
+
+#### re.MatchObject
+
+group() 返回被 RE 匹配的字符串。
+
+- **start()** 返回匹配开始的位置
+- **end()** 返回匹配结束的位置
+- **span()** 返回一个元组包含匹配 (开始,结束) 的位置
+
+#### 正则表达式修饰符 - 可选标志
+
+正则表达式可以包含一些可选标志修饰符来控制匹配的模式。
+
+以下标志可以单独使用，也可以通过按位或（|）组合使用。例如，re.IGNORECASE | re.MULTILINE 表示同时启用忽略大小写和多行模式。
+
+| 修饰符                | 描述                                                         | 实例                                                         |
+| :-------------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| re.IGNORECASE 或 re.I | 使匹配对大小写不敏感                                         | `import re pattern = re.compile(r'apple', flags=re.IGNORECASE) result = pattern.match('Apple') print(result.group())  # 输出: 'Apple'` |
+| re.MULTILINE 或 re.M  | 多行匹配，影响 **^** 和 **$**，使它们匹配字符串的每一行的开头和结尾。 | `import re pattern = re.compile(r'^\d+', flags=re.MULTILINE) text = '123\n456\n789' result = pattern.findall(text) print(result)  # 输出: ['123', '456', '789']` |
+| re.DOTALL 或 re.S：   | 使 **.** 匹配包括换行符在内的任意字符。                      | `import re pattern = re.compile(r'a.b', flags=re.DOTALL) result = pattern.match('a\nb') print(result.group())  # 输出: 'a\nb'` |
+| re.ASCII              | 使 \w, \W, \b, \B, \d, \D, \s, \S 仅匹配 ASCII 字符。        | `import re pattern = re.compile(r'\w+', flags=re.ASCII) result = pattern.match('Hello123') print(result.group())  # 输出: 'Hello123'` |
+| re.VERBOSE 或 re.X    | 忽略空格和注释，可以更清晰地组织复杂的正则表达式。           | `import re pattern = re.compile(r'''    \d+  # 匹配数字    [a-z]+  # 匹配小写字母 ''', flags=re.VERBOSE) result = pattern.match('123abc') print(result.group())  # 输出: '123abc'` |
+
+------
+
+#### 正则表达式模式
+
+模式字符串使用特殊的语法来表示一个正则表达式。
+
+字母和数字表示他们自身。一个正则表达式模式中的字母和数字匹配同样的字符串。
+
+多数字母和数字前加一个反斜杠时会拥有不同的含义。
+
+标点符号只有被转义时才匹配自身，否则它们表示特殊的含义。
+
+反斜杠本身需要使用反斜杠转义。
+
+由于正则表达式通常都包含反斜杠，所以你最好使用原始字符串来表示它们。模式元素(如 **r'\t'**，等价于 **\\t** )匹配相应的特殊字符。
+
+下表列出了正则表达式模式语法中的特殊元素。如果你使用模式的同时提供了可选的标志参数，某些模式元素的含义会改变。
+
+| 模式         | 描述                                                         |
+| :----------- | :----------------------------------------------------------- |
+| ^            | 匹配字符串的开头                                             |
+| $            | 匹配字符串的末尾。                                           |
+| .            | 匹配任意字符，除了换行符，当re.DOTALL标记被指定时，则可以匹配包括换行符的任意字符。 |
+| [...]        | 用来匹配所包含的任意一个字符，例如 [amk] 匹配 'a'，'m'或'k'  |
+| [^...]       | 不在[]中的字符：[^abc] 匹配除了a,b,c之外的字符。             |
+| re*          | 匹配0个或多个的表达式。                                      |
+| re+          | 匹配1个或多个的表达式。                                      |
+| re?          | 匹配0个或1个由前面的正则表达式定义的片段，非贪婪方式         |
+| re{ n}       | 匹配n个前面表达式。例如，"o{2}"不能匹配"Bob"中的"o"，但是能匹配"food"中的两个o。 |
+| re{ n,}      | 精确匹配n个前面表达式。例如，"o{2,}"不能匹配"Bob"中的"o"，但能匹配"foooood"中的所有o。"o{1,}"等价于"o+"。"o{0,}"则等价于"o*"。 |
+| re{ n, m}    | 匹配 n 到 m 次由前面的正则表达式定义的片段，贪婪方式         |
+| a\| b        | 匹配a或b                                                     |
+| (re)         | 匹配括号内的表达式，也表示一个组                             |
+| (?imx)       | 正则表达式包含三种可选标志：i, m, 或 x 。只影响括号中的区域。 |
+| (?-imx)      | 正则表达式关闭 i, m, 或 x 可选标志。只影响括号中的区域。     |
+| (?: re)      | 类似 (...), 但是不表示一个组                                 |
+| (?imx: re)   | 在括号中使用i, m, 或 x 可选标志                              |
+| (?-imx: re)  | 在括号中不使用i, m, 或 x 可选标志                            |
+| (?#...)      | 注释.                                                        |
+| (?= re)      | 前向肯定界定符。如果所含正则表达式，以 ... 表示，在当前位置成功匹配时成功，否则失败。但一旦所含表达式已经尝试，匹配引擎根本没有提高；模式的剩余部分还要尝试界定符的右边。 |
+| (?! re)      | 前向否定界定符。与肯定界定符相反；当所含表达式不能在字符串当前位置匹配时成功。 |
+| (?> re)      | 匹配的独立模式，省去回溯。                                   |
+| \w           | 匹配数字字母下划线                                           |
+| \W           | 匹配非数字字母下划线                                         |
+| \s           | 匹配任意空白字符，等价于 [\t\n\r\f]。                        |
+| \S           | 匹配任意非空字符                                             |
+| \d           | 匹配任意数字，等价于 [0-9]。                                 |
+| \D           | 匹配任意非数字                                               |
+| \A           | 匹配字符串开始                                               |
+| \Z           | 匹配字符串结束，如果是存在换行，只匹配到换行前的结束字符串。 |
+| \z           | 匹配字符串结束                                               |
+| \G           | 匹配最后匹配完成的位置。                                     |
+| \b           | 匹配一个单词边界，也就是指单词和空格间的位置。例如， 'er\b' 可以匹配"never" 中的 'er'，但不能匹配 "verb" 中的 'er'。 |
+| \B           | 匹配非单词边界。'er\B' 能匹配 "verb" 中的 'er'，但不能匹配 "never" 中的 'er'。 |
+| \n, \t, 等。 | 匹配一个换行符。匹配一个制表符, 等                           |
+| \1...\9      | 匹配第n个分组的内容。                                        |
+| \10          | 匹配第n个分组的内容，如果它经匹配。否则指的是八进制字符码的表达式。 |
+
+
+
+#### 字符匹配
+
+| 实例   | 描述           |
+| :----- | :------------- |
+| python | 匹配 "python". |
+
+#### 字符类
+
+| 实例        | 描述                              |
+| :---------- | :-------------------------------- |
+| [Pp]ython   | 匹配 "Python" 或 "python"         |
+| rub[ye]     | 匹配 "ruby" 或 "rube"             |
+| [aeiou]     | 匹配中括号内的任意一个字母        |
+| [0-9]       | 匹配任何数字。类似于 [0123456789] |
+| [a-z]       | 匹配任何小写字母                  |
+| [A-Z]       | 匹配任何大写字母                  |
+| [a-zA-Z0-9] | 匹配任何字母及数字                |
+| [^aeiou]    | 除了aeiou字母以外的所有字符       |
+| [^0-9]      | 匹配除了数字外的字符              |
+
+#### 特殊字符类
+
+| 实例 | 描述                                                         |
+| :--- | :----------------------------------------------------------- |
+| .    | 匹配除 "\n" 之外的任何单个字符。要匹配包括 '\n' 在内的任何字符，请使用象 '[.\n]' 的模式。 |
+| \d   | 匹配一个数字字符。等价于 [0-9]。                             |
+| \D   | 匹配一个非数字字符。等价于 [^0-9]。                          |
+| \s   | 匹配任何空白字符，包括空格、制表符、换页符等等。等价于 [ \f\n\r\t\v]。 |
+| \S   | 匹配任何非空白字符。等价于 [^ \f\n\r\t\v]。                  |
+| \w   | 匹配包括下划线的任何单词字符。等价于'[A-Za-z0-9_]'。         |
+| \W   | 匹配任何非单词字符。等价于 '[^A-Za-z0-9_]'。                 |
+
+### List Comprehensions 列表推导式 
+
+[列表推导式](https://zhida.zhihu.com/search?content_id=242962851&content_type=Article&match_order=1&q=列表推导式&zhida_source=entity)（List Comprehensions）是 Python 中一种简洁的创建列表的语法。它允许你从一个已有的[可迭代对象](https://zhida.zhihu.com/search?content_id=242962851&content_type=Article&match_order=1&q=可迭代对象&zhida_source=entity)（如列表、元组、字符串、集合或迭代器）中快速生成一个新的列表。列表推导式的基本语法是：
 
 ```python
+[expression for item in iterable if condition]
+```
+
+其中：
+
+- `expression`：对于可迭代对象中的每一个元素，都要执行这个表达式，结果将添加到新列表中。
+- `item`：可迭代对象中的每一个元素，通常用于在表达式中进行某种操作。
+- `iterable`：要进行迭代操作的可迭代对象。
+- `if condition`：这是一个可选的子句，用于过滤可迭代对象中的元素，只有满足条件的元素才会被考虑。
+
+**组合数据**
+
+你可以使用列表推导式将多个列表的元素进行组合，生成新的列表结构。例如，你可以使用嵌套的列表推导式来创建一个二维列表的转置。
 
 ```python
-# ordersys/status_transition_demo.py
-class Order:
-    STATUS_NEW = "NEW"
-    STATUS_PAID = "PAID"
-    STATUS_CANCELED = "CANCELED"
-
-    def __init__(self) -> None:
-        self.status = Order.STATUS_NEW
-
-    def mark_paid(self) -> None:
-        if self.status != Order.STATUS_NEW:
-            raise RuntimeError(f"illegal transition: {self.status} -> PAID")
-        self.status = Order.STATUS_PAID
-
-o = Order()
-o.mark_paid()
-print(o.status)
-
+matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+transposed = [[row[i] for row in matrix] for i in range(len(matrix[0]))]
+print(transposed)  # 输出: [[1, 4, 7], [2, 5, 8], [3, 6, 9]]
 ```
 
-```
+**执行复杂操作**
 
-```
-描述符在工程里更常见的表现形式是 ORM 字段、缓存属性、校验属性等。你在面试里把 property 讲清楚通常就足够；描述符协议作为加分项，只要你能说明“属性访问是可定制的，并且优先级高于实例字典”，就能体现你理解背后的机制。
-
-#### dataclass 与不可变建模
-`dataclass` 是 Python 工程里非常常用的建模工具，尤其适合订单系统这种以数据为核心的代码。它能自动生成 `__init__`、`__repr__`、`__eq__` 等方法，让你的模型更轻、更一致。面试里问 dataclass，通常会追问它到底帮你生成了什么，以及你什么时候不应该用它。
-
-当模型主要承载数据，行为不多时，dataclass 很合适。它把样板代码压掉，让字段与类型更清晰。你可以用 `frozen=True` 得到一个对外不可变的模型，这对缓存键、消息事件、快照类对象特别有用。不可变并不代表深层不可变，如果字段里包含 list 或 dict，它们仍然是可变对象，这一点面试经常拿来追问。工程里如果你需要真正的不可变，字段应当选择不可变类型，或者在构造时把可变结构转换成不可变表示。
-
-dataclass 还有两个非常实用的工程点。一个是默认值的安全写法，针对 list/dict 这类可变字段必须使用 `default_factory`，避免共享默认值污染。另一个是字段参与比较与 repr 的控制，你可以通过 `repr=False` 或 `compare=False` 控制敏感字段不出现在日志或不参与等价判断。订单系统里如果你把原始支付回调 payload 放进 dataclass，又让它出现在 repr 里，日志就会被污染，还可能带来隐私风险，这种取舍要有意识。
-
-下面用订单事件对象演示 frozen 与 default_factory，同时展示 repr 的控制。示例里事件是快照，适合作为消息与幂等键的一部分。
+列表推导式不仅限于简单的算术运算或条件判断，你还可以在其中执行更复杂的操作，如函数调用、属性访问等。
 
 ```python
-# ordersys/dataclass_demo.py
-from dataclasses import dataclass, field
+# 假设有一个Person类，具有name和age属性
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
 
-@dataclass(frozen=True)
-class OrderEvent:
-    order_id: int
-    status: str
-    amount_cents: int
-    tags: tuple[str, ...] = ()
-
-@dataclass
-class OrderDraft:
-    user_id: int
-    items: list[str] = field(default_factory=list)
-
-d = OrderDraft(user_id=7)
-d.items.append("apple")
-e = OrderEvent(order_id=1001, status="PAID", amount_cents=3000, tags=("vip",))
-print(d, e)
-
+people = [Person("Alice", 25), Person("Bob", 30), Person("Charlie", 35)]
+names = [person.name for person in people]
+print(names)  # 输出: ['Alice', 'Bob', 'Charlie']
 ```
-面试里你可以这样说：dataclass 是减少样板并强化字段表达的工具，适合数据模型与 DTO；需要封装与复杂不变量时仍然用普通类加 property 或方法控制；可变字段用 default_factory；frozen 提供对外不可变，但要注意深层可变性；敏感字段要控制 repr 与比较行为。
 
-#### slots 与内存直觉
-`__slots__` 往往是面试里用来区分“懂运行时细节”的点。Python 默认每个实例都有 `__dict__` 来存储属性，这带来很强的动态性，也带来额外的内存开销。订单系统里如果你有大量短生命周期对象，例如导入文件时每一行生成一个订单项对象，或者消息消费时生成大量事件对象，内存与 GC 压力可能会变得明显，这时 `__slots__` 可能成为优化手段之一。
+**循环执行某个函数**
 
-使用 `__slots__` 的直接效果是限制实例可以拥有的属性集合，并通常去掉实例的 `__dict__`，从而减少内存。它的代价是动态加属性变难，一些依赖 `__dict__` 的机制也会受影响。继承关系里 slots 也会带来额外约束，例如子类需要显式声明自己的 slots 才能新增字段。工程里是否使用 slots 取决于对象数量与性能瓶颈，不应该为了“看起来高级”而用。面试里如果问你 slots 的作用，你回答“省内存、限制属性、减少实例字典”就够了，同时补一句“有代价，需权衡”会更像工程人。
-
-下面用一个订单项对象示例展示 slots 的写法，并用 `hasattr` 观察实例是否还有 `__dict__`。这个例子不追求跑分，而是固定你的认知：slots 是约束与优化手段，不是日常默认。
+你可以使用列表推导式来循环执行某个函数，并将结果收集到一个列表中。
 
 ```python
-# ordersys/slots_demo.py
-class OrderItem:
-    __slots__ = ("sku", "qty")
+def square(x):
+    return x ** 2
 
-    def __init__(self, sku: str, qty: int) -> None:
-        self.sku = sku
-        self.qty = qty
-
-item = OrderItem("A", 1)
-print(hasattr(item, "__dict__"))
-print(item.sku, item.qty)
-
+numbers = [1, 2, 3, 4, 5]
+squares = [square(x) for x in numbers]
+print(squares)  # 输出: [1, 4, 9, 16, 25]
 ```
 
-```
+**将list转换为dict或将dict转换为list**
 
-```
-如果你在面试里想再加一点深度，可以提到 slots 对于内存敏感场景很有用，但它并不是免费的午餐，真正是否值得要用剖析数据说话。工程里多数优化都应当先确认瓶颈，再选择手段，而不是先上技巧。
+虽然这不是列表推导式的直接用途，但你可以结合[字典推导式](https://zhida.zhihu.com/search?content_id=242962851&content_type=Article&match_order=1&q=字典推导式&zhida_source=entity)（Dictionary Comprehensions）来实现这些转换。
 
-### 设计取舍
-#### 组合优于继承与边界划分
-组合优于继承这句话在 Python 工程里尤其重要，因为 Python 的继承很灵活，灵活到你很容易用它去做本不该用继承做的事情。订单系统里最常见的错误设计是用继承堆出一棵订单类型树，把不同业务差异塞进不同子类里，最后导致状态迁移与规则散落在各个类里，新增一种订单类型就要改很多地方，测试也变得困难。
-
-组合的思路是把变化点抽出来，作为可替换的组件注入到稳定的主体里。订单系统里主体往往是 OrderService 或 OrderProcessor，变化点可能是支付渠道、风控策略、计费规则、通知方式。你用组合把变化点变成接口或可调用对象，主体只依赖抽象，这样新增渠道只需要新增一个实现，并在组装时替换即可。面试里你把这个思路讲清楚，比背设计模式名字更有用。
-
-下面用一个处理器把支付网关作为组合组件注入。代码很短，但它表达了核心：服务依赖的是能力，而不是具体子类。你如果用继承去做这个，会把依赖隐藏在父类里，调试与测试都会更痛苦。
+例如，将一个包含元组的列表转换为字典：
 
 ```python
-# ordersys/compose_demo.py
-from typing import Protocol
-
-class PaymentGateway(Protocol):
-    def pay(self, order_id: int, amount_cents: int) -> str: ...
-
-class OrderProcessor:
-    def __init__(self, gateway: PaymentGateway) -> None:
-        self._gateway = gateway
-
-    def pay_order(self, order_id: int, amount_cents: int) -> str:
-        return self._gateway.pay(order_id, amount_cents)
-
-class DummyGateway:
-    def pay(self, order_id: int, amount_cents: int) -> str:
-        return f"dummy pay {order_id} {amount_cents}"
-
-p = OrderProcessor(DummyGateway())
-print(p.pay_order(1001, 3000))
-
+items = [(1, 'apple'), (2, 'banana'), (3, 'cherry')]
+dictionary = {key: value for key, value in items}
+print(dictionary)  # 输出: {1: 'apple', 2: 'banana', 3: 'cherry'}
 ```
 
-```
-
-组合不仅适用于外部依赖，也适用于业务规则。订单系统里常见的规则变化是折扣、税费、分摊。把规则做成可调用对象注入到处理器里，会比用继承派生出一堆 Processor 子类更稳定。你在面试里如果能把“规则是策略，策略是可替换组件”讲出来，会很加分。
+或者，将一个字典的键值对转换为列表：
 
 ```python
+dictionary = {'a': 1, 'b': 2, 'c': 3}
+keys = list(dictionary.keys())
+values = list(dictionary.values())
+print(keys)  # 输出: ['a', 'b', 'c']
+print(values)  # 输出: [1, 2, 3]
+```
+
+### Generator Expressions 生成器表达式
+
+生成器表达式是一种创建生成器的简洁语法，它类似于列表推导式（List Comprehension），但使用圆括号而不是方括号。生成器表达式返回一个生成器对象，这是一种特殊的迭代器。与列表推导式不同，生成器表达式不会一次性生成所有元素，而是在需要时逐个生成元素，这种特性称为惰性求值。惰性求值是生成器表达式的核心特性之一。当使用生成器表达式时，Python不会立即计算所有元素的值，而是在迭代过程中，当需要某个元素时才进行计算。这种方式避免了一次性将所有元素加载到内存中，从而节省了大量的内存空间，尤其在处理大规模数据时优势明显。
+
+生成器表达式的语法非常简单，它的基本形式如下：
+
+```
+(expression for item in iterable)
+```
+
+这里的 `expression` 是对每个元素进行的操作，`item` 是迭代的元素，`iterable` 是可迭代对象，如列表、元组、集合等。
+
+以下是一个简单的示例：
+
+```
+# 生成器表达式示例gen_exp = (i * 2 for i in range(5)) # 遍历生成器for num in gen_exp:    print(num)
+```
+
+在上述代码中，`(i * 2 for i in range(5))` 是一个生成器表达式，它会生成一个生成器对象 `gen_exp`。在 `for` 循环中，每次迭代时，生成器会根据需要生成下一个元素。
+
+**数据处理**
+
+生成器表达式在处理大规模数据集时非常有用，例如从文件中读取大量数据。假设我们有一个包含大量数字的文本文件，每行一个数字，我们可以使用生成器表达式逐行处理这些数字：
+
+```
+# 假设文件名为 numbers.txt，每行一个数字with open('numbers.txt', 'r') as file:    # 生成器表达式用于处理文件中的数字    numbers = (int(line.strip()) for line in file)    # 计算所有数字的总和    total = sum(numbers)    print(total)
+```
+
+在这个示例中，生成器表达式 `(int(line.strip()) for line in file)` 逐行读取文件内容，将每行的字符串转换为整数，并且只有在 `sum` 函数需要时才会进行转换，避免了一次性将整个文件内容加载到内存中。
+
+**过滤数据**
+
+生成器表达式可以结合条件语句来过滤数据。例如，我们要从一个列表中过滤出所有的偶数：
+
+```
+numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]even_numbers = (i for i in numbers if i % 2 == 0)for num in even_numbers:    print(num)
+```
+
+在这个示例中，`(i for i in numbers if i % 2 == 0)` 是一个生成器表达式，它会过滤出列表 `numbers` 中的所有偶数。
+
+### 编程范式
+
+Python 支持四种主要的 [编程范式](https://en.wikipedia.org/wiki/Programming_paradigm)：命令式、函数式、过程式和面向对象。无论你是否认同它们是有效的甚至是实用的，Python 都力求使所有四种范式都可用且可工作。
+
+#### 命令式编程范式
+
+[命令式编程范式](https://en.wikipedia.org/wiki/Imperative_programming) 使用自然语言的祈使语气来表达指令。它以逐步的方式执行命令，就像一系列口头命令一样。遵循“如何解决”的方法，它直接改变程序的状态；因此它也被称为有状态编程模型。使用命令式编程范式，你可以快速编写非常简单但优雅的代码，并且对于涉及数据操作的任务非常方便。由于其相对较慢和顺序的执行策略，它不能用于复杂或并行计算。以命令式编程风格执行此操作的一种方法类似于
 
 ```python
-# ordersys/strategy_demo.py
-from typing import Callable
-
-DiscountPolicy = Callable[[int], int]
-
-def no_discount(amount_cents: int) -> int:
-    return amount_cents
-
-def vip_discount(amount_cents: int) -> int:
-    return amount_cents * 95 // 100
-
-class PricingService:
-    def __init__(self, policy: DiscountPolicy) -> None:
-        self._policy = policy
-
-    def final_amount(self, amount_cents: int) -> int:
-        return self._policy(amount_cents)
-
-print(PricingService(no_discount).final_amount(10000))
-print(PricingService(vip_discount).final_amount(10000))
-
+>>> sample_characters = ['p','y','t','h','o','n']
+>>> sample_string = ''
+>>> sample_string
+''
+>>> sample_string = sample_string + sample_characters[0]
+>>> sample_string
+'p'
+>>> sample_string = sample_string + sample_characters[1]
+>>> sample_string
+'py'
+>>> sample_string = sample_string + sample_characters[2]
+>>> sample_string
+'pyt'
+>>> sample_string = sample_string + sample_characters[3]
+>>> sample_string
+'pyth'
+>>> sample_string = sample_string + sample_characters[4]
+>>> sample_string
+'pytho'
+>>> sample_string = sample_string + sample_characters[5]
+>>> sample_string
+'python'
+>>>
 ```
 
-```
+#### 函数式编程范式
 
-```
-这节面试的最佳回答通常是把边界说清楚：继承适合表达“是一个”的稳定关系，组合适合表达“有一个”的可替换能力；订单系统里变化多，组合更稳；继承可以用，但要浅、要清晰、要避免把状态与行为散到难以追踪的层级里。
+[函数式编程范式](https://en.wikipedia.org/wiki/Functional_programming) 将程序计算视为基于 [lambda 演算](https://en.wikipedia.org/wiki/Lambda_calculus) 的数学函数的求值。Lambda 演算是数理逻辑中的一种形式系统，用于基于函数抽象和使用变量绑定和替换的应用来表达计算。它遵循“解决什么”的方法——也就是说，它表达逻辑而不描述其控制流——因此它也被归类为声明式编程模型。
 
-## Python 特性
-
-### 数据模型
-#### 魔术方法总览（repr/比较/容器/可调用）
-Python 的数据模型可以理解成一套协议：对象只要实现某些魔术方法，就能“像内置类型一样”参与运算、打印、比较、容器访问、函数调用。面试问魔术方法，往往不是让你背全名单，而是看你是否理解它们在真实工程里解决什么问题。订单系统里最常见的场景是日志与调试输出、排序与去重、把业务对象放进容器里当键、以及让对象在某些上下文里“看起来像字典或像函数”。
-
-一个很实用的切入点是输出语义。`__repr__` 面向开发者，应该尽量准确、可复现地描述对象；`__str__` 面向用户或展示，强调可读性。订单系统里你在排查线上问题时，日志里打印出的对象表示经常是第一手证据，如果 `__repr__` 写得敷衍，你会在排查时丢掉大量信息。另一方面，过度把大字段塞进 repr 又会污染日志，所以 repr 的信息密度需要权衡，这一点会在工程化章节的日志规范里继续落地。
-
-另一个常见点是比较与排序。Python 的排序依赖 `key` 函数或比较协议，工程里多数情况下用 `key` 更清晰也更稳定；当你实现 `__lt__` 等比较方法时，你是在把对象的“排序规则”写死到类型里，这对通用模型未必是好事。订单系统里如果只在一个页面要按金额排序，用 `sorted(orders, key=...)` 就够了；只有当整个系统都把某个对象定义为“天然按某字段排序”时，才考虑实现比较方法。
-
-下面的表把数据模型里最常见、且在面试里最容易被问到的一组协议按用途归类。你不需要背每一个名字，但你要能把“某个行为对应一类方法”的关系说清楚。
-
-| 类别 | 典型魔术方法 | 触发时机 | 订单系统里的例子 |
-| --- | --- | --- | --- |
-| 输出 | `__repr__`, `__str__` | `print`, 日志, 调试器 | 订单对象打印、异常上下文 |
-| 比较 | `__eq__`, `__lt__` | `==`, `sorted` | 判重、排序展示 |
-| 容器 | `__len__`, `__iter__`, `__contains__` | `len`, `for`, `in` | 订单明细遍历、成员判断 |
-| 可调用 | `__call__` | `obj(...)` | 把策略对象当函数用 |
-| 上下文 | `__enter__`, `__exit__` | `with` | 连接、锁、文件资源 |
-| 属性兜底 | `__getattr__` | 属性不存在时 | DTO 兼容旧字段 |
-
-示例用订单对象实现一个合理的 `__repr__` 与 `__str__`，并展示它们在日志与 print 场景下的差别。你在面试里可以用这段代码说明：repr 用来给开发者看，str 用来给业务展示看；工程里优先保证 repr 有用。
+函数式编程范式提倡无状态函数，但重要的是要注意，Python 函数式编程的实现偏离了标准实现。Python 被称为*不纯*函数式语言，因为如果你不小心，可能会保持状态并产生副作用。也就是说，函数式编程对于并行处理非常方便，并且对于需要递归和并发执行的任务非常高效。
 
 ```python
-# ordersys/model_repr.py
-class Order:
-    def __init__(self, order_id: int, status: str, amount_cents: int) -> None:
-        self.id = order_id
-        self.status = status
-        self.amount_cents = amount_cents
-
-    def __repr__(self) -> str:
-        return f"Order(id={self.id}, status={self.status!r}, amount_cents={self.amount_cents})"
-
-    def __str__(self) -> str:
-        return f"订单#{self.id} 状态={self.status} 金额={self.amount_cents/100:.2f}"
-
-o = Order(1001, "PAID", 1990)
-print(repr(o))
-print(str(o))
-
+>>> sample_characters = ['p','y','t','h','o','n']
+>>> import functools
+>>> sample_string = functools.reduce(lambda s,c: s + c, sample_characters)
+>>> sample_string
+'python'
+>>>
 ```
-魔术方法的核心心智模型是“协议驱动行为”。面试里如果你不确定某个方法名，反而可以把重点放在协议类别上，说清楚你知道输出、比较、容器、可调用、上下文这些行为在 Python 里是可定制的，并且你知道在订单系统里应该在哪些边界用它们，而不是到处上魔法。
 
-#### hash、可变性与字典行为
-`hash`、可变性与字典行为是一组很容易被问到、也很容易踩坑的内容。订单系统里你经常需要把对象放进 dict 或 set 里做缓存、做索引、做去重，这时你就会碰到两个问题：对象是否可哈希，以及等价判断与哈希是否一致。面试喜欢问这一块，是因为它直接关系到“缓存键是否稳定”“去重是否正确”，属于线上事故高发区。
+使用相同的示例，将字符列表连接以形成字符串的函数式方法与上述相同。由于计算在一行中发生，因此没有明确的方法可以通过 **sample_string** 获取程序的状态并跟踪进度。此示例的函数式编程实现非常引人入胜，因为它减少了代码行数，并且仅用一行代码即可完成其工作，但需要使用 **functools** 模块和 **reduce** 方法。三个关键字——**functools**、**reduce** 和 **lambda**——定义如下
 
-在 Python 里，一个对象能否当 dict 的键，取决于它是否可哈希。默认情况下，自定义对象如果没有定义 `__eq__`，它的等价就是身份等价，并且通常也是可哈希的；一旦你定义了 `__eq__`，Python 通常会把 `__hash__` 置为不可用，避免你写出“等价改变但哈希不变”导致的容器行为不一致。工程里如果你真的需要把自定义对象当键，你必须明确对象的等价语义，并且保证等价字段在作为键期间不会变化。最稳的做法通常是用不可变表示做键，例如用 `(order_id, channel)` 这样的 tuple，或者用 frozen dataclass。
+- **functools** 是用于高阶函数的模块，它提供对其他函数进行操作或返回其他函数的函数。它鼓励编写可重用代码，因为它更容易复制现有函数，并在已传递某些参数的情况下以文档完善的方式创建函数的新版本。
 
-下面这张表把“可哈希的基本规则”写成工程语言。你在面试里不需要背 Python 规范，但你要能解释“为什么可变对象不能当键”，答案是哈希表要求键的哈希稳定，否则你放进去以后就找不回来了。
+- **reduce** 是一种方法，它将具有两个参数的函数从左到右累积地应用于序列中的项，以将序列减少为单个值。例如
 
-| 对象类型 | 是否可哈希 | 原因 | 订单系统里的建议用法 |
-| --- | --- | --- | --- |
-| `int`, `str` | 是 | 不可变，哈希稳定 | 订单号、渠道名当键 |
-| `tuple` | 条件成立 | 元素都可哈希才稳定 | (order_id, channel) |
-| `list`, `dict` | 否 | 可变，哈希不稳定 | 作为值，不做键 |
-| 自定义类 | 视实现而定 | 取决于 eq/hash 语义 | 用不可变键或 frozen 模型 |
+  ```python
+  >>> sample_list = [1,2,3,4,5]
+  >>> import functools
+  >>> sum = functools.reduce(lambda x,y: x + y, sample_list)
+  >>> sum
+  15
+  >>> ((((1+2)+3)+4)+5)
+  15
+  >>> 
+  ```
 
-示例用“缓存订单查询结果”演示稳定键的写法，并展示“把可变对象当键”会直接失败。工程里你不需要纠结怎么让 list 可哈希，而是要选择正确的键表示。
+- **lambda 函数**是小的、匿名的（即无名的）函数，可以接受任意数量的参数，但只输出一个值。当它们用作另一个函数的参数或驻留在另一个函数内部时，它们很有用；因此它们旨在仅在一次实例中使用。
+
+#### 过程式编程范式
+
+[过程式编程范式](https://en.wikipedia.org/wiki/Procedural_programming) 是命令式编程的一个子类型，其中语句被结构化为过程（也称为子例程或函数）。程序组合更像是一个过程调用，程序可能位于宇宙中的某个位置，并且执行是顺序的，因此成为资源利用的瓶颈。与命令式编程范式一样，过程式编程遵循有状态模型。过程式编程范式有助于良好的程序设计实践，并允许以代码库的形式重用模块。
+
+这种模块化开发形式是一种非常古老的开发风格。程序中的不同模块可能彼此没有关系，并且可以位于不同的位置，但是拥有大量模块会给许多开发者带来困难，因为它不仅会导致逻辑重复，而且还会导致在查找和进行正确调用方面产生大量开销。请注意，在以下实现中，方法 **stringify** 可以定义在宇宙中的任何位置，并且为了发挥作用，只需要使用所需的参数进行正确的调用即可。
 
 ```python
-# ordersys/cache_key_demo.py
-cache: dict[tuple[int, str], dict] = {}
-
-def get_order(order_id: int, channel: str) -> dict:
-    key = (order_id, channel)
-    if key in cache:
-        return cache[key]
-    order = {"id": order_id, "channel": channel, "status": "NEW"}
-    cache[key] = order
-    return order
-
-print(get_order(1001, "A"))
-
+>>> def stringify(characters):
+...    string = ''
+...    for c in characters:
+...        string = string + c
+...    return stringify
+...
+>>> sample_characters = ['p','y','t','h','o','n']
+>>> stringify(sample_characters)
+'python'
+>>> 
 ```
 
-```
+#### 面向对象编程范式
 
-```
-这一节面试常见的延伸问题是“如果对象可变但我又想当键怎么办”。工程答案通常是不要让它当键，转成不可变快照当键，或者只用它的不变标识字段作为键。你把这个取舍讲清楚，比讲技巧更像工程经验。
-
-### 迭代与生成
-#### 迭代器与生成器（含推导式）
-迭代协议是 Python 面试的高频点，也是很多“看起来高级”的写法背后的基础。订单系统里你会大量遍历订单、遍历明细、遍历分页结果，如果你理解迭代器与可迭代对象的差别，就能写出更省内存、更适合流式处理的代码，也能更容易读懂别人写的生成器与管道式处理。
-
-可迭代对象提供 `__iter__`，每次调用返回一个迭代器；迭代器提供 `__next__`，不断产出元素，直到抛出 `StopIteration`。`for` 循环会自动调用 `iter()` 得到迭代器，再不断调用 `next()`。面试里最常见的误解是把“能 for 的东西”都当成迭代器，或者把迭代器当成可以重复遍历的容器。迭代器往往是一次性的，消费完就没了，订单系统里如果你把迭代器传进两个处理函数，第二个函数可能拿不到任何数据，这类 bug 也很真实。
-
-下面用一个“分页读取订单”的例子解释迭代协议。我们用一个生成器函数模拟分页接口，它每次 yield 一页订单。你会看到生成器既实现了迭代器语义，也让你能以流式方式处理数据，而不用一次性把所有订单读进内存。
+[面向对象编程范式](https://en.wikipedia.org/wiki/Object-oriented_programming) 将基本实体视为对象，其实例可以同时包含数据和修改该数据的相应方法。面向对象设计的不同原则有助于代码重用性、数据隐藏等，但它是一个复杂的野兽，并且以面向对象的方法编写相同的逻辑很棘手。例如
 
 ```python
-
-生成器里还有一个常见语法是 `yield from`，它用于把“子迭代器/子生成器”直接委托出去，让外层生成器像扁平化一样逐个产出元素。订单系统里做分页、做批处理流水线时，`yield from` 可以让你把“分页获取”和“逐条消费”写得更干净。面试里你不一定会被问到，但你能讲出来通常是加分项。
-
-```python
-
-```python
-# ordersys/yield_from_demo.py
-from typing import Iterator
-
-def pages() -> Iterator[list[int]]:
-    yield [1001, 1002]
-    yield [1003]
-
-def stream_order_ids() -> Iterator[int]:
-    for page in pages():
-        yield from page
-
-print(list(stream_order_ids()))
-
+>>> class StringOps:
+...    def __init__(self, characters):
+...        self.characters = characters
+...    def stringify(self):
+...        self.string = ''.join(self.characters)
+...
+>>> sample_characters = ['p','y','t','h','o','n']
+>>> sample_string = StringOps(sample_characters)
+>>> sample_string.stringify()
+>>> sample_string.string
+'python'
+>>>
 ```
 
-```
-# ordersys/paging_iter.py
-from typing import Iterator
+### Context Manager 上下文管理器
 
-def fetch_order_pages() -> Iterator[list[dict]]:
-    yield [{"id": 1001}, {"id": 1002}]
-    yield [{"id": 1003}]
+在 Python 中，`with` 语句几乎无处不在 —— 打开文件、连接数据库、获取锁、建立网络会话……这些操作有一个共同点：**需要正确地分配与释放资源**。这正是“[上下文管理器](https://zhida.zhihu.com/search?content_id=264267526&content_type=Article&match_order=1&q=上下文管理器&zhida_source=entity)”（Context Manager）存在的意义。上下文管理器是一种对象协议，允许你优雅地管理资源的“进入”和“退出”，从而在使用完资源后安全地释放它们。
 
-for page in fetch_order_pages():
-    for o in page:
-        print(o["id"])
+简单来说：
 
-```
-迭代协议的工程价值在于把“数据来源”与“数据消费”解耦。订单系统里数据来源可能是数据库游标、文件流、网络分页接口，数据消费可能是校验、转换、落库、统计。把来源做成可迭代对象，你就能在不改消费逻辑的前提下替换来源。面试里如果被追问，你可以强调：迭代器通常一次性，容器通常可重复遍历；写代码时要明确自己传的是哪一种。
+- 当你执行 `with obj as x:` 时，Python 会自动调用：
+  - `obj.__enter__()` —— 进入上下文之前执行；
+  - `obj.__exit__()` —— 退出上下文时执行（无论正常还是异常退出）。
 
-#### 惰性求值与性能直觉
-生成器与推导式看起来是语法糖，但它们背后的核心是惰性求值与内存友好。订单系统里非常常见的工作是批量处理与报表导出，如果你把所有中间结果都堆进列表，内存会很快成为瓶颈。惰性求值的价值是把计算推迟到真正需要的时候，并且让你能以流式方式处理大数据集。
+例如：
 
-推导式会立即构造一个列表、集合或字典，而生成器表达式只会生成一个可迭代对象，元素按需产生。面试里通常会问“生成器和列表推导式有什么区别”，你可以从两点回答：内存与一次性消费。列表推导式适合数据量可控、需要复用结果的场景；生成器适合数据量大、一次性处理的流水线场景。订单系统的导出任务通常更适合生成器，后台页面的小列表通常更适合列表推导式。
-
-下面用订单过滤与统计示例展示差异。你会看到生成器表达式把数据按需提供给 sum，这样中间不会构造额外列表。示例里不追求跑分，而是让你形成写法习惯。
-
-```python
-
-推导式还有一个容易被追问的细节是变量作用域。在 Python 3 里，列表推导式的循环变量有自己的局部作用域，不会像早期版本那样“泄露”到外层作用域，这能减少一些意外覆盖。工程里你不应该依赖推导式变量名在外层是否存在，而是用清晰命名避免遮蔽；面试里你只要知道 Python 3 的推导式变量不会泄露这一点就够了。
-# ordersys/lazy_demo.py
-orders = [{"id": 1001, "amount_cents": 100}, {"id": 1002, "amount_cents": 200}, {"id": 1003, "amount_cents": 0}]
-total = sum(o["amount_cents"] for o in orders if o["amount_cents"] > 0)
-print(total)
-
-positive = [o for o in orders if o["amount_cents"] > 0]
-print(len(positive))
-
+```python3
+with open("test.txt", "w") as f:
+    f.write("Hello World!")
 ```
 
+`open()` 创建了一个文件对象，在 `with` 块结束后，文件会自动关闭，即使有异常也不用担心资源泄漏。
+
+| 场景       | 示例                                   | 优点                 |
+| ---------- | -------------------------------------- | -------------------- |
+| 文件读写   | with open()                            | 自动关闭文件         |
+| 数据库连接 | with sqlite3.connect()                 | 自动提交/回滚事务    |
+| 线程锁     | with threading.Lock()                  | 线程安全释放         |
+| 临时配置   | with context():                        | 状态恢复             |
+| 网络连接   | async with httpx.AsyncClient()         | 自动关闭连接         |
+| 自定义资源 | @contextmanager / @asynccontextmanager | 灵活控制资源生命周期 |
+
+**自动释放资源**
+
+手动关闭文件的写法：
+
+```python3
+f = open("data.txt", "r")
+try:
+    data = f.read()
+finally:
+    f.close()
 ```
 
-```
-惰性并不是永远更好。工程上你要看是否需要重复遍历、是否需要随机访问、是否需要多次消费。生成器一旦被消费就会耗尽，如果你后面还要用同一批数据做第二次处理，你就应该把它 materialize 成列表，或者让数据源本身支持重复遍历。面试里把“惰性是工具，不是信仰”这句话说出来，会更稳。
+使用上下文管理器：
 
-### 函数增强
-#### 装饰器与 functools
-装饰器是 Python 面试的必考点之一，因为它同时考闭包、可调用对象、函数签名与工程实践。订单系统里装饰器最常见的用途是横切关注点，例如记录耗时、统一异常转换、打审计日志、做幂等控制。装饰器的核心语义是把一个可调用对象作为输入，返回一个新的可调用对象，从而在不修改原函数调用点的情况下增加行为。
-
-理解装饰器，最好从调用关系入手。`@decorator` 等价于 `func = decorator(func)`。装饰器内部通常会定义一个 wrapper，wrapper 捕获外部变量形成闭包，然后在 wrapper 里调用原函数。面试里经常会追问“为什么装饰器会导致函数名变了”，这是因为 wrapper 替换了原函数对象；工程里用 `functools.wraps` 把原函数的元信息拷回 wrapper，避免调试与文档生成混乱。
-
-下面用订单服务的耗时记录装饰器做示例，并用 wraps 保留函数名。你会看到调用点完全不变，但行为增加了耗时日志，这是装饰器在工程里最直接的价值。
-
-```python
-# ordersys/decorator_timing.py
-import time
-import functools
-
-def timed(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        start = time.perf_counter()
-        try:
-            return func(*args, **kwargs)
-        finally:
-            cost_ms = (time.perf_counter() - start) * 1000
-            print(f"{func.__name__} cost={cost_ms:.2f}ms")
-    return wrapper
-
-@timed
-def load_order(order_id: int) -> dict:
-    time.sleep(0.01)
-    return {"id": order_id, "status": "NEW"}
-
-print(load_order(1001))
-
-```
-装饰器在订单系统里常被滥用的点是把业务逻辑也塞进去，导致调用路径难以追踪。工程上更稳的原则是装饰器只做横切关注点，并且保持行为可预测、可测试。面试里你把语义讲清楚，再补一句“工程上要注意可读性与调试成本”，就很像写过真实项目。
-
-#### 上下文管理器与 contextlib
-上下文管理器是 Python 在资源管理上最重要的协议之一，也是面试高频。订单系统里你会打开文件、持有锁、使用连接、进入临界区，这些都需要保证退出时释放资源。`with` 的价值是把获取与释放语义固定成一对，无论中间是否抛异常，退出逻辑都会执行，从而减少漏释放导致的隐性问题。
-
-上下文管理器协议由 `__enter__` 与 `__exit__` 定义。`with expr as x:` 会先调用 `expr.__enter__()`，把返回值绑定给 x，然后执行块体，最后无论正常结束还是异常结束都会调用 `__exit__`。`__exit__` 接收异常信息，你可以选择吞掉异常或让异常继续抛出。工程里吞异常要非常谨慎，订单系统更常见的是记录并继续抛出，让上层统一处理。
-
-下面示例用一个“订单处理锁”模拟上下文管理器。它不依赖真实线程锁，只表达协议语义。你在面试里能把 enter/exit 说清楚，再说清楚异常路径也会走 exit，基本就能过这一题。
-
-```python
-# ordersys/context_demo.py
-class OrderLock:
-    def __init__(self, order_id: int) -> None:
-        self.order_id = order_id
-        self.locked = False
-
-    def __enter__(self) -> "OrderLock":
-        self.locked = True
-        print("lock", self.order_id)
-        return self
-
-    def __exit__(self, exc_type, exc, tb) -> None:
-        self.locked = False
-        print("unlock", self.order_id)
-
-with OrderLock(1001):
-    print("process order")
-
+```python3
+with open("data.txt", "r") as f:
+    data = f.read()
 ```
 
+更简洁、也更安全。
+
+**异常安全，防止资源泄漏**
+
+即使 `with` 块中抛出异常，`__exit__()` 仍会执行，确保资源被清理。
+
+
+
+Python 在执行 `with expr as var:` 时，底层流程大致如下：
+
+1. 计算 `expr`，得到一个上下文管理器对象；
+2. 通过 `__enter__()` 进入上下文，结果赋值给 `var`；
+3. 执行 `with` 块的代码；
+4. 执行完毕后，不论是否有异常，调用 `__exit__(exc_type, exc_val, exc_tb)`；
+5. 如果 `__exit__` 返回 `True`，异常会被吞掉，否则会重新抛出。
+
+
+
+#### 自定义上下文管理器
+
+**类实现**
+
+```python3
+class MyContext:
+    def __enter__(self):
+        print("进入上下文")
+        return "资源对象"
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        print("退出上下文")
+        print(f"异常信息: {exc_type}, {exc_val}")
+        return False  # False 表示不中断异常传播
+    
+with MyContext() as res:
+    print(f"使用 {res}")
 ```
 
-```
-工程上上下文管理器还常用于“临时切换上下文”，例如临时设置某个配置、临时切换当前用户、临时打补丁，这类场景通常用标准库 `contextlib` 来写更轻。我们会在这一章的同名小节里继续用订单系统示例把它落地，但你先把协议语义记牢：with 不是语法糖，而是资源边界的保证。
+**使用 `contextlib.contextmanager`（同步版）**
 
-### 模块与导入
-#### import 机制与包结构
-导入机制是面试里很容易被问到、但又常常被低估的部分，因为它直接影响项目结构与线上可运行性。订单系统一旦从单文件长成包，你就会遇到相对导入、循环导入、入口副作用、以及导入路径依赖工作目录等问题。工程里很多启动失败并不是业务逻辑错，而是导入方式不稳定导致的。
+上面的类实现很好理解，但在实际工作中，很多时候只是简单的“前后处理”，写类会显得繁琐。Python 提供了标准库模块 `contextlib` 来简化编写。
 
-导入的过程可以简化理解为三步：先看模块缓存是否已存在，再根据导入路径定位模块文件，找到后执行模块顶层代码并把模块对象缓存起来。面试常问的点是导入会执行模块代码吗，答案是会执行一次；再次导入默认复用缓存，不会重复执行。这个机制解释了为什么模块顶层不应该写重业务副作用，例如连接数据库或执行订单处理，否则导入时机一变就会产生不可控行为。
+```python3
+@contextmanager
+def managed_resource():
+    print("资源初始化")
+    try:
+        yield "资源对象"
+    except Exception as e:
+        print(f"捕获异常: {e}")
+    finally:
+        print("资源清理完成")
 
-循环导入是导入机制里最常见的工程痛点。它往往来自两个模块互相依赖对方的顶层对象，例如 `service.py` 顶层 import `repo.py`，同时 `repo.py` 顶层又 import `service.py`，结果某个模块在执行到一半时就被另一个模块引用，得到的是不完整对象。解决思路通常不是靠技巧绕开，而是重新划分边界，例如把共享的类型与常量抽到第三个模块，把依赖方向单向化，或者把某些 import 延迟到函数内部，但延迟 import 只是止血，长期仍然要靠边界拆分。
-
-下面用一段“共享类型抽离”的伪结构表达拆分方式。你面试时不需要把它跑起来，但要能说清楚：循环导入不是 Python 神秘 bug，它是依赖方向混乱导致的，拆分共享层让依赖单向化是更稳的解决方式。
-
-```python
-
-你也可能会被问到 `importlib.reload`。它确实可以强制重新执行模块顶层代码，但工程里很少把 reload 当成常规手段，因为它会让模块状态与依赖关系变得难以推断，容易引入更隐蔽的问题。真正的解决方案通常仍然是入口重启、边界拆分、以及减少模块顶层副作用。
-# ordersys/contracts.py
-from dataclasses import dataclass
-
-@dataclass(frozen=True)
-class OrderKey:
-    order_id: int
-    channel: str
-
+with managed_resource() as r:
+    print(f"正在使用 {r}")
+    raise ValueError("出错了！")
 ```
 
-```
+**使用 `contextlib.asynccontextmanager`（异步版）**
 
-```python
+随着异步编程的普及，Python 还提供了异步上下文管理器的对应版本，用于 `async with`。
 
-```python
-# ordersys/service.py
-from ordersys.contracts import OrderKey
-
-def load_order(key: OrderKey) -> dict:
-    return {"id": key.order_id, "channel": key.channel}
-
-```
-
-```
-
-```
-工程里更稳的运行方式仍然是模块方式启动，保持包上下文稳定，这样相对导入也更可靠。你在面试里把“导入执行一次并缓存”“顶层不要做副作用”“循环导入靠边界拆分解决”这三点讲清楚，导入机制这一题就稳了。
-
-```python
-# ordersys/runtime_entry.py
-def bootstrap() -> None:
-    print("wire dependencies")
-
-def main() -> None:
-    bootstrap()
-    print("start server")
-
-if __name__ == "__main__":
-    main()
-
-```
-循环导入是导入机制里最常见的工程痛点。它往往来自两个模块互相依赖对方的顶层对象。解决思路通常不是用技巧绕开，而是重新划分边界，例如把共享的类型与常量抽到第三个模块，把依赖方向单向化。面试里你能把“导入执行一次并缓存”“顶层不要做副作用”“循环导入靠边界拆分解决”这三点讲清楚，基本就够了。
-
-### 并发模型
-#### GIL 与并发选型
-GIL 是 Python 并发面试里绕不过去的概念，但它也最容易被误解。你不需要把它讲成解释器实现细节课，你只需要把工程结论讲清楚：GIL 会限制 CPython 在同一进程内同一时刻只有一个线程执行 Python 字节码，所以 CPU 密集型任务用多线程通常得不到线性加速；但 IO 密集型任务可以用多线程提高吞吐，因为线程在等待 IO 时会释放 GIL；多进程可以绕开 GIL 利用多核；asyncio 通过单线程事件循环在 IO 场景下提升并发。
-
-订单系统里典型的 CPU 密集型任务不多，但也不是没有，例如大批量签名计算、复杂压缩、图片处理或某些加密操作。典型的 IO 密集型任务很多，例如数据库访问、网络请求、文件读写。面试问 GIL，本质是在看你能不能选对并发模型。你如果能把“CPU 用进程、IO 用线程或异步”说清楚，并说明选择取决于瓶颈，就算回答得很工程。
-
-下面的表把 GIL 相关的选型直觉写清楚。它不是绝对规则，但足够覆盖多数订单系统场景。
-
-| 任务类型 | 主要瓶颈 | 更常用的并发方案 | 订单系统例子 |
-| --- | --- | --- | --- |
-| CPU 密集 | 计算 | 多进程或下沉到原生库 | 大批量加密、压缩 |
-| IO 密集 | 等待 | 多线程或 asyncio | 调第三方、查 DB、读写文件 |
-| 混合 | 两者都有 | 分层拆分 | 先 IO 拉数据，再 CPU 计算 |
-
-这节不放跑分代码，因为面试更在意你能不能把选型讲清楚。后面两节线程/进程与 asyncio 会给出可运行的最小示例，你把它们串起来，就能回答大多数并发相关问题。
-
-还有一个容易被追问的细节是“为什么有些多线程程序看起来也能跑得快”。原因通常不是 GIL 消失了，而是线程在等待 IO 时会让出执行权，或者底层调用的 C 扩展在执行耗时工作时释放了 GIL，让别的线程有机会运行。工程上的结论仍然按瓶颈选型：CPU 密集型优先多进程或下沉到原生库，IO 密集型可以用线程或 asyncio 提升吞吐。
-#### 线程与进程
-线程与进程在订单系统里都是常用工具，但它们解决的问题不同。线程共享同一进程内存，创建与切换成本低，适合 IO 并发；进程有独立内存空间，隔离性强，适合 CPU 并行或需要隔离的任务。面试里问线程与进程，通常会追问共享状态与通信方式，也会追问为什么多线程要加锁，以及如何避免死锁与竞态。
-
-线程的核心风险来自共享可变状态。订单系统里最常见的是共享缓存、共享计数器、共享连接对象。如果多个线程同时修改同一个对象，结果取决于调度时机，会出现偶发错误。工程里最稳的策略是减少共享，让数据尽量不可变或线程内私有；确实要共享时，用锁保护临界区，或者使用线程安全的数据结构。进程的共享问题更少，因为内存隔离，但代价是进程间通信与序列化开销更大，且对象必须可序列化才能跨进程传输。
-
-下面用线程池模拟“并发拉取订单状态”，并用进程池模拟“并行计算一批签名”。示例非常小，只强调使用方式与语义。真实工程里你还需要加超时、重试与限流，这些会在工程化章节统一处理。
-
-```python
-# ordersys/pool_demo.py
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-
-def fetch_status(order_id: int) -> str:
-    return f"{order_id}:NEW"
-
-def heavy_sign(order_id: int) -> str:
-    s = 0
-    for i in range(200000):
-        s += (order_id * 31 + i) % 97
-    return f"{order_id}:{s}"
-
-with ThreadPoolExecutor(max_workers=4) as tp:
-    results = list(tp.map(fetch_status, [1001, 1002, 1003, 1004]))
-    print(results)
-
-with ProcessPoolExecutor(max_workers=2) as pp:
-    results = list(pp.map(heavy_sign, [1001, 1002, 1003, 1004]))
-    print(results[:2])
-
-```
-面试里你可以把结论讲得很直接：线程适合 IO 并发，进程适合 CPU 并行；线程有共享状态风险，需要锁或减少共享；进程有序列化与 IPC 成本，适合边界清晰的大任务。把这套取舍讲清楚，就已经达到了“能上生产”的水平。
-
-#### asyncio（协程/任务/取消/超时）
-asyncio 在订单系统里通常用在高并发 IO 场景，例如大量并发调用第三方接口、并发拉取状态、并发写入缓存。它的核心模型是单线程事件循环，协程在遇到 await 的 IO 操作时把控制权交回事件循环，从而让同一线程能“同时处理很多等待中的任务”。面试问 asyncio，最常见的追问是协程与线程的区别、任务调度、取消与超时语义。
-
-协程不是线程，它不会在多个 CPU 核上并行执行 Python 字节码，它依赖 await 点进行协作式切换。你如果在协程里写 CPU 密集型循环，不仅不会更快，还会阻塞整个事件循环，让所有并发任务都卡住。工程上 asyncio 的正确用法是把 IO 操作做成 await，把 CPU 重活下沉到线程池或进程池，或者交给原生库执行。取消与超时也是必须讲清楚的点。任务取消是通过抛出 `CancelledError` 实现的，代码需要在合适的 await 点响应取消；超时通常用 `asyncio.wait_for` 包裹 await，这会在超时后取消底层任务并抛异常。
-
-下面用一个最小示例模拟并发拉取订单状态，并展示超时包装。示例里用 `asyncio.sleep` 模拟 IO 等待，结构与真实网络请求非常接近。你在面试里把“await 让出控制权”“取消通过异常传播”“超时通过 wait_for 包裹”讲清楚，基本就够了。
-
-```python
-
-取消相关的一个工程要点是清理资源。协程的取消通过抛出异常传播，如果你在协程里持有资源或需要做收尾，就应该把清理放在 `try/finally`，或者使用异步上下文管理器来保证退出时释放。面试里你把“取消=异常传播、清理=finally/上下文管理器”说清楚，就能应对大多数追问。
-# ordersys/async_demo.py
+```python3
+from contextlib import asynccontextmanager
 import asyncio
 
-async def fetch_status(order_id: int) -> str:
-    await asyncio.sleep(0.01)
-    return f"{order_id}:PAID"
-
-async def main() -> None:
-    tasks = [asyncio.create_task(fetch_status(i)) for i in [1001, 1002, 1003]]
-    results = await asyncio.gather(*tasks)
-    print(results)
-
-async def main_with_timeout() -> None:
+@asynccontextmanager
+async def connect():
+    print("建立异步连接")
+    conn = "异步资源"
     try:
-        r = await asyncio.wait_for(fetch_status(1001), timeout=0.001)
-        print(r)
-    except asyncio.TimeoutError:
-        print("timeout")
+        yield conn
+    finally:
+        print("关闭异步连接")
+
+async def main():
+    async with connect() as c:
+        print(f"使用 {c}")
+        await asyncio.sleep(1)
 
 asyncio.run(main())
-asyncio.run(main_with_timeout())
-
-```
-工程里是否选择 asyncio，取决于你的栈与团队习惯。很多 Web 框架已经提供异步能力，但异步会引入新的复杂度，例如资源池的异步版、上下文传递、调试难度。面试里最稳的回答是：asyncio 适合 IO 并发，能够在单线程下提升吞吐；要注意不要在协程里做 CPU 重活；要把取消与超时作为一等公民处理，不然高并发下会出现任务泄漏。
-
-### 类型与序列化
-#### typing 与注解实践
-类型标注在国内面试里越来越常见，因为它直接影响可维护性与团队协作。Python 的类型标注不是强制的，它更多是文档与工具链的契约，配合 mypy 或 pyright 能在开发阶段发现大量低级错误。订单系统里类型标注的价值尤其明显：字段很多、数据形态多、边界复杂，写清楚输入输出类型能减少误用，也能让 IDE 提示更可靠。
-
-工程上最实用的标注通常集中在函数签名与领域模型上。服务层方法的参数与返回值写清楚，调用点就不容易传错；模型字段写清楚，序列化与反序列化时就能有更明确的边界。你不需要在面试里把 typing 的所有高级玩法背出来，但你需要掌握最常用的一组：`list[str]`、`dict[str, int]`、`Optional[T]` 或 `T | None`、`Callable`、以及用 `Protocol` 表达能力约束。订单系统里尤其推荐用 `TypedDict` 表达字典形态的结构数据，让你在保留 dict 灵活性的同时获得结构约束。
-
-下面的表把最常见的标注形态按订单系统场景对照一下。面试里你按“我会在边界处标注，让调用方不容易传错”去讲，比背语法更像工程实践。
-
-| 标注形态 | 表达的意思 | 订单系统里的例子 |
-| --- | --- | --- |
-| `list[Order]` | 列表元素类型 | 查询结果列表 |
-| `dict[str, int]` | 映射键值类型 | 状态计数映射 |
-| `Order | None` | 可缺省 | 未找到订单返回 None |
-| `Callable[[int], int]` | 策略函数 | 折扣策略 |
-| `Protocol` | 能力接口 | 支付网关能力 |
-
-示例用 `TypedDict` 定义订单结构，并写一个带返回类型的查询函数。这样写的直接好处是你在使用 `order["status"]` 时能得到类型提示，减少拼错字段名的低级 bug。
-
-```python
-
-类型标注写法和 Python 版本有关。`list[str]`、`dict[str, int]` 这种内置泛型写法通常要求 3.9+；`T | None` 这种联合类型写法要求 3.10+。如果团队还在更低版本，常见等价写法是使用 `typing.List`、`typing.Dict`、`typing.Optional[T]`。面试里如果对方问线上版本，你可以顺势说明你会按版本选择写法，并让工具链（mypy/pyright）在 CI 里把接口契约卡住。
-# ordersys/typing_demo.py
-from typing import TypedDict
-
-class OrderDict(TypedDict):
-    id: int
-    status: str
-    amount_cents: int
-
-def find_order(order_id: int) -> OrderDict | None:
-    if order_id == 1001:
-        return {"id": 1001, "status": "NEW", "amount_cents": 3000}
-    return None
-
-o = find_order(1001)
-print(o["status"] if o is not None else "missing")
-
-```
-类型标注不是为了让 Python 变成 Java，而是为了让边界更清晰，让工具帮你挡住一部分错误。面试里你只要把这个定位说清楚，并能写出常见标注，就已经是“工程向熟练”。
-
-#### json/pickle/copy 边界
-序列化与拷贝是订单系统里非常实际的一块内容。你要做 API 响应、消息投递、缓存落盘，就要把对象变成可传输的表示；你要避免共享引用带来的联动修改，就要明确拷贝策略。面试在这一节通常会追问 json 与 pickle 的差别，以及浅拷贝与深拷贝的边界。
-
-JSON 的定位是跨语言的数据交换格式，它只支持有限的数据类型，强调可读与可互操作。订单系统的对外 API 与消息体通常都用 JSON。pickle 的定位是 Python 对象的序列化，它几乎什么都能序列化，但它是 Python 专用，并且反序列化是不安全的，不能对不可信数据使用。工程里 pickle 更多用于进程间传输或内部缓存，不用于跨服务边界。面试里你只要明确说出“pickle 不要反序列化不可信输入”，这一点非常关键。
-
-拷贝方面，浅拷贝只复制外壳，深拷贝复制对象图。订单系统里你更常用的是显式重建关键字段，而不是无脑 deepcopy，因为 deepcopy 的成本高，也可能复制到不该复制的资源对象。基础章节里已经用订单对象演示过拷贝边界，这里把它放回“序列化与边界”的语境里，强调为什么序列化常常也是一种“隔离策略”，例如把对象 dump 成 JSON 再 load 回来，你得到的是一份新对象图，但这种隔离也有成本与类型损失。
-
-下面用表把 json 与 pickle 的取舍写出来，再用一个最小示例展示 json 的常见用法。示例仍然围绕订单对象，保持语境一致。
-
-| 方案 | 适用边界 | 优点 | 风险/代价 | 订单系统建议 |
-| --- | --- | --- | --- | --- |
-| json | 跨语言/对外 | 通用、可读 | 类型受限 | API 与消息体首选 |
-| pickle | Python 内部 | 表达能力强 | 不安全、不可互操作 | 仅内部可信数据 |
-| copy/deepcopy | 进程内 | 保留类型 | 成本可高 | 优先显式重建 |
-
-```python
-# ordersys/json_demo.py
-import json
-
-order = {"id": 1001, "status": "PAID", "amount_cents": 3000}
-payload = json.dumps(order, ensure_ascii=False)
-print(payload)
-
-decoded = json.loads(payload)
-print(decoded["status"])
-
-```
-面试里把这一节的结论讲清楚就够了：对外用 JSON；pickle 只用于可信内部并谨慎使用；拷贝优先显式重建关键字段，deepcopy 不是默认选项。你能把这些边界说清楚，基本就不会在这一块翻车。
-
-## Python 工程化
-
-### 项目形态
-#### 项目组织与入口约定
-当订单系统从“能跑的脚本”长成“能长期维护的项目”，项目结构就不再是审美问题，而是可测试、可部署、可协作的基础。面试问项目结构，通常想确认你是否知道入口该放哪里、业务代码该放哪里、测试怎么组织、以及导入路径是否稳定。工程上最常见的目标是让任何人拿到仓库后，用同一套命令就能运行、测试、打包，而不是依赖某个人本地的工作目录与隐含配置。
-
-结构的核心是把边界分开。入口负责启动与装配依赖，不承载业务逻辑。业务逻辑放在可导入模块里，便于复用与测试。脚本与工具与服务入口分离，避免把一次性工具与服务生命周期绑在一起。测试与代码同层组织，能够明确地从公共 API 进入，而不是直接 import 私有实现细节。订单系统里常见的落地是 `ordersys/` 作为包，`ordersys/app.py` 或 `ordersys/__main__.py` 作为入口，`tests/` 放测试。
-
-下面用一张表把“目录里该放什么”说清楚。它不追求唯一正确，但它体现了稳定的工程意图：让导入、运行、测试三件事都不依赖工作目录。
-
-| 目录/文件 | 主要职责 | 订单系统里放什么 | 常见误区 |
-| --- | --- | --- | --- |
-| `ordersys/` | 业务包 | 模型、服务、适配器、工具 | 把启动逻辑塞进导入阶段 |
-| `ordersys/app.py` | 入口 | 组装依赖、启动服务/任务 | 入口里写大段业务 |
-| `ordersys/__main__.py` | 模块入口 | 支持 `python -m ordersys` | 依赖工作目录运行 |
-| `tests/` | 测试 | 单测、集成测试 | 测试直接改全局状态 |
-| `pyproject.toml` | 配置中心 | 依赖、工具配置 | 工具配置分散难同步 |
-
-示例展示一个最小入口文件的形态。入口只做装配与调用，不在导入时做副作用。你在面试里可以把它说成一句工程原则：入口薄、模块厚，模块可导入可测试。
-
-```python
-# ordersys/app.py
-from ordersys.service import create_order
-
-def main() -> None:
-    order = create_order(7, 3000, source="web")
-    print(order)
-
-if __name__ == "__main__":
-    main()
-
-```
-项目结构这块最容易踩的坑是导入路径与运行方式不一致。工程上更稳的做法是统一用 `python -m ordersys.app` 或让入口在包内并通过模块方式启动，这样相对导入与包上下文都稳定。基础章节已经解释过脚本与模块执行的差异，这里把它落到工程组织上，你就能回答“为什么我的代码在本地能跑上线不行”这类真实问题。
-
-#### 配置与环境区分
-配置管理是订单系统工程化里最容易被低估的一块。面试问配置，通常会追问你如何区分开发与生产、如何避免把密钥写进代码、如何让配置变更可追踪可回滚。工程里最稳的策略是把配置分层：代码里只放默认值与结构，环境变量与配置文件提供运行时差异，敏感信息只从安全渠道注入，最终在启动时汇总成一个明确的配置对象供业务层使用。
-
-分层的意义是减少偶发差异。你不希望某个同事本地能跑只是因为他机器上恰好有某个文件。你也不希望线上行为改变是因为某个模块 import 时偷偷读取了环境变量。配置应该在入口处统一加载，形成一个显式对象，然后注入到依赖中。订单系统里这通常体现为数据库连接串、第三方渠道密钥、超时与重试参数、日志级别等。
-
-下面用表把常见配置来源与优先级写清楚。面试里你把“优先级与敏感信息处理”讲清楚，比背工具名称更像工程经验。
-
-| 配置来源 | 是否进仓库 | 典型内容 | 建议优先级 |
-| --- | --- | --- | --- |
-| 代码默认 | 是 | 默认超时、默认开关 | 最低 |
-| 配置文件 | 视情况 | 本地开发参数 | 中 |
-| 环境变量 | 否 | 运行环境差异、密钥引用 | 高 |
-| 密钥管理 | 否 | 真实密钥与证书 | 最高 |
-
-示例用一个简单的配置对象把环境变量与默认值汇总起来，并在入口处完成加载。示例不依赖第三方库，只表达工程结构；真实项目可以引入更成熟的配置库，但原则不变：集中加载、显式注入、敏感信息不落盘。
-
-```python
-# ordersys/config.py
-import os
-from dataclasses import dataclass
-
-@dataclass(frozen=True)
-class Settings:
-    db_url: str
-    log_level: str
-    request_timeout_s: float
-
-def load_settings() -> Settings:
-    return Settings(
-        db_url=os.getenv("ORDERSYS_DB_URL", "sqlite:///orders.db"),
-        log_level=os.getenv("ORDERSYS_LOG_LEVEL", "INFO"),
-        request_timeout_s=float(os.getenv("ORDERSYS_TIMEOUT_S", "2.0")),
-    )
-
 ```
 
-```
+## Python框架
 
-```python
 
-```python
-# ordersys/app.py
-from ordersys.config import load_settings
 
-def main() -> None:
-    settings = load_settings()
-    print(settings)
+## Python项目管理
 
-if __name__ == "__main__":
-    main()
 
-```
-配置这块面试常见的进一步追问是“如何做环境分层与回滚”。工程答案通常是把配置变更当成发布的一部分，线上配置可追踪，回滚时配置也能回滚；同时避免把业务逻辑依赖在“某个字符串值”上，把配置解析成明确的类型与枚举语义，减少运行时错误。
 
-### 依赖与构建
-#### 依赖管理与锁定策略
-依赖管理这件事在订单系统里直接决定了可复现性。面试问 pip/锁定策略，通常想确认你是否理解“声明依赖”和“锁定依赖”的区别。声明依赖是告诉别人你需要哪些库，锁定依赖是告诉别人你需要这些库的哪些具体版本。没有锁定，今天装出来能跑，过两周同样的命令可能就跑不起来，线上故障很难复现。
+## Python生态
 
-虚拟环境负责隔离，依赖声明负责表达，锁定负责稳定。工程里最重要的实践是让 CI 成为“可复现性裁判”：CI 用干净环境安装依赖并跑测试，通过就说明依赖集合在当前锁定下可用。订单系统里如果你有多个组件，例如 API 服务与离线任务，它们可以共用一套依赖也可以拆分，但无论如何，依赖版本应该在仓库里有清晰来源，避免“某个人电脑上装了什么”决定系统行为。
-
-下面的表把常见依赖文件与锁定思路放在一起。不同团队工具链不同，但面试里你把“声明与锁定分别解决什么”讲清楚就够了。
-
-| 形式 | 作用 | 优点 | 代价 | 订单系统里常见用法 |
-| --- | --- | --- | --- | --- |
-| requirements.txt | 声明/固定依赖 | 简单直接 | 工具生态分散 | 传统项目与脚本 |
-| constraints.txt | 约束版本上限 | 与声明分离 | 维护成本 | 多项目共享约束 |
-| pyproject.toml | 统一配置 | 现代、集中 | 需要工具链 | 新项目主流 |
-
-示例展示如何在代码里打印依赖版本以辅助排查“线上与本地不一致”。你不需要在面试里展示命令，但你需要知道：版本不一致是问题的一大来源，排查时要能快速确认依赖版本。
-
-```python
-# ordersys/version_probe.py
-import importlib.metadata as md
-
-def show(pkg: str) -> None:
-    try:
-        print(pkg, md.version(pkg))
-    except md.PackageNotFoundError:
-        print(pkg, "not installed")
-
-show("requests")
-show("pytest")
-
-```
-依赖管理的工程底线是可复现。你在面试里如果能把“隔离 + 声明 + 锁定 + CI 验证”串成一条链路，通常就会被认为具备工程化能力。
-
-#### 构建与发布（pyproject 工具链）
-打包与发布听起来像偏运维，但在 Python 工程里它和“如何交付一个可运行组件”直接相关。订单系统可能需要被打成一个可安装包，供多个服务复用；也可能需要生成一个可执行入口，供容器或部署脚本直接启动。面试问 pyproject 与打包，通常会追问你如何组织元数据、如何暴露命令行入口、以及如何让构建可复现。
-
-`pyproject.toml` 的价值是把项目元数据、依赖与工具配置集中到一个位置。构建系统与安装工具会读取它，从而知道如何构建与安装。对订单系统来说，最实用的一点是入口点。你可以声明一个命令行命令，例如 `ordersys`，它指向 `ordersys.app:main`，这样用户安装后就能直接运行，而不需要记住 python -m 的模块路径。工程上这也让容器启动命令更稳定。
-
-下面用一段最小的 pyproject 片段表达“可安装包 + 入口点”的形态。你不需要在笔记里把每个字段背下来，但你要知道入口点能把运行方式固定下来，这会显著减少部署差异。
-
-`pyproject.toml` 片段（示例）
-
-```toml
-[project]
-name = "ordersys"
-version = "0.1.0"
-dependencies = []
-
-[project.scripts]
-ordersys = "ordersys.app:main"
-
-```
-
-打包发布这块的工程结论是：发布物要可安装、入口要稳定、版本要可追踪。面试里如果追问“如何做版本号”，你可以说遵循语义化版本或团队规范，重要的是版本与变更日志可追踪；如果追问“如何保证构建一致”，你可以说锁定依赖、在 CI 里构建、用干净环境验证安装与运行。
-
-### 测试与质量
-#### 测试体系（pytest 与策略）
-测试是订单系统工程化里最直接的质量门槛。面试问 pytest，通常不只是问你会不会写断言，而是看你是否理解测试的组织方式、隔离方式，以及如何让测试稳定可维护。pytest 的心智模型可以非常简单：测试函数是入口，fixture 提供依赖，参数化扩展覆盖面，标记与插件扩展测试类型。你不需要把它讲成框架教程，但你要能把“测试边界”讲清楚。
-
-订单系统里最值得优先测试的是业务规则与边界条件，例如金额校验、状态迁移、幂等行为、异常转换。测试不应该依赖真实外部网络或真实数据库，除非你明确写的是集成测试并在 CI 里有对应环境。单元测试强调快与确定性，所以依赖应当被替换或隔离。你在面试里把“单测不碰外部依赖”“用 fixture 管理依赖”讲清楚，就很稳。
-
-下面的示例用订单状态迁移做一个最小测试，并演示 pytest 的断言风格。示例不追求花哨，但它体现了工程上的目标：把规则写成可测试的函数或方法。
-
-在订单系统里，fixture 的价值是把依赖与测试数据的构造集中起来，保证测试之间相互隔离。参数化的价值是用同一套断言覆盖更多边界条件，尤其适合金额、状态迁移、输入校验这种规则类逻辑。mock 的价值是把外部依赖替换掉，让单测不触网、不连真实数据库，保持快与确定性。
-
-下面的示例把三件事放在一起：fixture 提供一个最小 Order 对象，参数化覆盖不同输入，mock 替换掉外部支付网关调用。示例仍然保持 ordersys 语境，但为了让 pytest 能直接运行，这里写成 tests 里的测试文件形态。
-
-```python
-
-mock 最适合放在外部边界，例如支付网关、HTTP 请求、数据库访问，这样单测可以保持快与确定性。核心业务规则尽量写成纯函数或模型方法直接测，避免把大量逻辑藏在 mock 交互里，否则测试会变脆，重构成本很高。
-# tests/test_payment_service.py
-import pytest
-from unittest.mock import Mock
-
-class Order:
-    STATUS_NEW = "NEW"
-    STATUS_PAID = "PAID"
-
-    def __init__(self, order_id: int, amount_cents: int) -> None:
-        self.id = order_id
-        self.amount_cents = amount_cents
-        self.status = Order.STATUS_NEW
-
-def pay_order(order: Order, gateway) -> str:
-    if order.amount_cents <= 0:
-        raise ValueError("amount must be positive")
-    resp = gateway.pay(order.id, order.amount_cents)
-    order.status = Order.STATUS_PAID
-    return resp
-
-@pytest.fixture
-def order() -> Order:
-    return Order(order_id=1001, amount_cents=3000)
-
-@pytest.mark.parametrize("amount_cents", [1, 3000, 999999])
-def test_pay_order_ok(order: Order, amount_cents: int):
-    order.amount_cents = amount_cents
-    gateway = Mock()
-    gateway.pay.return_value = "ok"
-    r = pay_order(order, gateway)
-    assert r == "ok"
-    assert order.status == Order.STATUS_PAID
-    gateway.pay.assert_called_once_with(order.id, amount_cents)
-
-@pytest.mark.parametrize("amount_cents", [0, -1])
-def test_pay_order_bad_amount(order: Order, amount_cents: int):
-    order.amount_cents = amount_cents
-    gateway = Mock()
-    with pytest.raises(ValueError):
-        pay_order(order, gateway)
-    gateway.pay.assert_not_called()
-
-```
-面试里你可以把这套说成一句话：fixture 管构造与隔离，参数化管覆盖，mock 管外部依赖替换；单测优先覆盖规则与边界，不去触碰不稳定依赖，集成测试再单独跑在可控环境里。
-`tests/test_order_status.py`
-
-```python
-import pytest
-
-class Order:
-    STATUS_NEW = "NEW"
-    STATUS_PAID = "PAID"
-
-    def __init__(self) -> None:
-        self.status = Order.STATUS_NEW
-
-    def mark_paid(self) -> None:
-        if self.status != Order.STATUS_NEW:
-            raise RuntimeError("illegal transition")
-        self.status = Order.STATUS_PAID
-
-def test_mark_paid_ok():
-    o = Order()
-    o.mark_paid()
-    assert o.status == Order.STATUS_PAID
-
-def test_mark_paid_illegal():
-    o = Order()
-    o.status = Order.STATUS_PAID
-    with pytest.raises(RuntimeError):
-        o.mark_paid()
-
-pytest 这一节的工程落点是让测试成为日常开发的一部分。你在面试里如果能说清楚“我优先测规则与边界，外部依赖用替身，测试要稳定可重复”，基本就能证明你具备工程交付意识。
-
-```
-
-#### 代码质量（格式化/lint/类型检查）
-代码质量工具链在 Python 工程里越来越像标配，它解决的是一致性与提前发现问题。面试问 black、ruff、类型检查，通常是在确认你是否理解它们各自负责的层面，以及如何在团队里把它们变成自动化而不是手工约束。最稳的做法是把格式化、lint、类型检查放进 CI，让代码在合并前就通过质量门槛，而不是靠代码评审时人工挑格式问题。
-
-格式化工具关注代码外观一致性，它减少争论，提升可读性。lint 工具关注潜在错误与坏味道，例如未使用变量、可疑比较、可能的 bug 模式。类型检查关注接口契约，尤其在订单系统这种边界复杂的项目里，它能提前发现某个函数返回 None 却被当成字典使用的错误。三者叠加的效果是让大量低级错误在进入运行时之前就被挡住。
-
-下面用一张表把这三类工具的职责边界写清楚。面试里你把“它们解决不同问题，放进 CI 自动执行”讲出来就够了。
-
-| 工具类别 | 解决的问题 | 订单系统里的收益 | 常见误区 |
-| --- | --- | --- | --- |
-| 格式化 | 风格统一 | 代码评审更聚焦逻辑 | 人工争论缩进与引号 |
-| lint | 发现坏味道 | 提前发现潜在 bug | 规则太多导致全员忽略 |
-| 类型检查 | 接口契约 | 边界更清晰、重构更稳 | 试图标注一切导致负担 |
-
-工程里你不需要在笔记里写具体命令，但你要知道它们应当被自动化执行。面试里如果追问“你怎么落地”，你可以说在 pre-commit 与 CI 里跑格式化与 lint，类型检查按模块逐步引入，先覆盖核心边界与公共接口，再扩展到更多模块。
-
-### 运行保障
-#### 日志、错误边界与可观测
-日志、异常边界与可观测性决定了订单系统出问题时你能不能快速止血。面试问这一块，通常会追问你怎么打日志、怎么关联请求、怎么把异常变成可定位的信号。工程里最实用的目标是让任何一次失败都能被关联到业务标识与上下文，例如订单号、用户 id、渠道、请求 id，并且在日志里保留异常堆栈，而不是只留一句失败描述。
-
-异常边界的含义是哪里负责把底层异常转换成业务语义。订单系统里典型分层是适配器层做语义转换并保留根因，服务层做业务策略，入口层做对外返回。适配器层不应该吞异常，它应该把底层细节折叠成业务异常，并把根因挂在异常链上；服务层拿到业务异常后决定是否重试、是否降级、是否落库补偿；入口层决定如何映射到 HTTP 响应或任务失败状态。
-
-为了让这条链路更具体，这里把订单系统里最常见的一组错误边界拉成表。你面试时按“边界在哪里、谁负责什么”去回答，会非常工程。
-
-| 层级 | 责任 | 该做的事 | 不该做的事 |
-| --- | --- | --- | --- |
-| 适配器 | 语义转换 | `raise ... from e`，补上下文 | 吞异常只打日志 |
-| 服务层 | 策略控制 | 重试/降级/补偿/幂等 | 把底层异常直接抛给入口 |
-| 入口层 | 对外返回 | 统一错误码/失败状态 | 逐个 try/except 堆在入口 |
-
-示例展示一个带业务上下文的异常转换，并把异常链保留下来。示例不追求真实网络调用，只表达工程结构：记录业务标识，保留堆栈，转换语义，继续抛出让上层决定策略。
-
-为了让团队沟通一致，这里我统一用 adapter/service/entry 三层术语：adapter 负责把外部世界的失败转换成业务语义并保留根因，service 负责业务策略与补偿，entry 负责对外返回与协议映射。你在面试里按这三层去讲，表达会更收敛。
-
-```
-
-面试里你不需要背 contextvars 的 API，但你要能讲清楚目标：给每条日志加上可关联的请求标识，让一次请求在多个模块间可追踪；同步框架通常用中间件实现，异步框架用 contextvars 能更自然地贯穿协程上下文。
-# ordersys/errors.py
-class PaymentError(Exception):
-    pass
-
-```
-
-```
-
-```python
-
-```python
-# ordersys/payment_adapter.py
-import logging
-from ordersys.errors import PaymentError
-
-logger = logging.getLogger("ordersys.payment")
-
-def call_gateway(order_id: int) -> str:
-    try:
-        raise TimeoutError("gateway timeout")
-    except Exception as e:
-        logger.exception("gateway failed", extra={"order_id": order_id})
-        raise PaymentError(f"payment failed: order_id={order_id}") from e
-
-```
-
-```
-
-可观测性除了日志还包括指标与追踪，但这份笔记以语言与标准库为主，所以把指标与追踪当成概念点到即可。面试里你可以这样说：日志用来定位单次问题，指标用来观察趋势与告警，追踪用来串联跨服务链路。只要你能把日志与异常边界这块讲清楚，就已经具备线上排障的基本能力。
-
-```python
-
-```python
-# ordersys/errors.py
-class PaymentError(Exception):
-    pass
-
-```
-
-```
-
-```
-这一节的面试回答重点是分层：底层负责保留细节并转换语义，上层负责策略与对外返回。你能把“异常链 + 业务上下文 + 不吞异常”讲清楚，就已经具备线上排障的基本能力。
-
-#### 性能剖析与优化
-性能剖析与优化在订单系统里属于“该懂但不必炫”的能力。面试问性能，通常会追问你如何定位瓶颈，以及你是否理解 IO 与 CPU 的区别。工程上最稳的流程是先测量再优化，避免凭感觉改代码。Python 的性能问题很多时候不是算法题，而是数据表示、无谓拷贝、过度日志、错误的并发模型选择导致的吞吐下降。
-
-剖析的目标是把时间花在哪儿变成事实。你可以用 `cProfile` 这类剖析工具看函数级热点，用 `time.perf_counter` 做局部计时，用采样器在生产环境观察。优化路径往往从减少无谓工作开始，例如避免重复序列化、避免循环里做字符串拼接、避免把大列表反复切片、避免在热路径里做过度日志。订单系统里最常见的性能改善也来自 IO 层，例如减少数据库往返、合理使用批量接口、减少外部调用次数。
-
-下面给出一个最小的局部计时代码，模拟批量处理订单时记录耗时。它体现的是工程习惯：先量化，再决定是否值得优化。更深入的剖析工具属于扩展内容，但面试里你能讲出“我先用剖析定位热点”，通常就足够了。
-
-```python
-# ordersys/perf_demo.py
-import time
-
-def process_orders(n: int) -> int:
-    s = 0
-    for i in range(n):
-        s += (i * 31) % 97
-    return s
-
-start = time.perf_counter()
-r = process_orders(200000)
-cost_ms = (time.perf_counter() - start) * 1000
-print(r, f"{cost_ms:.2f}ms")
-
-```
-
-```
-
-```
-性能这一节的工程落点是方法论：先测量、找热点、最小改动验证收益、再决定是否继续。面试里你把这个流程讲出来，比给出某个微优化技巧更像靠谱工程师。
-
-#### 稳定性策略（超时/重试/幂等/限流）
-超时、重试、幂等与限流是订单系统“跑得稳”的核心。面试问这一块，往往是在确认你是否知道外部依赖是不可靠的，以及你是否能把失败控制在可预期范围内。订单系统里外部调用很多，支付、风控、库存、通知任何一个环节都可能超时或偶发失败。如果你不设置超时，请求会无限等待，线程或协程会被占住，最终把整个服务拖死。设置超时是底线，重试是策略，幂等是前提，限流是保护。
-
-重试并不是万能的。你必须区分可重试与不可重试，例如网络超时可能可重试，参数错误不可重试。你也必须控制重试的次数与间隔，避免雪崩式放大。幂等的意义是让同一请求重复执行不会造成重复扣款或重复发货，订单系统里通常用幂等键或状态机保证。限流则是在高压下保护系统，让请求以可控速度进入，避免把下游压垮。
-
-下面用一个最小的“带超时与重试”的调用示例表达工程结构。示例不依赖第三方网络库，用 sleep 模拟等待，并演示指数退避。你在面试里不需要背公式，但要能说清楚：超时必设，重试要有边界，幂等是重试的前提，限流是系统保护。
-
-```python
-
-重试之前要先做错误分类。网络抖动、超时、连接重置这类通常可重试，参数错误、权限错误、余额不足这类不可重试；对于下游返回的 5xx 或限流错误是否重试，要结合协议与业务语义。重试次数与间隔要有上限，退避与抖动是为了避免同一时间集中重试造成雪崩放大。
-
-幂等可以用非常朴素的方式落地，例如用幂等键把“已经处理过的请求”记录下来。订单系统里最常见的幂等键是 `(order_id, request_id)` 或 `(order_id, idempotency_key)`，只要这个键稳定，重复请求就可以被安全识别并短路。
-
-```python
-
-```python
-# ordersys/idempotency_demo.py
-processed: dict[tuple[int, str], str] = {}
-
-def handle_pay(order_id: int, request_id: str) -> str:
-    key = (order_id, request_id)
-    if key in processed:
-        return processed[key]
-    result = f"paid:{order_id}"
-    processed[key] = result
-    return result
-
-print(handle_pay(1001, "req-1"))
-print(handle_pay(1001, "req-1"))
-
-```
-
-```
-
-面试里你可以把这段话说成一条链路：超时必设，错误先分类再决定是否重试，重试必须有幂等保证，同时用限流控制并发与入口压力。
-# ordersys/retry_demo.py
-import time
-
-class RetryableError(Exception):
-    pass
-
-def call_remote() -> str:
-    raise RetryableError("temporary failure")
-
-def call_with_retry(max_attempts: int, base_sleep_s: float) -> str:
-    attempt = 1
-    while True:
-        try:
-            return call_remote()
-        except RetryableError:
-            if attempt >= max_attempts:
-                raise
-            time.sleep(base_sleep_s * (2 ** (attempt - 1)))
-            attempt += 1
-
-try:
-    call_with_retry(3, 0.1)
-except Exception as e:
-    print("failed", type(e).__name__)
-
-```
-这一节的面试回答可以用一条链路来讲：对外调用先设超时，失败按错误类型决定是否重试，重试必须有幂等保证，同时在入口做限流保护服务。你能把这条链路讲清楚，工程稳定性这一关就稳了。
-
-#### 并发与资源治理（池/异步）
-并发在工程里的落地不是“线程还是协程”的二选一，而是把并发当成一种资源管理方式。订单系统里你并发的目标通常是提高吞吐与降低尾延迟，但你必须同时考虑限流、超时、取消、以及共享状态的安全。面试问工程并发，通常会追问你如何选型、如何避免线程安全问题、以及如何在并发场景下保证请求可控。
-
-线程池适合 IO 密集型工作，尤其是在大量阻塞调用场景下，它能通过并发等待提高吞吐。进程池适合 CPU 密集型工作，能利用多核。asyncio 适合高并发 IO，并且更容易把超时与取消作为一等公民处理。工程里最常见的落地是把外部调用封装成带超时与重试的函数，然后在上层用线程池或 asyncio 并发执行，同时在入口做并发度控制。你不希望一次性创建几千个线程或几万个任务去打爆下游，工程上需要一个明确的并发上限。
-
-下面示例用线程池并发拉取订单状态，并且在上层显式控制最大并发数。示例的重点不是网络调用，而是工程结构：并发度在入口控制，单个任务本身仍然是可测试的函数。
-
-```python
-# ordersys/concurrency_demo.py
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-def fetch_status(order_id: int) -> str:
-    return f"{order_id}:NEW"
-
-order_ids = [1001, 1002, 1003, 1004, 1005]
-results = []
-with ThreadPoolExecutor(max_workers=3) as ex:
-    futures = [ex.submit(fetch_status, oid) for oid in order_ids]
-    for f in as_completed(futures):
-        results.append(f.result())
-print(results)
-
-```
-
-```
-
-工程里并发的底线是可控。你能在面试里把“选型依据、并发上限、超时与取消、共享状态最小化”讲清楚，就能证明你不是只会写示例，而是懂得把并发放进真实系统里。
-
-```
