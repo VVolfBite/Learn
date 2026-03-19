@@ -2313,11 +2313,522 @@ asyncio.run(main())
 
 ## Python框架
 
+### Dash Plotly
+
+Dash 是一个基于 Python 的开源框架，专门用于构建数据分析和数据可视化的 Web 应用程序。Dash 由 Plotly 团队开发，旨在帮助数据分析师、数据科学家和开发人员快速创建交互式的、基于数据的 Web 应用，而无需深入掌握前端技术（如 HTML、CSS 和 JavaScript）。Dash 的核心优势在于其简单易用性和强大的功能。通过 Dash，用户可以使用纯 Python 代码来构建复杂的 Web 应用，而无需编写繁琐的前端代码。Dash 应用通常由两个主要部分组成：**布局**和**交互性**。Dash 是它结合了 Flask 的后端能力、Plotly.js 的可视化能力以及 React.js 的交互能力，为用户提供了一个简单而强大的开发平台。
+
+![img](https://www.runoob.com/wp-content/uploads/2025/01/2bcc0391-c369-4545-95f2-72246984cac5.png)
+
+Dash 并不是一个完全独立的框架，而是基于以下技术构建的：
+
+**Flask**：Dash 的后端基于 Flask，一个轻量级的 Python Web 框架。Flask 负责处理 HTTP 请求和响应。
+
+**Plotly.js**：Dash 使用 Plotly.js 来渲染交互式图表。Plotly.js 支持多种图表类型，如折线图、柱状图、散点图、热力图等。
+
+**React.js**：Dash 的前端组件基于 React.js，一个流行的 JavaScript 库。React.js 使得 Dash 的组件可以动态更新，而无需刷新页面。
+
+**其他依赖**：Dash 还依赖于其他 Python 库，如 Pandas（数据处理）、NumPy（数值计算）等。
+
+#### Dash 安装
+
+Dash 支持 Python 3.6 及以上版本。可以通过 Python 的包管理工具 `pip` 来完成。除了核心库外，Dash 还支持一些可选依赖库，用于增强功能。
+
+```
+pip --version
+
+pip install dash
+#	dash：Dash 的核心库。
+#	dash-core-components：Dash 的核心组件库（如输入框、下拉菜单、图表等）。
+#	dash-html-components：Dash 的 HTML 组件库（如 div、h1、p 等）。
+#	dash-table：用于显示和操作表格数据的组件。
+
+pip install plotly #	Plotly 是 Dash 默认的图表渲染库。
+pip install pandas # Pandas 是一个强大的数据处理库，常用于与 Dash 结合使用。
+pip install jupyter-dash # 在 Jupyter Notebook 中使用 Dash
+pip install dash-bootstrap-components 	# Dash Bootstrap Components 提供了 Bootstrap 风格的组件，用于快速构建美观的布局
+
+python -c "import dash; print(dash.__version__)"
+```
+
+#### Dash 使用
+
+##### Dash 组件
+
+Dash 的核心组件可以分为两大类：`dash.html` 和 `dash.dcc`。`dash.html` 提供了 HTML 标签的 Python 封装，而 `dash.dcc` 则提供了更高级的交互式组件，如滑块、下拉菜单、图形等。
+
+**`dash.html` 组件**： `dash.html` 模块提供了与 HTML 标签对应的 Python 类。这些类允许你以 Python 的方式编写 HTML 代码。例如，`dash.html.Div` 对应 HTML 的 `<div>` 标签，`dash.html.H1` 对应 `<h1>` 标签。
+
+**`dash.dcc` 组件**:`dash.dcc` 模块提供了更高级的交互式组件，这些组件通常用于数据可视化和用户输入。常见的 `dash.dcc` 组件包括 `Graph`、`Dropdown`、`Slider` 等。
+
+每个 Dash 组件都有一些属性，这些属性用于控制组件的外观和行为。例如，`dash.html.Div` 的 `children` 属性用于指定其子元素，`dash.dcc.Graph` 的 `figure` 属性用于指定图表的数据和布局。
+
+- **children**: 用于指定组件的子元素。大多数组件都有这个属性。
+- **id**: 用于唯一标识组件，通常在回调函数中使用。
+- **style**: 用于设置组件的 CSS 样式。
+- **className**: 用于指定组件的 CSS 类名。
+
+| **组件**           | **说明**                                         | **示例代码**                                                 |
+| :----------------- | :----------------------------------------------- | :----------------------------------------------------------- |
+| **`html.Div`**     | 创建一个容器（`<div>`），用于包裹其他组件        | `html.Div(children=[html.H1("标题"), html.P("这是一个段落。")])` |
+| **`html.H1`**      | 创建一级标题（`<h1>`）                           | `html.H1("一级标题")`                                        |
+| **`html.H2`**      | 创建二级标题（`<h2>`）                           | `html.H2("二级标题")`                                        |
+| **`html.H3`**      | 创建三级标题（`<h3>`）                           | `html.H3("三级标题")`                                        |
+| **`html.P`**       | 创建段落（`<p>`）                                | `html.P("这是一个段落。")`                                   |
+| **`html.Span`**    | 创建行内容器（`<span>`），用于包裹行内文本或元素 | `html.Span("这是一段行内文本。")`                            |
+| **`html.Br`**      | 创建换行（`<br>`）                               | `html.Div(children=[html.P("第一行"), html.Br(), html.P("第二行")])` |
+| **`html.A`**       | 创建超链接（`<a>`）                              | `html.A("点击这里访问 Dash 官网", href="https://dash.plotly.com")` |
+| **`html.Img`**     | 插入图片（`<img>`）                              | `html.Img(src="https://plotly.com/assets/images/logo.png", height="50px")` |
+| **`html.Ul`**      | 创建无序列表（`<ul>`）                           | `html.Ul(children=[html.Li("列表项1"), html.Li("列表项2")])` |
+| **`html.Ol`**      | 创建有序列表（`<ol>`）                           | `html.Ol(children=[html.Li("第一项"), html.Li("第二项")])`   |
+| **`html.Li`**      | 创建列表项（`<li>`）                             | `html.Li("列表项")`                                          |
+| **`html.Button`**  | 创建按钮（`<button>`）                           | `html.Button("点击我", id='my-button')`                      |
+| **`html.Label`**   | 创建标签（`<label>`），通常与输入组件一起使用    | `html.Label("用户名:"), dcc.Input(id='username', type='text')` |
+| **`html.Table`**   | 创建表格（`<table>`）                            | `html.Table(children=[html.Tr(children=[html.Th("姓名"), html.Th("年龄")])])` |
+| **`html.Tr`**      | 创建表格行（`<tr>`）                             | `html.Tr(children=[html.Th("姓名"), html.Th("年龄")])`       |
+| **`html.Th`**      | 创建表头（`<th>`）                               | `html.Th("姓名")`                                            |
+| **`html.Td`**      | 创建表格单元格（`<td>`）                         | `html.Td("张三")`                                            |
+| **`html.Header`**  | 创建页眉（`<header>`）                           | `html.Header(children=[html.H1("页眉标题")])`                |
+| **`html.Footer`**  | 创建页脚（`<footer>`）                           | `html.Footer(children=[html.P("版权所有 © 2023")])`          |
+| **`html.Section`** | 创建章节（`<section>`）                          | `html.Section(children=[html.H2("章节标题"), html.P("章节内容")])` |
+| **`html.Nav`**     | 创建导航栏（`<nav>`）                            | `html.Nav(children=[html.A("首页", href="/"), html.A("关于", href="/about")])` |
+| **`html.Main`**    | 创建主要内容区域（`<main>`）                     | `html.Main(children=[html.H1("主要内容")])`                  |
+| **`html.Article`** | 创建文章区域（`<article>`）                      | `html.Article(children=[html.H2("文章标题"), html.P("文章内容")])` |
+| **`html.Aside`**   | 创建侧边栏（`<aside>`）                          | `html.Aside(children=[html.H2("侧边栏"), html.P("侧边栏内容")])` |
+| **`html.Details`** | 创建可折叠内容（`<details>`）                    | `html.Details(children=[html.Summary("点击展开"), html.P("隐藏内容")])` |
+| **`html.Summary`** | 创建可折叠内容的标题（`<summary>`）              | `html.Summary("点击展开")`                                   |
+
+
+
+| **组件**                        | **说明**                                                     | **示例代码**                                                 |
+| :------------------------------ | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| **`dcc.Input`**                 | 创建一个文本输入框。                                         | `dcc.Input(id='input', type='text', placeholder='请输入内容...')` |
+| **`dcc.Dropdown`**              | 创建一个下拉菜单。                                           | `dcc.Dropdown(id='dropdown', options=[{'label': '选项1', 'value': '1'}], value='1')` |
+| **`dcc.Slider`**                | 创建一个滑块。                                               | `dcc.Slider(id='slider', min=0, max=10, step=1, value=5)`    |
+| **`dcc.Graph`**                 | 创建一个交互式图表（基于 Plotly.js）。                       | `dcc.Graph(id='graph', figure={'data': [{'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar'}]})` |
+| **`dcc.Textarea`**              | 创建一个多行文本输入框。                                     | `dcc.Textarea(id='textarea', value='请输入多行文本...')`     |
+| **`dcc.Checklist`**             | 创建一个复选框列表。                                         | `dcc.Checklist(id='checklist', options=[{'label': '选项1', 'value': '1'}], value=['1'])` |
+| **`dcc.RadioItems`**            | 创建一个单选按钮组。                                         | `dcc.RadioItems(id='radio', options=[{'label': '选项1', 'value': '1'}], value='1')` |
+| **`dcc.DatePickerSingle`**      | 创建一个日期选择器（单选）。                                 | `dcc.DatePickerSingle(id='date-picker', date='2023-10-01')`  |
+| **`dcc.DatePickerRange`**       | 创建一个日期范围选择器。                                     | `dcc.DatePickerRange(id='date-range', start_date='2023-10-01', end_date='2023-10-07')` |
+| **`dcc.Markdown`**              | 渲染 Markdown 文本。                                         | `dcc.Markdown('''# 标题\n- 列表项1''')`                      |
+| **`dcc.Store`**                 | 在客户端存储数据，用于跨回调共享数据。                       | `dcc.Store(id='store', data={'key': 'value'})`               |
+| **`dcc.Upload`**                | 创建一个文件上传组件。                                       | `dcc.Upload(id='upload', children=html.Div('拖放或点击上传文件'))` |
+| **`dcc.Tabs`**                  | 创建选项卡组件。                                             | `dcc.Tabs(id='tabs', children=[dcc.Tab(label='标签1', value='1')])` |
+| **`dcc.Tab`**                   | 创建单个选项卡（需与 `dcc.Tabs` 配合使用）。                 | `dcc.Tab(label='标签1', value='1')`                          |
+| **`dcc.Interval`**              | 定时触发回调的组件。                                         | `dcc.Interval(id='interval', interval=1000)`                 |
+| **`dcc.Location`**              | 用于管理 URL 的组件。                                        | `dcc.Location(id='url', pathname='/')`                       |
+| **`dcc.Link`**                  | 创建一个超链接，用于页面导航（需与 `dcc.Location` 配合使用）。 | `dcc.Link('跳转到首页', href='/')`                           |
+| **`dcc.ConfirmDialog`**         | 创建一个确认对话框。                                         | `dcc.ConfirmDialog(id='confirm', message='确定要执行此操作吗？')` |
+| **`dcc.ConfirmDialogProvider`** | 提供一个确认对话框（需与按钮等组件配合使用）。               | `dcc.ConfirmDialogProvider(html.Button('删除'), id='confirm-provider')` |
+| **`dcc.Loading`**               | 创建一个加载动画组件。                                       | `dcc.Loading(id='loading', children=[html.Div('加载中...')])` |
+| **`dcc.Download`**              | 用于触发文件下载的组件。                                     | `dcc.Download(id='download')`                                |
+
+##### Dash 回调函数
+
+Dash 允许开发者使用Python来创建动态的、响应式的用户界面。Dash 的核心功能之一就是回调函数（Callback），它使得用户界面能够根据用户的输入或操作实时更新。回调函数是 Dash 中用于处理用户交互的核心机制，它允许你在用户与应用程序交互时，动态地更新应用程序的布局或数据。简单来说，回调函数是一个Python函数，它会在特定的输入发生变化时被触发，并根据这些输入的变化来更新输出。一个典型的 Dash 回调函数包含以下几个部分：
+
+1. **输入（Input）**：指定哪些组件的属性变化会触发回调函数。
+2. **输出（Output）**：指定回调函数执行后，哪些组件的属性会被更新。
+3. **状态（State）**：可选参数，用于传递一些不会触发回调但需要在回调中使用的数据。
+4. **回调函数体**：包含实际的逻辑代码，用于处理输入并生成输出。
+
+回调函数的基本结构
+
+```
+@app.callback(
+    Output(component_id='output-component', component_property='output-property'),
+    Input(component_id='input-component', component_property='input-property')
+)
+def update_output(input_value):
+    # 根据输入值计算输出值
+    return output_value
+```
+
+1. **`Output`**：
+   - 指定回调函数的输出目标。
+   - `component_id`：目标组件的 ID。
+   - `component_property`：目标组件的属性（如 `children`、`value` 等）。
+2. **`Input`**：
+   - 指定回调函数的输入来源。
+   - `component_id`：输入组件的 ID。
+   - `component_property`：输入组件的属性（如 `value`、`n_clicks` 等）。
+3. **回调函数**：
+   - 接收输入值，计算并返回输出值。
+   - 函数名可以自定义（如 `update_output`）。
+
+回调函数的工作原理
+
+1. 输入与输出的绑定
+
+在 Dash 中，回调函数的输入和输出是通过 `Input` 和 `Output` 对象来指定的。`Input` 对象指定了哪些组件的哪些属性变化会触发回调函数，而 `Output` 对象指定了回调函数执行后，哪些组件的哪些属性会被更新。
+
+2. 回调函数的触发
+
+当用户在界面上进行操作（例如输入文本、点击按钮等）时，相关的组件属性会发生变化。Dash 会检测到这些变化，并自动调用与之绑定的回调函数。
+
+3. 回调函数的执行
+
+回调函数执行时，Dash会将输入属性的当前值作为参数传递给回调函数。回调函数根据这些输入值进行计算或处理，并返回输出属性的新值。Dash会自动将返回的值更新到指定的组件属性中。
+
+##### Dash Plotly
+
+Dash 通过 dcc.Graph 组件与 Plotly 无缝集成，用户可以直接在 Dash 应用中嵌入 Plotly 图表。Plotly 是一个基于 JavaScript 的开源数据可视化库，支持多种编程语言，包括 Python、R、Julia 等。Plotly 提供了丰富的图表类型，如折线图、柱状图、散点图、热力图等，并且支持交互功能，如缩放、平移、悬停提示等。
+
+Plotly Express 是 Plotly 的高级接口，能够用极简的代码创建复杂的图表。它非常适合快速原型开发。
+
+**1、折线图 (px.line)：**
+
+```
+import plotly.express as px
+df = px.data.iris()
+fig = px.line(df, x='sepal_width', y='sepal_length', title='折线图示例')
+```
+
+**2、柱状图 (px.bar)：**
+
+```
+fig = px.bar(df, x='species', y='sepal_length', title='柱状图示例')
+```
+
+**3、散点图 (px.scatter)：**
+
+```
+fig = px.scatter(df, x='sepal_width', y='sepal_length', color='species', title='散点图示例')
+```
+
+**4、饼图 (px.pie)：**
+
+```
+fig = px.pie(df, names='species', values='sepal_length', title='饼图示例')
+```
+
+**5、热力图 (px.imshow)：**
+
+```
+import numpy as np
+data = np.random.rand(10, 10)
+fig = px.imshow(data, title='热力图示例')
+```
+
+**dcc.Graph** 是 Dash 中用于显示 Plotly 图表的组件。它的核心参数是 figure，用于指定图表的数据和布局。
+
+**figure 参数：**
+
+- `data`：图表的数据部分，是一个字典列表，每个字典表示一个数据系列。
+- `layout`：图表的布局部分，用于设置标题、坐标轴、图例等。
+
+```
+from dash import Dash, dcc, html
+import plotly.express as px
+import pandas as pd
+
+# 创建示例数据
+df = pd.DataFrame({
+    '城市': ['北京', '上海', '广州', '深圳'],
+    '人口': [2171, 2424, 1490, 1303]
+})
+
+# 创建 Dash 应用
+app = Dash(__name__)
+
+# 使用 Plotly Express 创建柱状图
+fig = px.bar(df, x='城市', y='人口', title='城市人口数据')
+
+# 定义布局
+app.layout = html.Div([
+    dcc.Graph(id='example-graph', figure=fig)
+])
+
+# 运行应用
+if __name__ == '__main__':
+    app.run_server(debug=True)
+```
+
+#####  Dash 布局
+
+在 Dash 中实现多页面布局可以通过 dcc.Location 和 dcc.Link 组件来实现。
+
+dcc.Location 用于跟踪当前页面的 URL，而 dcc.Link 用于在页面之间导航。通过结合回调函数，可以根据 URL 动态加载不同的页面内容。
+
+- 使用 `dcc.Location` 和 `dcc.Link` 可以实现多页面布局。
+- 通过回调函数根据 `pathname` 动态加载页面内容。
+- 结合模块化布局和 URL 参数，可以构建更复杂的多页面应用。
+
+多页面布局的基本结构
+
+多页面布局的核心思想是根据 URL 的路径（pathname）动态加载不同的页面内容。
+
+以下是实现多页面布局的基本步骤：
+
+**定义页面布局**：
+
+- 每个页面的布局可以定义为一个函数或变量。
+- 例如，`home_layout` 表示主页，`about_layout` 表示关于页面。
+
+**使用 `dcc.Location`**：
+
+- `dcc.Location` 组件用于跟踪当前页面的 URL。
+- 通过 `pathname` 属性获取当前页面的路径。
+
+**使用 `dcc.Link`**：
+
+- `dcc.Link` 组件用于创建页面导航链接。
+- 通过 `href` 属性指定目标页面的路径。
+
+**动态加载页面内容**：
+
+- 使用回调函数根据 `pathname` 动态返回对应的页面布局。
+
+```
+from dash import Dash, html, dcc, Input, Output
+
+# 创建 Dash 应用
+app = Dash(__name__)
+
+# 定义主页布局
+home_layout = html.Div([
+    html.H1("主页"),
+    html.P("欢迎访问主页！"),
+    dcc.Link('前往关于页面', href='/about')
+])
+
+# 定义关于页面布局
+about_layout = html.Div([
+    html.H1("关于页面"),
+    html.P("这是关于页面的内容。"),
+    dcc.Link('返回主页', href='/')
+])
+
+# 定义 404 页面布局
+not_found_layout = html.Div([
+    html.H1("404 - 页面未找到"),
+    html.P("您访问的页面不存在。"),
+    dcc.Link('返回主页', href='/')
+])
+
+# 定义应用的布局
+app.layout = html.Div([
+    dcc.Location(id='url', refresh=False),  # 用于跟踪 URL
+    html.Div(id='page-content')  # 用于动态加载页面内容
+])
+
+# 定义回调函数
+@app.callback(
+    Output('page-content', 'children'),  # 输出到 id 为 'page-content' 的 Div 的 children 属性
+    Input('url', 'pathname')  # 输入来自 id 为 'url' 的 Location 组件的 pathname 属性
+)
+def display_page(pathname):
+    if pathname == '/':
+        return home_layout  # 显示主页
+    elif pathname == '/about':
+        return about_layout  # 显示关于页面
+    else:
+        return not_found_layout  # 显示 404 页面
+
+# 运行应用
+if __name__ == '__main__':
+    app.run_server(debug=True)
+```
+
+##### Dash 样式设计
+
+在开发交互式 Web 应用程序时，Dash 不仅允许你使用 Python 来构建复杂的应用程序，还提供了丰富的样式设计选项，使你的应用程序看起来更加专业和美观。在 Dash 中，样式设计是通过 CSS 实现的。Dash 提供了多种方式来设置组件的样式，包括：
+
+- **内联样式**：通过 `style` 属性直接设置组件的样式。
+- **外部 CSS 文件**：通过加载外部 CSS 文件设置全局样式。
+- **Dash Bootstrap Components**：使用 Bootstrap 风格的组件和样式。
+
+1. 内联样式
+
+通过 style 属性可以直接为组件设置 CSS 样式。style 是一个字典，键是 CSS 属性，值是 CSS 值。
+
+```
+**from** dash **import** Dash, html
+
+\# 创建 Dash 应用
+app = Dash(__name__)
+
+\# 定义布局
+app.layout = html.Div(
+  style={
+    'backgroundColor': 'lightblue', # 背景颜色
+    'padding': '20px', # 内边距
+    'borderRadius': '10px', # 圆角
+    'textAlign': 'center' # 文字居中
+  },
+  children=[
+    html.H1("欢迎使用 Dash", style={'color': 'darkblue'}),
+    html.P("这是一个带样式的 Div。")
+  ]
+)
+
+\# 运行应用
+**if** __name__ == '__main__':
+  app.run_server(debug=True)
+```
+
+**运行效果：**
+
+- 背景颜色为浅蓝色，内边距为 20px，圆角为 10px，文字居中。
+- 标题文字颜色为深蓝色。
+
+2. 外部 CSS 文件
+
+通过加载外部 CSS 文件，可以为整个应用设置全局样式。
+
+1. 创建一个 CSS 文件（如 `assets/styles.css`）。
+2. 在 Dash 应用中加载 CSS 文件。
+
+CSS 文件示例 (assets/styles.css)：
+
+```
+*/\* 设置全局字体 \*/*
+body {
+  **font-family**: Arial, sans-serif;
+}
+
+*/\* 设置标题样式 \*/*
+h1 {
+  **color**: darkblue;
+  **text-align**: center;
+}
+
+*/\* 设置 Div 样式 \*/*
+.custom-div {
+  **background-color**: lightblue;
+  **padding**: 20px;
+  **border-radius**: 10px;
+  **text-align**: center;
+}
+
+**from** dash **import** Dash, html
+
+\# 创建 Dash 应用
+app = Dash(__name__)
+
+\# 定义布局
+app.layout = html.Div(
+  className='custom-div', # 使用 CSS 类名
+  children=[
+    html.H1("欢迎使用 Dash"),
+    html.P("这是一个带样式的 Div。")
+  ]
+)
+
+\# 运行应用
+**if** __name__ == '__main__':
+  app.run_server(debug=True)
+```
+
+**运行效果：**
+
+- 应用加载 `assets/styles.css` 文件中的样式。
+- `h1` 标题颜色为深蓝色，居中显示。
+- `Div` 背景颜色为浅蓝色，带内边距和圆角。
+
+Dash Bootstrap Components
+
+Dash Bootstrap Components（dash-bootstrap-components）是一个第三方库，提供了 Bootstrap 风格的组件和样式。它可以帮助快速构建美观的 Dash 应用。
+
+```
+pip install dash-bootstrap-components
+
+**from** dash **import** Dash, html
+**import** dash_bootstrap_components **as** dbc
+
+\# 创建 Dash 应用
+app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+\# 定义布局
+app.layout = dbc.Container(
+  children=[
+    dbc.Row(
+      dbc.Col(
+        html.H1("欢迎使用 Dash Bootstrap", className="text-center text-primary")
+      )
+    ),
+    dbc.Row(
+      dbc.Col(
+        dbc.Card(
+          children=[
+            dbc.CardHeader("卡片标题"),
+            dbc.CardBody(
+              children=[
+                html.P("这是一个 Bootstrap 风格的卡片。", className="card-text")
+              ]
+            )
+          ],
+          className="mt-4" # 设置外边距
+        )
+      )
+    )
+  ]
+)
+
+\# 运行应用
+**if** __name__ == '__main__':
+  app.run_server(debug=True)
+```
+
+### Gevent
+
+
+
+### AIOHTTP
+
+
+
+### Tornado
+
+
+
+### FastAPI
+
+
+
+### Django
+
+
+
+### Flask
+
 
 
 ## Python项目管理
 
+### 包管理
 
+#### Pip
 
-## Python生态
+#### UV
+
+#### Conda
+
+### 环境管理
+
+#### Pipenv
+
+#### Pyenv
+
+### 配置管理
+
+#### pyproject.toml
+
+### 类型推断
+
+#### typing
+
+### 代码格式化
+
+#### black
+
+### 文件管理 
+
+### glob
+
+### 测试
+
+#### pytest
+
+#### PyUnit / Unittest
 
