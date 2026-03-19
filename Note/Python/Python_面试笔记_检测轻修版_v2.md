@@ -52,35 +52,7 @@ else:
     print("该脚本作为模块被导入。")
 ```
 
-#### 虚拟环境
-Python 虚拟环境（Virtual Environment）是一个独立的 Python 运行环境，它允许你在同一台机器上为不同的项目创建隔离的 Python 环境。每个虚拟环境都有自己的：Python 解释器、安装的包/库、环境变量。从机制上看，虚拟环境主要改变的是 Python 的包搜索路径，让 `site-packages` 指向项目自己的目录，同时提供一组指向特定解释器的可执行入口。工程上把依赖显式写进项目配置并锁定版本，才能保证 CI、同事、本地和线上在同一套依赖集合上运行，问题才可复现。
-
-Python 有相当多的虚拟环境管理工具，比如 uv ，venv，conda等等。这里我们以venv这种轻量级管理工具做虚拟环境设置，Python 3.3+ 内置了 `venv` 模块，无需额外安装。
-
-```python
-# 虚拟环境
-## 创建虚拟环境 
-## 表示启动venv模块创建一个 env_name 的虚拟环境
-python3 -m venv env_name
-## 激活虚拟环境
-.venv\Scripts\activate # Windows
-source .venv/bin/activate # Linux
-## 激活成功后会出现环境名 
-(.venv) $
-## 退出虚拟环境
-deactivate
-## 删除虚拟环境 删除对应目录即可
-rm -rf .venv  # Linux/macOS
-del /s /q .venv  # Windows (命令提示符)
-
-# 版本与依赖管理
-python3.8 -m venv .venv  # 使用 Python 3.8
-python -m venv --without-pip env_name # 创建不带pip的虚拟环境
-python -m venv --system-site-packages env_name # 创建继承系统包的虚拟环境
-```
-
-### 数据与表达式
-
+#### 数据与表达式
 #### 变量
 
 Python 中的变量不需要声明。每个变量在使用前都必须赋值，变量赋值以后该变量才会被创建。在 Python 中，变量就是变量，它没有类型，我们所说的"类型"是变量所指的内存中对象的类型。Python 的“变量”更准确叫名称。名称需要符合标识符规范：
@@ -2313,6 +2285,1810 @@ asyncio.run(main())
 
 ## Python框架
 
+### Django
+
+Django 是一个由 Python 编写的一个开放源代码的 Web 应用框架。使用 Django，只要很少的代码，Python 的程序开发人员就可以轻松地完成一个正式网站所需要的大部分内容，并进一步开发出全功能的 Web 服务。Django 提供了全栈开发所需的工具，包括数据库 ORM、模板引擎、路由系统、用户认证等，大幅减少重复代码。
+
+**Django 的哲学:**
+
+- **DRY（Don't Repeat Yourself）:** 避免重复代码，提倡复用（如模板继承、模型继承）。
+- **约定优于配置:** 默认提供合理配置（如自动生成 Admin 界面），减少决策成本。
+- **快速开发:** 从原型到生产环境均可高效推进。
+
+Django 遵循 MVC（Model-View-Controller）架构，但在 Django 中更常被称为 MTV（Model-Template-View）。
+
+| 功能           | 说明                                                |
+| :------------- | :-------------------------------------------------- |
+| **Admin 后台** | 自动生成管理界面，无需手动编写 CRUD 逻辑。          |
+| **ORM**        | 用 Python 类操作数据库，无需写 SQL。                |
+| **表单处理**   | 内置表单验证，防止 CSRF 攻击。                      |
+| **用户认证**   | 提供登录、注册、权限管理（`django.contrib.auth`）。 |
+| **路由系统**   | URL 映射灵活，支持正则表达式。                      |
+| **缓存机制**   | 支持 Memcached、Redis 等后端。                      |
+
+![img](./assets/Django-MVT-pattern.webp)
+
+#### Django 安装
+
+可以通过 Python 的包管理工具 `pip` 来完成。
+
+```
+pip --version
+pip install Django
+python -m django --version
+```
+
+#### Django Admin 后台
+
+django-admin 是 Django 框架提供的一个命令行工具，它是管理 Django 项目的核心工具。
+
+无论是创建新项目、运行开发服务器，还是执行数据库迁移，django-admin 都是不可或缺的工具。
+
+要查看 django-admin 提供的所有命令，可以运行：
+
+```
+django-admin help
+```
+
+输出内容类似如下：
+
+```
+Type 'django-admin help <subcommand>' for help on a specific subcommand.
+
+Available subcommands:
+
+[django]
+    check
+    compilemessages
+    createcachetable
+    dbshell
+    diffsettings
+    dumpdata
+    flush
+    inspectdb
+    loaddata
+    makemessages
+    makemigrations
+    migrate
+    optimizemigration
+    runserver
+    sendtestemail
+    shell
+    showmigrations
+    sqlflush
+    sqlmigrate
+    sqlsequencereset
+    squashmigrations
+    startapp
+    startproject
+    test
+    testserver
+```
+
+**创建新项目**
+
+```
+ddjango-admin startproject <项目名称> [目标目录]
+```
+
+这个命令会在当前目录下创建一个新的 Django 项目，包含基本的项目结构：
+
+- `manage.py`：项目管理脚本
+- `项目名称/`：项目主目录
+  - `__init__.py`
+  - `settings.py`：项目设置文件
+  - `urls.py`：URL 路由配置
+  - `wsgi.py`：WSGI 应用入口
+
+参数说明:
+
+| 参数          | 作用                                           | 示例                                                         |
+| :------------ | :--------------------------------------------- | :----------------------------------------------------------- |
+| `<项目名称>`  | 必填，项目名称（会生成同名目录）               | `django-admin startproject mysite`                           |
+| `[目标目录]`  | 可选，指定项目存放目录                         | `django-admin startproject mysite /opt/myproject`            |
+| `--template`  | 使用自定义项目模板                             | `django-admin startproject --template=my_template.zip mysite` |
+| `--extension` | 指定文件扩展名（如 `.py`, `.txt`）             | `django-admin startproject --extension=py,txt mysite`        |
+| `--name`      | 指定文件名模式（如 `Dockerfile`, `README.md`） | `django-admin startproject --name=Dockerfile mysite`         |
+
+```
+django-admin startproject mysite  # 创建默认项目
+django-admin startproject mysite /opt/code  # 指定目录
+django-admin startproject --template=https://example.com/my_template.zip mysite  # 使用远程模板
+```
+
+**创建新应用**
+
+虽然通常使用 `manage.py` 来创建应用，但也可以通过 django-admin：
+
+```
+django-admin startapp <应用名称> [目标目录]
+```
+
+这会创建一个新的 Django 应用，包含：
+
+- `migrations/`：数据库迁移文件目录
+- `__init__.py`
+- `admin.py`：管理后台配置
+- `apps.py`：应用配置
+- `models.py`：数据模型定义
+- `tests.py`：测试代码
+- `views.py`：视图函数
+
+| 参数         | 作用                                                | 示例                                                        |
+| :----------- | :-------------------------------------------------- | :---------------------------------------------------------- |
+| `<应用名称>` | 必填，应用名称（会生成 `models.py`, `views.py` 等） | `django-admin startapp blog`                                |
+| `[目标目录]` | 可选，指定应用存放目录                              | `django-admin startapp blog /opt/myapp`                     |
+| `--template` | 使用自定义应用模板                                  | `django-admin startapp --template=my_app_template.zip blog` |
+
+```
+django-admin startapp blog  # 创建默认应用
+django-admin startapp blog /opt/myapp  # 指定目录
+django-admin startapp --template=my_template.zip blog  # 使用模板
+```
+
+**启动开发服务器**
+
+```
+python manage.py runserver [IP:端口]
+```
+
+参数说明:
+
+| 参数         | 作用                                                | 示例                                      |
+| :----------- | :-------------------------------------------------- | :---------------------------------------- |
+| `[IP:端口]`  | 可选，指定监听的 IP 和端口（默认 `127.0.0.1:8000`） | `python manage.py runserver 0.0.0.0:8080` |
+| `--noreload` | 禁用自动重载（调试时使用）                          | `python manage.py runserver --noreload`   |
+| `--insecure` | 强制静态文件服务（非 DEBUG 模式）                   | `python manage.py runserver --insecure`   |
+
+```
+python manage.py runserver  # 默认启动（127.0.0.1:8000）
+python manage.py runserver 0.0.0.0:8000  # 允许外部访问
+python manage.py runserver 8080  # 仅修改端口
+```
+
+**数据库迁移**
+
+Django 使用迁移系统来管理数据库模式变更：
+
+```
+python manage.py migrate [应用名] [迁移版本]
+```
+
+参数说明:
+
+| 参数             | 作用                                 | 示例                                      |
+| :--------------- | :----------------------------------- | :---------------------------------------- |
+| `[应用名]`       | 可选，指定要迁移的应用               | `python manage.py migrate blog`           |
+| `[迁移版本]`     | 可选，指定迁移版本号                 | `python manage.py migrate blog 0002`      |
+| `--fake`         | 标记迁移为已执行（不实际修改数据库） | `python manage.py migrate --fake`         |
+| `--fake-initial` | 仅当表已存在时标记为已执行           | `python manage.py migrate --fake-initial` |
+
+```
+python manage.py migrate  # 执行所有未应用的迁移
+python manage.py migrate blog  # 仅迁移 blog 应用
+python manage.py migrate blog 0002  # 迁移到特定版本
+```
+
+
+
+**检查项目配置**
+
+```
+django-admin check
+```
+
+这个命令会检查你的 Django 项目是否有配置错误，包括：
+
+- 模型定义是否正确
+- URL 配置是否有效
+- 模板设置是否正确
+- 静态文件配置等
+
+**创建超级用户**
+
+```
+django-admin createsuperuser
+```
+
+这个命令会引导你创建一个可以访问 Django 管理后台的超级用户。
+
+#### Django 项目结构
+
+![img](./assets/mermaid_20250509_bef6e2-scaled.png)
+
+**manage.py**：`manage.py` 是 Django 项目的命令行工具入口，它提供了许多有用的命令：
+
+```
+#!/usr/bin/env python
+import os
+import sys
+
+if __name__ == "__main__":
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "myproject.settings")
+    try:
+        from django.core.management import execute_from_command_line
+    except ImportError:
+        # 处理导入错误
+        pass
+    execute_from_command_line(sys.argv)
+```
+
+常用命令示例：
+
+- `python manage.py runserver` - 启动开发服务器
+- `python manage.py migrate` - 应用数据库迁移
+- `python manage.py createsuperuser` - 创建管理员账户
+
+**settings.py**：`settings.py` 是 Django 项目的配置文件，包含所有重要的设置。
+
+```
+# 关键配置项详解：
+DEBUG = True  # 开发时设为True，显示详细错误；生产环境必须改为False
+ALLOWED_HOSTS = []  # DEBUG=False时需指定允许访问的域名（如['example.com']）
+
+INSTALLED_APPS = [
+    'django.contrib.admin',    # 后台管理
+    'django.contrib.auth',     # 认证系统
+    'django.contrib.contenttypes',  # 内容类型框架
+    'django.contrib.sessions', # 会话管理
+    'django.contrib.messages', # 消息框架
+    'django.contrib.staticfiles',  # 静态文件管理
+    # 可添加自定义应用：'myapp.apps.MyAppConfig'
+]
+
+DATABASES = {  # 数据库配置
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',  # 使用 pathlib 语法
+        # MySQL示例：
+        # 'ENGINE': 'django.db.backends.mysql',
+        # 'NAME': 'mydb',
+        # 'USER': 'root',
+        # 'PASSWORD': 'password',
+    }
+}
+
+STATIC_URL = '/static/'  # 静态文件URL前缀
+STATICFILES_DIRS = [BASE_DIR / 'static']  # 开发时静态文件搜索目录
+MEDIA_URL = '/media/'   # 用户上传文件URL前缀
+MEDIA_ROOT = BASE_DIR / 'media'  # 上传文件存储路径
+```
+
+**urls.py**：URL 调度中心。
+
+```
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),  # 后台路由
+    path('blog/', include('blog.urls')),  # 子应用路由分发
+    # path('api/', include('api.urls', namespace='api')),
+]
+```
+
+- **include()**：实现路由模块化，将不同应用的路由分离到各自的 urls.py。
+- **namespace**：用于反向解析 URL 时避免命名冲突。
+
+**wsgi.py & asgi.py**
+
+| 文件          | 用途                                                         |
+| :------------ | :----------------------------------------------------------- |
+| **`wsgi.py`** | WSGI（Web Server Gateway Interface）配置，用于传统同步服务器（如 Gunicorn、uWSGI）。生产环境通过此文件启动项目。 |
+| **`asgi.py`** | ASGI（Asynchronous Server Gateway Interface）配置，支持异步服务器（如 Daphne、Uvicorn）。用于 WebSocket 或异步视图。 |
+
+**静态文件与媒体文件**
+
+- **static/**：存放 CSS、JavaScript、图片等，通过 STATIC_URL 访问。
+
+- **media/**：用户上传的文件（如头像），通过 MEDIA_URL 访问。需配置服务器在开发时提供访问：
+
+  ```
+  # urls.py（仅开发环境）
+  from django.conf import settings
+  from django.conf.urls.static import static
+  
+  urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+  ```
+
+**apps/ 目录（推荐结构）**
+
+将应用集中管理，避免散落在项目根目录。需在 settings.py 中配置 Python 路径：
+
+```
+import sys
+sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
+```
+
+通常具有以下结构：
+
+```
+myapp/
+│
+├── migrations/
+│   └── __init__.py
+├── __init__.py
+├── admin.py
+├── apps.py
+├── models.py
+├── tests.py
+└── views.py
+
+```
+
+* **models.py**：定义数据模型，与数据库表对应
+
+```
+from django.db import models
+
+class Product(models.Model):
+    name = models.CharField(max_length=100)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.TextField()
+    
+    def __str__(self):
+        return self.name
+```
+
+* **views.py**：处理业务逻辑，返回响应。
+
+```
+from django.shortcuts import render
+from .models import Product
+
+def product_list(request):
+    products = Product.objects.all()
+    return render(request, 'myapp/product_list.html', {'products': products})
+```
+
+* **admin.py**：配置 Django 管理后台。
+
+```
+from django.contrib import admin
+from .models import Product
+
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ('name', 'price')
+```
+
+* **migrations 目录**：存储数据库迁移文件，Django 使用这些文件来跟踪模型变更并同步到数据库。
+
+* **templates 目录**：存放 HTML 模板文件，Django 使用模板语言动态生成页面。
+
+#### Django 模板
+
+Django 的模板系统（Template System）是用于将业务逻辑（Python）与展示层（HTML）分离的核心组件，它允许开发者通过简单的标签和变量动态生成 HTML 页面。
+
+使用 render 来替代之前使用的 HttpResponse,render 还使用了一个字典 context 作为参数。context 字典中元素的键值 **hello** 对应了模板中的变量 **{{ hello }}**。
+
+```
+from django.shortcuts import render
+ 
+def runoob(request):
+    context          = {}
+    context['hello'] = 'Hello World!'
+    return render(request, 'runoob.html', context)
+```
+
+| 能               | 语法/示例                      | 适用场景           |
+| :--------------- | :----------------------------- | :----------------- |
+| **变量渲染**     | `{{ variable }}`               | 动态显示数据       |
+| **逻辑控制**     | `{% if %}`, `{% for %}`        | 条件/循环渲染      |
+| **模板继承**     | `{% extends %}`, `{% block %}` | 避免重复 HTML 结构 |
+| **静态文件**     | `{% static 'path' %}`          | 加载 CSS/JS/图片   |
+| **自定义过滤器** | `@register.filter`             | 扩展模板功能       |
+
+##### Django 模板标签
+
+**变量模板**：
+
+```
+view：｛"HTML变量名" : "views变量名"｝
+HTML：｛｛变量名｝｝
+```
+
+**列表模板**：
+
+```
+<p>{{ views_list }}</p>   # 取出整个列表
+<p>{{ views_list.0 }}</p> # 取出列表的第一个元素
+```
+
+**字典模板**
+
+```
+<p>{{ views_dict }}</p>
+<p>{{ views_dict.name }}</p>
+```
+
+**过滤器模板**
+
+模板语法：
+
+```
+{{ 变量名 | 过滤器：可选参数 }}
+```
+
+* **default**：default 为变量提供一个默认值。如果 views 传的变量的布尔值是 false，则使用指定的默认值。
+* **length**：返回对象的长度，适用于字符串和列表。字典返回的是键值对的数量，集合返回的是去重后的长度。
+* **filesizeformat**：以更易读的方式显示文件的大小（即'13 KB', '4.1 MB', '102 bytes'等）。字典返回的是键值对的数量，集合返回的是去重后的长度。
+* **date**：根据给定格式对一个日期变量进行格式化。格式 **Y-m-d H:i:s**返回 **年-月-日 小时:分钟:秒** 的格式时间。
+
+* **truncatechars**：如果字符串包含的字符总个数多于指定的字符数量，那么会被截断掉后面的部分。截断的字符串将以 **...** 结尾。
+* **safe**：将字符串标记为安全，不需要转义。要保证 views.py 传过来的数据绝对安全，才能用 safe。和后端 views.py 的 mark_safe 效果相同。Django 会自动对 views.py 传到HTML文件中的标签语法进行转义，令其语义失效。加 safe 过滤器是告诉 Django 该数据是安全的，不必对其进行转义，可以让该数据语义生效。
+
+**If 模板**
+
+基本语法格式如下：
+
+```
+{% if condition1 %}
+   ... display 1
+{% elif condition2 %}
+   ... display 2
+{% else %}
+   ... display 3
+{% endif %}
+```
+
+根据条件判断是否输出。if/else 支持嵌套。{% if %} 标签接受 and ， or 或者 not 关键字来对多个变量做判断 ，或者对变量取反（ not )
+
+**for 标签**
+
+{% for %} 允许我们在一个序列上迭代。与 Python 的 for 语句的情形类似，循环语法是 for X in Y ，Y 是要迭代的序列而 X 是在每一个特定的循环中使用的变量名称。每一次循环中，模板系统会渲染在 **{% for %}** 和 **{% endfor %}** 之间的所有内容。**遍历字典**: 可以直接用字典 **.items** 方法，用变量的解包分别获取键和值。可选的 {% empty %} 从句：在循环为空的时候执行（即 in 后面的参数布尔值为 False ）。
+
+```
+{% for i in listvar %}
+    {{ forloop.counter0 }}
+{% empty %}
+    空空如也～
+{% endfor %}
+```
+
+**include 标签**
+
+{% include %} 标签允许在模板中包含其它的模板的内容。下面这个例子都包含了 nav.html 模板：
+
+```
+{% include "nav.html" %}
+```
+
+##### Django 模板继承
+
+模板可以用继承的方式来实现复用，减少冗余内容。
+
+网页的头部和尾部内容一般都是一致的，我们就可以通过模板继承来实现复用。
+
+父模板用于放置可重复利用的内容，子模板继承父模板的内容，并放置自己的内容。
+
+**标签 block...endblock:** 父模板中的预留区域，该区域留给子模板填充差异性的内容，不同预留区域名字不能相同。
+
+```
+{% block 名称 %} 
+预留给子模板的区域，可以设置设置默认内容
+{% endblock 名称 %}
+```
+
+子模板使用标签 extends 继承父模板：
+
+```
+{% extends "父模板路径"%} 
+```
+
+子模板如果没有设置父模板预留区域的内容，则使用在父模板设置的默认内容，当然也可以都不设置，就为空。
+
+子模板设置父模板预留区域的内容：
+
+```
+{ % block 名称 % }
+内容 
+{% endblock 名称 %}
+```
+
+#### Django 模型
+
+Django 对各种数据库提供了很好的支持，包括：PostgreSQL、MySQL、SQLite、Oracle。Django 为这些数据库提供了统一的调用API。 我们可以根据自己业务需求选择不同的数据库。下文以MySql为例。
+
+```
+sudo pip3 install pymysql
+```
+
+##### Django ORM
+
+Django 模型使用自带的 ORM。对象关系映射（Object Relational Mapping，简称 ORM ）用于实现面向对象编程语言里不同类型系统的数据之间的转换。ORM 在业务逻辑层和数据库层之间充当了桥梁的作用。ORM 是通过使用描述对象和数据库之间的映射的元数据，将程序中的对象自动持久化到数据库中。
+
+![img](./assets/django-orm1.png)
+
+ORM 解析过程:
+
+- 1、ORM 会将 Python 代码转成为 SQL 语句。
+- 2、SQL 语句通过 pymysql 传送到数据库服务端。
+- 3、在数据库中执行 SQL 语句并将结果返回。
+
+ORM 对应关系表：
+
+![img](./assets/orm-object.png)
+
+##### 数据库配置
+
+创建 MySQL 数据库( ORM 无法操作到数据库级别，只能操作到数据表)语法：
+
+```
+create database 数据库名称 default charset=utf8; # 防止编码问题，指定为 utf8
+```
+
+settings.py 文件中找到 DATABASES 配置项，配置信息修改为：
+
+```
+DATABASES = { 
+    'default': 
+    { 
+        'ENGINE': 'django.db.backends.mysql',    # 数据库引擎
+        'NAME': 'runoob', # 数据库名称
+        'HOST': '127.0.0.1', # 数据库地址，本机 ip 地址 127.0.0.1 
+        'PORT': 3306, # 端口 
+        'USER': 'root',  # 数据库用户名
+        'PASSWORD': '123456', # 数据库密码
+    }  
+}
+```
+
+然后告诉 Django 使用 pymysql 模块连接 mysql 数据库：
+
+```
+# 在与 settings.py 同级目录下的 __init__.py 中引入模块和进行配置 
+import pymysql
+pymysql.install_as_MySQLdb()
+```
+
+##### 定义模型
+
+Django 规定，如果要使用模型，必须要创建一个 app。我们使用以下命令创建一个 TestModel 的 app:
+
+```
+django-admin startapp TestModel
+```
+
+修改 models.py 文件，代码如下：
+
+```
+# models.py
+from django.db import models
+ 
+class Test(models.Model):
+    name = models.CharField(max_length=20)
+```
+
+以上的类名代表了数据库表名，且继承了models.Model，类里面的字段代表数据表中的字段(name)，数据类型则由CharField（相当于varchar）、DateField（相当于datetime）， max_length 参数限定长度。
+
+接下来在 settings.py 中找到INSTALLED_APPS这一项，如下：
+
+```
+INSTALLED_APPS = (
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'TestModel',               # 添加此项
+)
+```
+
+在命令行中运行：
+
+```
+$ python3 manage.py migrate   # 创建表结构
+
+$ python3 manage.py makemigrations TestModel  # 让 Django 知道我们在我们的模型有一些变更
+$ python3 manage.py migrate TestModel   # 创建表结构
+```
+
+看到几行 "Creating table…" 的字样，你的数据表就创建好了。
+
+```
+Creating tables ...
+……
+Creating table TestModel_test  #我们自定义的表
+……
+```
+
+表名组成结构为：应用名_类名（如：TestModel_test）。
+
+**注意：**尽管我们没有在 models 给表设置主键，但是 Django 会自动添加一个 id 作为主键。
+
+##### 操作数据库
+
+虽然Django提供了多种操作方法，但是还是推荐使用ORM交互。
+
+* **创建模型**
+
+在项目中的 models.py 中添加以下类：
+
+class Book**(**models.Model**)**:
+  **id** = models.AutoField**(**primary_key=True**)** *# id 会自动创建,可以手动写入*
+  title = models.CharField**(**max_length=32**)** *# 书籍名称*
+  price = models.DecimalField**(**max_digits=5, decimal_places=2**)** *# 书籍价格*
+  publish = models.CharField**(**max_length=32**)** *# 出版社名称*
+  pub_date = models.DateField**(****)** *# 出版时间*
+
+然后在命令行执行以下命令：
+
+```
+$ python3 manage.py migrate   # 创建表结构
+
+$ python3 manage.py makemigrations app01  # 让 Django 知道我们在我们的模型有一些变更
+$ python3 manage.py migrate app01   # 创建表结构
+```
+
+
+
+
+
+
+
+
+
+#### Django 表单
+
+HTTP协议以"请求－回复"的方式工作。客户发送请求时，可以在请求中附加数据。服务器通过解析请求，就可以获得客户传来的数据，并根据URL来提供特定的服务。
+
+创建表单处理脚本和添加表单组件：
+
+```
+from django.http import HttpResponse
+from django.shortcuts import render
+# 表单
+def search_form(request):
+    return render(request, 'search_form.html')
+ 
+# 接收请求数据
+def search(request):  
+    request.encoding='utf-8'
+    if 'q' in request.GET and request.GET['q']:
+        message = '你搜索的内容为: ' + request.GET['q']
+    else:
+        message = '你提交了空表单'
+    return HttpResponse(message)
+```
+
+```
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>菜鸟教程(runoob.com)</title>
+</head>
+<body>
+    <form action="/search/" method="get">
+        <input type="text" name="q">
+        <input type="submit" value="搜索">
+    </form>
+</body>
+</html>
+```
+
+#### Django 视图
+
+一个视图函数，简称视图，是一个简单的 Python 函数，它接受 Web 请求并且返回 Web 响应。响应可以是一个 HTML 页面、一个 404 错误页面、重定向页面、XML 文档、或者一张图片...无论视图本身包含什么逻辑，都要返回响应。代码写在哪里都可以，只要在 Python 目录下面，一般放在项目的 views.py 文件中。每个视图函数都负责返回一个 HttpResponse 对象，对象中包含生成的响应。视图层中有两个重要的对象：请求对象(request)与响应对象(HttpResponse)。
+
+##### Request 对象
+
+每个视图函数的第一个参数是一个 HttpRequest 对象，就像下面这个 runoob() 函数:
+
+```
+from django.http import HttpResponse
+
+def runoob(request):
+    return HttpResponse("Hello world")
+```
+
+HttpRequest对象包含当前请求URL的一些信息：
+
+| **属性**      | **描述**                                                     |
+| ------------- | ------------------------------------------------------------ |
+| path          | 请求页面的全路径,不包括域名—例如, "/hello/"。                |
+| method        | 请求中使用的HTTP方法的字符串表示。全大写表示。例如:if request.method == 'GET':   do_something() elif request.method == 'POST':   do_something_else() |
+| GET           | 包含所有HTTP GET参数的类字典对象。参见QueryDict 文档。       |
+| POST          | 包含所有HTTP POST参数的类字典对象。参见QueryDict 文档。服务器收到空的POST请求的情况也是有可能发生的。也就是说，表单form通过HTTP POST方法提交请求，但是表单中可以没有数据。因此，不能使用语句if request.POST来判断是否使用HTTP POST方法；应该使用if request.method == "POST" (参见本表的method属性)。注意: POST不包括file-upload信息。参见FILES属性。 |
+| REQUEST       | 为了方便，该属性是POST和GET属性的集合体，但是有特殊性，先查找POST属性，然后再查找GET属性。借鉴PHP's $_REQUEST。例如，如果GET = {"name": "john"} 和POST = {"age": '34'},则 REQUEST["name"] 的值是"john", REQUEST["age"]的值是"34".强烈建议使用GET and POST,因为这两个属性更加显式化，写出的代码也更易理解。 |
+| COOKIES       | 包含所有cookies的标准Python字典对象。Keys和values都是字符串。 |
+| FILES         | 包含所有上传文件的类字典对象。FILES中的每个Key都是<input type="file" name="" />标签中name属性的值. FILES中的每个value 同时也是一个标准Python字典对象，包含下面三个Keys:filename: 上传文件名,用Python字符串表示content-type: 上传文件的Content typecontent: 上传文件的原始内容注意：只有在请求方法是POST，并且请求页面中<form>有enctype="multipart/form-data"属性时FILES才拥有数据。否则，FILES 是一个空字典。 |
+| META          | 包含所有可用HTTP头部信息的字典。 例如:CONTENT_LENGTHCONTENT_TYPEQUERY_STRING: 未解析的原始查询字符串REMOTE_ADDR: 客户端IP地址REMOTE_HOST: 客户端主机名SERVER_NAME: 服务器主机名SERVER_PORT: 服务器端口META 中这些头加上前缀 **HTTP_** 为 Key, 冒号(:)后面的为 Value， 例如:HTTP_ACCEPT_ENCODINGHTTP_ACCEPT_LANGUAGEHTTP_HOST: 客户发送的HTTP主机头信息HTTP_REFERER: referring页HTTP_USER_AGENT: 客户端的user-agent字符串HTTP_X_BENDER: X-Bender头信息 |
+| user          | 是一个django.contrib.auth.models.User 对象，代表当前登录的用户。如果访问用户当前没有登录，user将被初始化为django.contrib.auth.models.AnonymousUser的实例。你可以通过user的is_authenticated()方法来辨别用户是否登录：`if request.user.is_authenticated():    # Do something for logged-in users. else:    # Do something for anonymous users.`只有激活Django中的AuthenticationMiddleware时该属性才可用 |
+| session       | 唯一可读写的属性，代表当前会话的字典对象。只有激活Django中的session支持时该属性才可用。 |
+| raw_post_data | 原始HTTP POST数据，未解析过。 高级处理时会有用处。           |
+
+Request对象也有一些有用的方法：
+
+| 方法             | 描述                                                         |
+| :--------------- | :----------------------------------------------------------- |
+| __getitem__(key) | 返回GET/POST的键值,先取POST,后取GET。如果键不存在抛出 KeyError。 这是我们可以使用字典语法访问HttpRequest对象。 例如,request["foo"]等同于先request.POST["foo"] 然后 request.GET["foo"]的操作。 |
+| has_key()        | 检查request.GET or request.POST中是否包含参数指定的Key。     |
+| get_full_path()  | 返回包含查询字符串的请求路径。例如， "/music/bands/the_beatles/?print=true" |
+| is_secure()      | 如果请求是安全的，返回True，就是说，发出的是HTTPS请求。      |
+
+##### QueryDict对象
+
+在HttpRequest对象中, GET和POST属性是django.http.QueryDict类的实例。
+
+QueryDict类似字典的自定义类，用来处理单键对应多值的情况。
+
+QueryDict实现所有标准的词典方法。还包括一些特有的方法：
+
+| **方法**    | **描述**                                                     |
+| :---------- | :----------------------------------------------------------- |
+| __getitem__ | 和标准字典的处理有一点不同，就是，如果Key对应多个Value，__getitem__()返回最后一个value。 |
+| __setitem__ | 设置参数指定key的value列表(一个Python list)。注意：它只能在一个mutable QueryDict 对象上被调用(就是通过copy()产生的一个QueryDict对象的拷贝). |
+| get()       | 如果key对应多个value，get()返回最后一个value。               |
+| update()    | 参数可以是QueryDict，也可以是标准字典。和标准字典的update方法不同，该方法添加字典 items，而不是替换它们:`>>> q = QueryDict('a=1') >>> q = q.copy() # to make it mutable >>> q.update({'a': '2'}) >>> q.getlist('a')  ['1', '2'] >>> q['a'] # returns the last ['2']` |
+| items()     | 和标准字典的items()方法有一点不同,该方法使用单值逻辑的__getitem__():`>>> q = QueryDict('a=1&a=2&a=3') >>> q.items() [('a', '3')]` |
+| values()    | 和标准字典的values()方法有一点不同,该方法使用单值逻辑的__getitem__(): |
+
+此外, QueryDict也有一些方法，如下表：
+
+| **方法**                 | **描述**                                                     |
+| :----------------------- | :----------------------------------------------------------- |
+| copy()                   | 返回对象的拷贝，内部实现是用Python标准库的copy.deepcopy()。该拷贝是mutable(可更改的) — 就是说，可以更改该拷贝的值。 |
+| getlist(key)             | 返回和参数key对应的所有值，作为一个Python list返回。如果key不存在，则返回空list。 It's guaranteed to return a list of some sort.. |
+| setlist(key,list_)       | 设置key的值为list_ (unlike __setitem__()).                   |
+| appendlist(key,item)     | 添加item到和key关联的内部list.                               |
+| setlistdefault(key,list) | 和setdefault有一点不同，它接受list而不是单个value作为参数。  |
+| lists()                  | 和items()有一点不同, 它会返回key的所有值，作为一个list, 例如:`>>> q = QueryDict('a=1&a=2&a=3') >>> q.lists() [('a', ['1', '2', '3'])] ` |
+| urlencode()              | 返回一个以查询字符串格式进行格式化后的字符串(例如："a=2&b=3&b=5")。 |
+
+##### Response 对象
+
+响应对象主要有三种形式：HttpResponse()、render()、redirect()。
+
+**HttpResponse():** 返回文本，参数为字符串，字符串中写文本内容。如果参数为字符串里含有 html 标签，也可以渲染。
+
+**render():** 返回文本，第一个参数为 request，第二个参数为字符串（页面名称），第三个参数为字典（可选参数，向页面传递的参数：键为页面参数名，值为views参数名）。
+
+**redirect()**：重定向，跳转新页面。参数为字符串，字符串中填写页面路径。一般用于 form 表单提交后，跳转到新页面。
+
+render 和 redirect 是在 HttpResponse 的基础上进行了封装：
+
+- render：底层返回的也是 HttpResponse 对象
+- redirect：底层继承的是 HttpResponse 对象
+
+#### Django 路由
+
+路由简单的来说就是根据用户请求的 URL 链接来判断对应的处理程序，并返回处理结果，也就是 URL 与 Django 的视图建立映射关系。Django 路由在 urls.py 配置，urls.py 中的每一条配置对应相应的处理方法。
+
+路由有两种配置：
+
+- path：用于普通路径，不需要自己手动添加正则首位限制符号，底层已经添加。
+- re_path：用于正则路径，需要自己手动添加正则首位限制符号。
+
+```
+from django.urls import re_path # 用re_path 需要引入 
+urlpatterns = [ 
+    path('admin/', admin.site.urls), 
+    path('index/', views.index), # 普通路径 
+    re_path(r'^articles/([0-9]{4})/$', views.articles), # 正则路径 
+]
+```
+
+##### 路由分发(include)
+
+Django 项目里多个app目录共用一个 urls 容易造成混淆，后期维护也不方便。使用路由分发（include），让每个app目录都单独拥有自己的 urls。
+
+**步骤：**
+
+- 1、在每个 app 目录里都创建一个 urls.py 文件。
+- 2、在项目名称目录下的 urls 文件里，统一将路径分发给各个 app 目录。
+
+```
+from django.contrib import admin 
+from django.urls import path,include # 从 django.urls 引入 include 
+urlpatterns = [ 
+    path('admin/', admin.site.urls), 
+    path("app01/", include("app01.urls")), 
+    path("app02/", include("app02.urls")), 
+]
+```
+
+##### 反向解析
+
+随着功能的增加，路由层的 url 发生变化，就需要去更改对应的视图层和模板层的 url，非常麻烦，不便维护。这时我们可以利用反向解析，当路由层 url 发生改变，在视图层和模板层动态反向解析出更改后的 url，免去修改的操作。反向解析一般用在模板中的超链接及视图中的重定向。
+
+在 urls.py 中给路由起别名，**name="路由别名"**。
+
+```
+path("login1/", views.login, name="login")
+```
+
+在 views.py 中，从 django.urls 中引入 reverse，利用 **reverse("路由别名")** 反向解析:
+
+```
+return redirect(reverse("login"))
+```
+
+在模板 templates 中的 HTML 文件中，利用 **{% url "路由别名" %}** 反向解析。
+
+```
+<form action="{% url 'login' %}" method="post"> 
+```
+
+#### Django Admin 管理工具
+
+Django 提供了基于 web 的管理工具。Django 自动管理工具是 django.contrib 的一部分。通过命令 **python manage.py createsuperuser** 来创建超级用户，如下所示：
+
+
+
+```
+# python manage.py createsuperuser
+Username (leave blank to use 'root'): admin
+Email address: admin@runoob.com
+Password:
+Password (again):
+Superuser created successfully.
+[root@solar HelloWorld]#
+```
+
+之后输入用户名密码登录，界面如下：
+
+![img](./assets/A995340B-8F8C-4777-9B79-846B6A34508A.jpg)
+
+其功能相对较多，不在详细说明。
+
+#### Django 鉴权
+
+Django 用户认证（Auth）组件一般用在用户的登录注册上，用于判断当前的用户是否合法，并跳转到登陆成功或失败页面。Django 用户认证（Auth）组件需要导入 auth 模块:
+
+```
+# 认证模块
+from django.contrib import auth
+
+# 对应数据库
+from django.contrib.auth.models import User
+```
+
+返回值是用户对象。
+
+创建用户对象的三种方法：
+
+- **create()**：创建一个普通用户，密码是明文的。
+- **create_user()**：创建一个普通用户，密码是密文的。
+- **create_superuser()**：创建一个超级用户，密码是密文的，要多传一个邮箱 email 参数。
+
+**参数：**
+
+- username: 用户名。
+- password：密码。
+- email：邮箱 (create_superuser 方法要多加一个 email)。
+
+验证用户的用户名和密码使用 authenticate() 方法，从需要 auth_user 表中过滤出用户对象。
+
+使用前要导入：
+
+```
+from django.contrib import auth
+```
+
+参数：
+
+- username：用户名
+- password：密码
+
+**返回值：**如果验证成功，就返回用户对象，反之，返回 None。
+
+给验证成功的用户加 session，将 request.user 赋值为用户对象。
+
+登陆使用 login() 方法。
+
+使用前要导入：
+
+```
+from django.contrib import auth
+```
+
+参数：
+
+- request：用户对象
+
+返回值：None
+
+注销用户使用 logout() 方法，需要清空 session 信息，将 request.user 赋值为匿名用户。
+
+使用前要导入：
+
+```
+from django.contrib import auth
+```
+
+参数：
+
+- request：用户对象
+
+返回值：None
+
+设置装饰器，给需要登录成功后才能访问的页面统一加装饰器。
+
+使用前要导入：
+
+```
+from django.contrib.auth.decorators import login_required
+```
+
+#### Django Cookies 与 Sessions
+
+Cookie 是存储在客户端计算机上的文本文件，并保留了各种跟踪信息。
+
+识别返回用户包括三个步骤：
+
+- 服务器脚本向浏览器发送一组 Cookie。例如：姓名、年龄或识别号码等。
+- 浏览器将这些信息存储在本地计算机上，以备将来使用。
+- 当下一次浏览器向 Web 服务器发送任何请求时，浏览器会把这些 Cookie 信息发送到服务器，服务器将使用这些信息来识别用户。
+
+HTTP 是一种"无状态"协议，这意味着每次客户端检索网页时，客户端打开一个单独的连接到 Web 服务器，服务器会自动不保留之前客户端请求的任何记录。
+
+但是仍然有以下三种方式来维持 Web 客户端和 Web 服务器之间的 session 会话：
+
+##### Cookies
+
+一个 Web 服务器可以分配一个唯一的 session 会话 ID 作为每个 Web 客户端的 cookie，对于客户端的后续请求可以使用接收到的 cookie 来识别。
+
+在Web开发中，使用 session 来完成会话跟踪，session 底层依赖 Cookie 技术。
+
+![img](./assets/cookie.png)
+
+
+
+一个 Web 服务器可以分配一个唯一的 session 会话 ID 作为每个 Web 客户端的 cookie，对于客户端的后续请求可以使用接收到的 cookie 来识别。
+
+在Web开发中，使用 session 来完成会话跟踪，session 底层依赖 Cookie 技术。
+
+![img](./assets/cookie-1773910347379-13.png)
+
+设置 cookie:
+
+```
+rep.set_cookie(key,value,...) 
+rep.set_signed_cookie(key,value,salt='加密盐',...)
+```
+
+获取 cookie:
+
+```
+request.COOKIES.get(key)
+```
+
+删除 cookie:
+
+```
+rep =HttpResponse || render || redirect 
+rep.delete_cookie(key)
+```
+
+##### Session
+
+服务器在运行时可以为每一个用户的浏览器创建一个其独享的 session 对象，由于 session 为用户浏览器独享，所以用户在访问服务器的 web 资源时，可以把各自的数据放在各自的 session 中，当用户再去访问该服务器中的其它 web 资源时，其它 web 资源再从用户各自的 session 中取出数据为用户服务。
+
+![img](./assets/5-21-1.jpg)
+
+- a. 浏览器第一次请求获取登录页面 login。
+
+- b. 浏览器输入账号密码第二次请求，若输入正确，服务器响应浏览器一个 index 页面和一个键为 sessionid，值为随机字符串的 cookie，即 set_cookie ("sessionid",随机字符串)。
+
+- c. 服务器内部在 django.session 表中记录一条数据。
+
+  django.session 表中有三个字段。
+
+  - session_key：存的是随机字符串，即响应给浏览器的 cookie 的 sessionid 键对应的值。
+  - session_data：存的是用户的信息，即多个 request.session["key"]=value，且是密文。
+  - expire_date：存的是该条记录的过期时间（默认14天）
+
+- d. 浏览器第三次请求其他资源时，携带 cookie :{sessionid:随机字符串}，服务器从 django.session 表中根据该随机字符串取出该用户的数据，供其使用（即保存状态）。
+
+**注意:** django.session 表中保存的是浏览器的信息，而不是每一个用户的信息。 因此， 同一浏览器多个用户请求只保存一条记录（后面覆盖前面）,多个浏览器请求才保存多条记录。
+
+cookie 弥补了 http 无状态的不足，让服务器知道来的人是"谁"，但是 cookie 以文本的形式保存在浏览器端，安全性较差，且最大只支持 4096 字节，所以只通过 cookie 识别不同的用户，然后，在对应的 session 里保存私密的信息以及超过 4096 字节的文本。
+
+session 设置：
+
+```
+request.session["key"] = value
+```
+
+执行步骤：
+
+- a. 生成随机字符串
+- b. 把随机字符串和设置的键值对保存到 django_session 表的 session_key 和 session_data 里
+- c. 设置 **cookie：set_cookie("sessionid",随机字符串)** 响应给浏览器
+
+session 获取：
+
+```
+request.session.get('key')
+```
+
+执行步骤：
+
+- a. 从 cookie 中获取 sessionid 键的值，即随机字符串。
+- b. 根据随机字符串从 django_session 表过滤出记录。
+- c. 取出 session_data 字段的数据。
+
+session 删除，删除整条记录（包括 session_key、session_data、expire_date 三个字段）：
+
+```
+request.session.flush()
+```
+
+删除 session_data 里的其中一组键值对：
+
+```
+del request.session["key"]
+```
+
+执行步骤：
+
+- a. 从 cookie 中获取 sessionid 键的值，即随机字符串
+- b. 根据随机字符串从 django_session 表过滤出记录
+- c. 删除过滤出来的记录
+
+#### Django 中间件
+
+Django 中间件是修改 Django request 或者 response 对象的钩子，可以理解为是介于 HttpRequest 与 HttpResponse 处理之间的一道处理过程。
+
+浏览器从请求到响应的过程中，Django 需要通过很多中间件来处理，可以看如下图所示：
+
+![img](./assets/1_t9TAX89Y3rZUXth2Le07Xg.png)
+
+Django 中间件作用：
+
+- 修改请求，即传送到 view 中的 HttpRequest 对象。
+- 修改响应，即 view 返回的 HttpResponse 对象。
+
+
+
+中间件可以定义四个方法，分别是：
+
+process_request(self,request)
+process_view(self, request, view_func, view_args, view_kwargs)
+process_exception(self, request, exception)
+process_response(self, request, response)
+
+##### process_request 方法
+
+process_request 方法有一个参数 request，这个 request 和视图函数中的 request 是一样的。
+
+process_request 方法的返回值可以是 None 也可以是 HttpResponse 对象。
+
+- 返回值是 None 的话，按正常流程继续走，交给下一个中间件处理。
+- 返回值是 HttpResponse 对象，Django 将不执行后续视图函数之前执行的方法以及视图函数，直接以该中间件为起点，倒序执行中间件，且执行的是视图函数之后执行的方法。
+
+process_request 方法是在视图函数之前执行的。
+
+当配置多个中间件时，会按照 MIDDLEWARE中 的注册顺序，也就是列表的索引值，顺序执行。
+
+不同中间件之间传递的 request 参数都是同一个请求对象。
+
+**from** django.utils.deprecation **import** MiddlewareMixin
+
+**from** django.shortcuts **import** render, HttpResponse
+
+**class** MD1(MiddlewareMixin):
+  **def** process_request(self, request):
+    **print**("md1  process_request 方法。", id(request)) #在视图之前执行
+
+##### process_response
+
+process_response 方法有两个参数，一个是 request，一个是 response，request 是请求对象，response 是视图函数返回的 HttpResponse 对象，该方法必须要有返回值，且必须是response。
+
+process_response 方法是在视图函数之后执行的。
+
+当配置多个中间件时，会按照 MIDDLEWARE 中的注册顺序，也就是列表的索引值，倒序执行。
+
+**class** MD1(MiddlewareMixin):
+  **def** process_request(self, request):
+    **print**("md1  process_request 方法。", id(request)) #在视图之前执行
+
+
+  **def** process_response(self,request, response): :#基于请求响应
+    **print**("md1  process_response 方法！", id(request)) #在视图之后
+    **return** response
+
+从下图看，正常的情况下按照绿色的路线进行执行,假设**中间件1**有返回值，则按照红色的路线走，直接执行该类下的 process_response 方法返回，后面的其他中间件就不会执行。
+
+![img](./assets/md-sssss-1.png)
+
+##### process_view
+
+process_view 方法格式如下：
+
+```
+process_view(request, view_func, view_args, view_kwargs)
+```
+
+process_view 方法有四个参数：
+
+- request 是 HttpRequest 对象。
+- view_func 是 Django 即将使用的视图函数。
+- view_args 是将传递给视图的位置参数的列表。
+- view_kwargs 是将传递给视图的关键字参数的字典。
+
+view_args 和 view_kwargs 都不包含第一个视图参数（request）。
+
+process_view 方法是在视图函数之前，process_request 方法之后执行的。
+
+返回值可以是 None、view_func(request) 或 HttpResponse 对象。
+
+- 返回值是 None 的话，按正常流程继续走，交给下一个中间件处理。
+
+- 返回值是 HttpResponse 对象，Django 将不执行后续视图函数之前执行的方法以及视图函数，直接以该中间件为起点，倒序执行中间件，且执行的是视图函数之后执行的方法。
+
+- c.返回值是 view_func(request)，Django 将不执行后续视图函数之前执行的方法，提前执行视图函数，然后再倒序执行视图函数之后执行的方法。
+
+- 当最后一个中间件的 process_request 到达路由关系映射之后，返回到第一个中间件 process_view，然后依次往下，到达视图函数。
+
+  **class** MD1(MiddlewareMixin):
+    **def** process_request(self, request):
+      **print**("md1  process_request 方法。", id(request)) #在视图之前执行
+
+  
+    **def** process_response(self,request, response): :#基于请求响应
+      **print**("md1  process_response 方法！", id(request)) #在视图之后
+      **return** response
+
+
+    **def** process_view(self,request, view_func, view_args, view_kwargs):
+      **print**("md1  process_view 方法！") #在视图之前执行 顺序执行
+      \#return view_func(request)
+
+##### process_exception
+
+process_exception 方法如下：
+
+```
+process_exception(request, exception)
+```
+
+参数说明：
+
+- request 是 HttpRequest 对象。
+- exception 是视图函数异常产生的 Exception 对象。
+
+process_exception 方法只有在视图函数中出现异常了才执行，按照 settings 的注册倒序执行。
+
+在视图函数之后，在 process_response 方法之前执行。
+
+process_exception 方法的返回值可以是一个 None 也可以是一个 HttpResponse 对象。
+
+返回值是 None，页面会报 500 状态码错误，视图函数不会执行。
+
+process_exception 方法倒序执行，然后再倒序执行 process_response 方法。
+
+返回值是 HttpResponse 对象，页面不会报错，返回状态码为 200。
+
+视图函数不执行，该中间件后续的 process_exception 方法也不执行，直接从最后一个中间件的 process_response 方法倒序开始执行。
+
+若是 process_view 方法返回视图函数，提前执行了视图函数，且视图函数报错，则无论 process_exception 方法的返回值是什么，页面都会报错， 且视图函数和 process_exception 方法都不执行。
+
+直接从最后一个中间件的 process_response 方法开始倒序执行：
+
+**class** MD1(MiddlewareMixin):
+  **def** process_request(self, request):
+    **print**("md1  process_request 方法。", id(request)) #在视图之前执行
+
+  **def** process_response(self,request, response): :#基于请求响应
+    **print**("md1  process_response 方法！", id(request)) #在视图之后
+    **return** response
+
+  **def** process_view(self,request, view_func, view_args, view_kwargs):
+    **print**("md1  process_view 方法！") #在视图之前执行 顺序执行
+    \#return view_func(request)
+
+
+  **def** process_exception(self, request, exception):#引发错误 才会触发这个方法
+    **print**("md1  process_exception 方法！")
+    \# return HttpResponse(exception) #返回错误信息
+
+
+
+
+
+### FastAPI
+
+FastAPI 是一个用于构建 API 的现代、快速（高性能）的 web 框架，专为在 Python 中构建 RESTful API 而设计。FastAPI 使用 Python 3.8+ 并基于标准的 Python 类型提示。FastAPI 建立在 Starlette 和 Pydantic 之上，利用类型提示进行数据处理，并自动生成API文档。FastAPI 于 2018 年 12 月 5 日发布第一版本，以其易用性、速度和稳健性在开发者中间迅速流行起来。FastAPI 支持异步编程，可在生产环境中运行。
+
+#### FastAPI 安装
+
+FastAPI 依赖 Python 3.8 及更高版本。安装 FastAPI 很简单，这里我们使用 **pip** 命令来安装。
+
+```
+# 检查 Python 版本
+python --version
+pip install "fastapi[all]"
+# fastapi - FastAPI 框架
+# uvicorn[standard] - ASGI 服务器
+# python-multipart - 表单和文件上传支持
+# jinja2 - 模板引擎
+# python-jose - JWT 令牌支持
+# passlib - 密码哈希
+# bcrypt - 密码加密
+# python-dotenv - 环境变量支持
+```
+
+#### FastAPI 路由
+
+在 FastAPI 中，基本路由是定义 API 端点的关键。每个路由都映射到应用程序中的一个函数，用于处理特定的 HTTP 请求，并返回相应的响应。
+
+```
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
+@app.get("/items/{item_id}")
+def read_item(item_id: int, q: str = None):
+    return {"item_id": item_id, "q": q}
+```
+
+**代码说明：**
+
+- `FastAPI()`：创建 FastAPI 应用实例。
+- `@app.get("/")`：使用 `@app.get` 装饰器创建一个处理根路径的路由。
+- `def read_root()`：路由处理函数，返回一个包含 {"Hello": "World"} 的字典。
+
+- `@app.get("/items/{item_id}")`：定义了一个路由路径，其中 `{item_id}` 是路径参数，对应于函数参数 `item_id`。
+- `def read_item(item_id: int, q: str = None)`：路由处理函数接受一个整数类型的路径参数 `item_id` 和一个可选的字符串类型查询参数 `q`。
+
+使用 Uvicorn 启动应用：
+
+```
+uvicorn main:app --reload
+```
+
+FastAPI 自动生成的交互式 API 文档将包括定义的路由信息、路径参数、查询参数等。访问文档地址 **http://127.0.0.1:8000/docs** 查看详细的文档和测试界面：
+
+![img](./assets/index-01-swagger-ui-simple.png)
+
+#### FastAPI 请求与响应
+
+在 FastAPI 中，请求（Request）和响应（Response）是与客户端交互的核心。FastAPI 提供了强大的工具来解析请求数据，并根据需要生成规范的响应。
+
+##### 请求
+
+**查询参数**
+
+以下实例中我们定义了一个 **/items/** 路由，接受两个查询参数 **skip** 和 **limit**，它们的类型均为整数，默认值分别为 **0** 和 **10**。
+
+```
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/items/")
+def read_item(skip: int = 0, limit: int = 10):
+    return {"skip": skip, "limit": limit}
+```
+
+**路径参数**
+
+我们可以把参数设置在路径上，这样 URL 看起来更美观一些。以下实例我们定义了一个带有路径参数 **item_id** 和查询参数 **q** 的路由。
+
+```
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/items/{item_id}")
+def read_item(item_id: int, q: str = None):
+    return {"item_id": item_id, "q": q}
+```
+
+**请求体**
+
+接下来我们创建了一个 **/items/** 路由，使用 **@app.post** 装饰器表示这是一个处理 **POST** 请求的路由。
+
+```
+from pydantic import BaseModel
+from fastapi import FastAPI
+
+app = FastAPI()
+class Item(BaseModel):
+    name: str
+    description: str = None
+    price: float
+    tax: float = None
+
+@app.post("/items/")
+def create_item(item: Item):
+    return item
+```
+
+使用 Pydantic 模型 Item 定义了一个请求体，包含多个字段
+
+##### 响应
+
+**返回 JSON 数据**
+
+路由处理函数返回一个字典，该字典将被 FastAPI 自动转换为 JSON 格式，并作为响应发送给客户端：
+
+```
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/items/")
+def read_item(skip: int = 0, limit: int = 10):
+    return {"skip": skip, "limit": limit}
+```
+
+**返回 Pydantic 模型**
+
+路由处理函数返回一个 Pydantic 模型实例，FastAPI 将自动将其转换为 JSON 格式，并作为响应发送给客户端：
+
+```
+from pydantic import BaseModel
+from fastapi import FastAPI
+
+app = FastAPI()
+class Item(BaseModel):
+    name: str
+    description: str = None
+    price: float
+    tax: float = None
+
+@app.post("/items/")
+def create_item(item: Item):
+    return item
+```
+
+**请求头和 Cookie**
+
+使用 Header 和 Cookie 类型注解获取请求头和 Cookie 数据。
+
+```
+from fastapi import Header, Cookie
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/items/")
+def read_item(user_agent: str = Header(None), session_token: str = Cookie(None)):
+    return {"User-Agent": user_agent, "Session-Token": session_token}
+```
+
+**重定向和状态码**
+
+使用 **RedirectResponse** 实现重定向，将客户端重定向到 **/items/** 路由。
+
+```
+from fastapi import Header, Cookie
+from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
+
+app = FastAPI()
+
+@app.get("/items/")
+def read_item(user_agent: str = Header(None), session_token: str = Cookie(None)):
+    return {"User-Agent": user_agent, "Session-Token": session_token}
+
+@app.get("/redirect")
+def redirect():
+    return RedirectResponse(url="/items/")
+```
+
+**自定义响应头**
+
+使用 **JSONResponse** 自定义响应头:
+
+```
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+
+app = FastAPI()
+
+@app.get("/items/{item_id}")
+def read_item(item_id: int):
+    content = {"item_id": item_id}
+    headers = {"X-Custom-Header": "custom-header-value"}
+    return JSONResponse(content=content, headers=headers)
+```
+
+#### FastAPI Pydantic 模型
+
+Pydantic 是一个用于数据验证和序列化的 Python 模型库。它在 FastAPI 中广泛使用，用于定义请求体、响应体和其他数据模型，提供了强大的类型检查和自动文档生成功能。以下是关于 Pydantic 模型的详细介绍：
+
+**定义 Pydantic 模型**
+
+使用 Pydantic 定义一个模型非常简单，只需创建一个继承自 pydantic.BaseModel 的类，并在其中定义字段。字段的类型可以是任何有效的 Python 类型，也可以是 Pydantic 内置的类型。
+
+```
+from pydantic import BaseModel
+
+class Item(BaseModel):
+    name: str
+    description: str = None
+    price: float
+    tax: float = None
+```
+
+以上代码中中，我们定义了一个名为 Item 的 Pydantic 模型，包含了四个字段：name、description、price 和 tax，name 和 price 是必需的字段，而 description 和 tax 是可选的字段，其默认值为 None。
+
+**使用 Pydantic 模型**
+
+* **请求体验证**：在 FastAPI 中，可以将 Pydantic 模型用作请求体（Request Body），以自动验证和解析客户端发送的数据。
+
+```
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class Item(BaseModel):
+    name: str
+    description: str = None
+    price: float
+    tax: float = None
+
+@app.post("/items/")
+def create_item(item: Item):
+    return item
+```
+
+以上代码中中，create_item 路由处理函数接受一个名为 item 的参数，其类型是 Item 模型。FastAPI 将自动验证传入的 JSON 数据是否符合模型的定义，并将其转换为 Item 类型的实例。
+
+* **查询参数验证**：Pydantic 模型还可以用于验证查询参数、路径参数等。
+
+```
+from fastapi import FastAPI, Query
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class Item(BaseModel):
+    name: str
+    description: str = None
+    price: float
+    tax: float = None
+
+@app.get("/items/")
+def read_item(item: Item, q: str = Query(..., max_length=10)):
+    return {"item": item, "q": q}
+```
+
+以上代码中，read_item 路由处理函数接受一个 Item 模型的实例作为查询参数，以及一个名为 q 的字符串查询参数。通过使用 Query 函数，我们还可以为查询参数指定更多的验证规则，如最大长度限制。
+
+**自动文档生成**
+
+使用 Pydantic 模型的一个重要优势是，它能够自动为 FastAPI 生成交互式 API 文档。文档会包括模型的字段、类型、验证规则等信息，让开发者和 API 使用者能够清晰地了解如何正确使用 API。打开 **http://127.0.0.1:8000/docs**，API 文档显示如下：
+
+![img](./assets/fa461333139a7714dc4533af11d98dfe.png)
+
+**数据转换和序列化**
+
+Pydantic 模型不仅提供了验证功能，还可以用于将数据转换为特定类型（例如 JSON）或反向序列化。在 FastAPI 中，这种能力是自动的，你无需手动处理。通过使用 Pydantic 模型，你可以更轻松地定义和验证数据，使得代码更清晰、更健壮，并通过自动生成的文档提供更好的 API 交互体验。接下来我们可以打开 **http://127.0.0.1:8000/docs** 来进行 POST 测试：填写请求参数：
+
+![img](./assets/2ad6a4628a07ffede6521119828c083f.png)
+
+返回结果如下：
+
+![img](./assets/e8cd27575ac43d40eb06c8fc4c6ff938.png)
+
+#### FastAPI 路径操作依赖项
+
+FastAPI 提供了简单易用，但功能强大的依赖注入系统，这个依赖系统设计的简单易用，可以让开发人员轻松地把组件集成至 FastAPI。FastAPI 提供了路径操作依赖项（Path Operation Dependencies）的机制，允许你在路由处理函数执行之前或之后运行一些额外的逻辑。依赖项就是一个函数，且可以使用与路径操作函数相同的参数。路径操作依赖项提供了一种灵活的方式来组织代码、验证输入、进行身份验证等。
+
+依赖项是在路由操作函数执行前或后运行的可复用的函数或对象。它们被用于执行一些通用的逻辑，如验证、身份验证、数据库连接等。在 FastAPI 中，依赖项通常用于两个方面：
+
+- **预处理（Before）依赖项：** 在路由操作函数执行前运行，用于预处理输入数据，验证请求等。
+- **后处理（After）依赖项：** 在路由操作函数执行后运行，用于执行一些后处理逻辑，如日志记录、清理等。
+
+**依赖注入**：依赖注入是将依赖项注入到路由操作函数中的过程。在 FastAPI 中，通过在路由操作函数参数中声明依赖项来实现依赖注入。FastAPI 将负责解析依赖项的参数，并确保在执行路由操作函数之前将其传递给函数。
+
+**依赖项的使用**：
+
+* **定义依赖项**
+
+```
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+# 依赖项函数
+def common_parameters(q: str = None, skip: int = 0, limit: int = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+```
+
+在这个例子中，common_parameters 是一个依赖项函数，用于预处理查询参数。在路由中使用依赖项：
+
+```
+from fastapi import Depends
+
+# 路由操作函数
+@app.get("/items/")
+async def read_items(commons: dict = Depends(common_parameters)):
+    return commons
+```
+
+在这个例子中，read_items 路由操作函数中的参数 commons 使用了 Depends(common_parameters)，表示 common_parameters 是一个依赖项。FastAPI 将在执行路由操作函数之前运行 common_parameters 函数，并将其返回的结果传递给 read_items 函数。
+
+**依赖项的用途**：
+
+* **预处理（Before）**：以下实例中，**common_parameters** 是一个依赖项函数，它接受查询参数 **q、skip 和 limit**，并返回一个包含这些参数的字典。在路由操作函数 **read_items** 中，通过传入 Depends(common_parameters)，我们使用了这个依赖项函数，实现了在路由执行前预处理输入数据的功能。
+
+```
+from fastapi import Depends, FastAPI, HTTPException
+
+app = FastAPI()
+
+# 依赖项函数
+def common_parameters(q: str = None, skip: int = 0, limit: int = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+
+# 路由操作函数
+@app.get("/items/")
+async def read_items(commons: dict = Depends(common_parameters)):
+    return commons
+```
+
+* **后处理（After）**：以下例子中，**after_request** 是一个后处理函数，用于在路由执行后执行一些逻辑。在路由操作函数 read_items_after 中，通过传入 Depends(after_request)，我们使用了这个后处理依赖项，实现了在路由执行后进行额外操作的功能。
+
+```
+from fastapi import Depends, FastAPI, HTTPException
+
+app = FastAPI()
+
+# 依赖项函数
+def common_parameters(q: str = None, skip: int = 0, limit: int = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+
+# 路由操作函数
+@app.get("/items/")
+async def read_items(commons: dict = Depends(common_parameters)):
+    return commons
+
+# 后处理函数
+async def after_request():
+    # 这里可以执行一些后处理逻辑，比如记录日志
+    pass
+
+# 后处理依赖项
+@app.get("/items/", response_model=dict)
+async def read_items_after(request: dict = Depends(after_request)):
+    return {"message": "Items returned successfully"}
+```
+
+**多个依赖项的组合**
+
+以下例子中，**common_parameters** 和 **verify_token** 是两个不同的依赖项函数，**verify_token** 依赖于 **common_parameters**，这种组合依赖项的方式允许我们在路由执行前先验证一些参数，然后在进行身份验证。
+
+```
+from fastapi import Depends, FastAPI, HTTPException
+
+app = FastAPI()
+
+# 依赖项函数1
+def common_parameters(q: str = None, skip: int = 0, limit: int = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+
+# 依赖项函数2
+def verify_token(token: str = Depends(common_parameters)):
+    if token is None:
+        raise HTTPException(status_code=400, detail="Token required")
+    return token
+
+# 路由操作函数
+@app.get("/items/")
+async def read_items(token: dict = Depends(verify_token)):
+    return token
+```
+
+**异步依赖项**
+
+依赖项函数和后处理函数可以是异步的，允许在它们内部执行异步操作。以下例子中，**get_token** 是一个异步的依赖项函数，模拟了一个异步操作。在路由操作函数 read_items 中，我们使用了这个异步依赖项函数。
+
+```
+from fastapi import Depends, FastAPI, HTTPException
+from typing import Optional
+import asyncio
+
+app = FastAPI()
+
+# 异步依赖项函数
+async def get_token():
+    # 模拟异步操作
+    await asyncio.sleep(2)
+    return "fake-token"
+
+# 异步路由操作函数
+@app.get("/items/")
+async def read_items(token: Optional[str] = Depends(get_token)):
+    return {"token": token}
+```
+
+#### FastAPI 表单数据
+
+在 FastAPI 中，接收表单数据是一种常见的操作，通常用于处理用户通过 HTML 表单提交的数据。FastAPI 提供了 Form 类型，可以用于声明和验证表单数据。
+
+**声明表单数据模型**
+
+接下来我们设计一个接收一个登陆的表单数据，要使用表单，需预先安装 python-multipart：
+
+```
+pip install python-multipart。
+```
+
+代码如下：
+
+```
+from fastapi import FastAPI, Form
+
+app = FastAPI()
+
+
+@app.post("/login/")
+async def login(username: str = Form(), password: str = Form()):
+    return {"username": username}
+```
+
+接下来我们可以进入 API 文档 **http://127.0.0.1:8000/docs** 进行测验：
+
+![img](./assets/927e7dfc95fb795eeaa3af240662cb94.png)
+
+使用 Pydantic 模型来声明表单数据模型。在模型中，使用 Field 类型声明每个表单字段，并添加必要的验证规则。
+
+```
+from pydantic import BaseModel, Field
+
+class Item(BaseModel):
+    name: str = Field(..., title="Item Name", max_length=100)
+    description: str = Field(None, title="Item Description", max_length=255)
+    price: float = Field(..., title="Item Price", gt=0)
+```
+
+以上例子中，Item 是一个 Pydantic 模型，用于表示表单数据。模型中的字段 name、description 和 price 分别对应表单中的不同输入项，并设置了相应的验证规则。除了可以在 API 文档中测验，另外我们也可以自己创建 html 来测试：
+
+```
+<form action="http://localhost:8000/items/" method="post">
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" required>
+    <br>
+    <label for="description">Description:</label>
+    <textarea id="description" name="description"></textarea>
+    <br>
+    <label for="price">Price:</label>
+    <input type="number" id="price" name="price" required min="0">
+    <br>
+    <button type="submit">Submit</button>
+</form>
+```
+
+**在路由中接收表单数据**
+
+在路由操作函数中，可以使用 Form 类型来接收表单数据。Form 类型的参数可以与 Pydantic 模型的字段一一对应，以实现表单数据的验证和转换。
+
+```
+from fastapi import FastAPI, Form
+
+app = FastAPI()
+
+# 路由操作函数
+@app.post("/items/")
+async def create_item(
+    name: str = Form(...),
+    description: str = Form(None),
+    price: float = Form(..., gt=0),
+):
+    return {"name": name, "description": description, "price": price}
+```
+
+以上例子中，create_item 路由操作函数接收了三个表单字段：name、description 和 price，这些字段与 Item 模型的相应字段一致，FastAPI 将自动根据验证规则验证表单数据。接下来我们可以进入 API 文档 **http://127.0.0.1:8000/docs** 进行测验：
+
+![img](./assets/514028636203aef522a8addb3f4eb62a.png)
+
+**表单数据的验证和文档生成**
+
+使用 Pydantic 模型和 Form 类型，表单数据的验证和文档生成都是自动的。FastAPI 将根据模型中的字段信息生成交互式 API 文档，并根据验证规则进行数据验证。API 文档地址 **http://127.0.0.1:8000/docs** 。
+
+![img](./assets/0d28c66e90a6ad39fc4ef693c146835c.png)
+
+![img](./assets/7eb01111becfc49e6e380300ad66c7a3.png)
+
+**处理文件上传**
+
+如果表单包含文件上传，可以使用 UploadFile 类型处理。以下是一个处理文件上传的实例：
+
+```
+from fastapi import FastAPI, File, UploadFile
+
+app = FastAPI()
+
+# 路由操作函数
+@app.post("/files/")
+async def create_file(file: UploadFile = File(...)):
+    return {"filename": file.filename}
+```
+
+在这个例子中，create_file 路由操作函数接收了一个 UploadFile 类型的文件参数。FastAPI 将负责处理文件上传，并将文件的相关信息包装在 UploadFile 对象中，可以轻松地获取文件名、内容类型等信息。通过上述方式，FastAPI 提供了一种简单而强大的方法来接收和处理表单数据，同时保持了代码的清晰性和可维护性。
+
+#### FastAPI 交互式API文档
+
+FastAPI 提供了内置的交互式 API 文档，使开发者能够轻松了解和测试 API 的各个端点。
+
+这个文档是自动生成的，基于 OpenAPI 规范，支持 Swagger UI 和 ReDoc 两种交互式界面。
+
+通过 FastAPI 的交互式 API 文档，开发者能够更轻松地理解和使用 API，提高开发效率
+
+在运行 FastAPI 应用时，Uvicorn 同时启动了交互式 API 文档服务。
+
+默认情况下，你可以通过访问 **http://127.0.0.1:8000/docs** 来打开 Swagger UI 风格的文档：
+
+![img](./assets/index-01-swagger-ui-simple-1773918165488-17.png)
+
+Swagger UI 提供了一个直观的用户界面，用于浏览 API 的各个端点、查看请求和响应的结构，并支持直接在文档中进行 API 请求测试。通过 Swagger UI，你可以轻松理解每个路由操作的输入参数、输出格式和请求示例。
+
+或者通过 **http://127.0.0.1:8000/redoc** 来打开 ReDoc 风格的文档。
+
+![img](./assets/index-02-redoc-simple.png)
+
+ReDoc 是另一种交互式文档界面，具有清晰简洁的外观。它使得开发者能够以可读性强的方式查看 API 的描述、请求和响应。与 Swagger UI 不同，ReDoc 的设计强调文档的可视化和用户体验。
+
+
+
+### AIOHTTP
+
+aiohttp 是一个基于异步 I/O 的 Web 框架，专注于提供高性能、低开销的异步 Web 服务。它允许我们同时处理大量并发请求，而不会阻塞程序执行。aiohttp 使用 Python 的 async /await 语法来实现异步编程，这使得编写异步代码更加直观和简洁。`asyncio`可以实现单线程并发IO操作。如果仅用在客户端，发挥的威力不大。如果把`asyncio`用在服务器端，例如Web服务器，由于HTTP连接就是IO操作，因此可以用单线程+`async`函数实现多用户的高并发支持。
+
+`asyncio`实现了TCP、UDP、SSL等协议，`aiohttp`则是基于`asyncio`实现的HTTP框架。
+
+我们先安装`aiohttp`：
+
+```plain
+$ pip install aiohttp
+```
+
+
+
+然后编写一个HTTP服务器，分别处理以下URL：
+
+- `/` - 首页返回`Index Page`；
+- `/{name}` - 根据URL参数返回文本`Hello, {name}!`。
+
+代码如下：
+
+```python
+# app.py
+from aiohttp import web
+
+async def index(request):
+    text = "<h1>Index Page</h1>"
+    return web.Response(text=text, content_type="text/html")
+
+async def hello(request):
+    name = request.match_info.get("name", "World")
+    text = f"<h1>Hello, {name}</h1>"
+    return web.Response(text=text, content_type="text/html")
+
+app = web.Application()
+
+# 添加路由:
+app.add_routes([web.get("/", index), web.get("/{name}", hello)])
+
+if __name__ == "__main__":
+    web.run_app(app)
+```
+
+
+
+直接运行`app.py`，访问首页：
+
+![Index](./assets/index.png)
+
+访问`http://localhost:8080/Bob`：
+
+![Hello](./assets/hello.png)
+
+使用aiohttp时，定义处理不同URL的`async`函数，然后通过`app.add_routes()`添加映射，最后通过`run_app()`以asyncio的机制启动整个处理流程。
+
 ### Dash Plotly
 
 Dash 是一个基于 Python 的开源框架，专门用于构建数据分析和数据可视化的 Web 应用程序。Dash 由 Plotly 团队开发，旨在帮助数据分析师、数据科学家和开发人员快速创建交互式的、基于数据的 Web 应用，而无需深入掌握前端技术（如 HTML、CSS 和 JavaScript）。Dash 的核心优势在于其简单易用性和强大的功能。通过 Dash，用户可以使用纯 Python 代码来构建复杂的 Web 应用，而无需编写繁琐的前端代码。Dash 应用通常由两个主要部分组成：**布局**和**交互性**。Dash 是它结合了 Flask 的后端能力、Plotly.js 的可视化能力以及 React.js 的交互能力，为用户提供了一个简单而强大的开发平台。
@@ -2772,63 +4548,1615 @@ app.layout = dbc.Container(
 
 ### Gevent
 
+#### Greenlets
+
+gevent中使用的主要模式是 Greenlet，这是作为C扩展模块提供给 Python 的一个轻量级协同程序。所有 greenlet 都在主程序的 OS 进程中运行，但它们是协同调度的。
+
+操作系统在任何给定的时间内，只有一个greenlet在运行。
+
+这不同于由 multiprocessing 或 threading 库提供的并行结构，它们这些库可以自旋进程和POSIX线程，由操作系统调度，并且真正并行的。
+
+#### 异步和同步执行
+
+并发性的核心思想是，可以将较大的任务分解为多个子任务的集合，这些子任务计划同时或异步运行，而不是一次或同步运行。两个子任务之间的切换称为上下文切换。
+
+**深入探索**
+
+编程
+
+OS
+
+软件
+
+gevent中的上下文切换是通过 yielding 来完成的。在本例中，我们有两个上下文，它们通过调用 gevent.sleep(0) 相互让步。
+
+```
+import geventdef foo():    print('Running in foo')    gevent.sleep(0)    print('Explicit context switch to foo again')def bar():    print('Explicit context to bar')    gevent.sleep(0)    print('Implicit context switch back to bar')gevent.joinall([    gevent.spawn(foo),    gevent.spawn(bar),])
+Running in fooExplicit context to barExplicit context switch to foo againImplicit context switch back to bar
+```
+
+当我们将 gevent 用于网络和 IO 绑定函数时，它的真正威力就来了，这些函数可以协同调度。Gevent 负责处理所有细节，以确保网络库尽可能隐式地让步出它们的 greenlet 上下文。我再怎么强调这是一个多么有力的成语也不为过。但也许可以举个例子来说明。
+
+在这种情况下，select() 函数通常是一个阻塞调用，它轮询各种文件描述符。
+
+```
+import timeimport geventfrom gevent import selectstart = time.time()tic = lambda: 'at %1.1f seconds' % (time.time() - start)def gr1():    # Busy waits for a second, but we don't want to stick around...    print('Started Polling: %s' % tic())    select.select([], [], [], 2)                     # 可以理解成一个 IO 阻塞的操作，阻塞了2秒，这时 Greenlet 会自动切换到 gr2() 上下文执行     print('Ended Polling: %s' % tic())def gr2():    # Busy waits for a second, but we don't want to stick around...    print('Started Polling: %s' % tic())    select.select([], [], [], 2)    print('Ended Polling: %s' % tic())def gr3():    print("Hey lets do some stuff while the greenlets poll, %s" % tic())    gevent.sleep(1)    # 让当前 Greenlet 休眠1秒，上面 gr1() gr2() 阻塞操作完成后，再切换到 gr1() gr2() 的上下文执行gevent.joinall([    gevent.spawn(gr1),    gevent.spawn(gr2),    gevent.spawn(gr3),])
+Started Polling: at 0.0 secondsStarted Polling: at 0.0 secondsHey lets do some stuff while the greenlets poll, at 0.0 secondsEnded Polling: at 2.0 secondsEnded Polling: at 2.0 seconds
+```
+
+另一个比较综合的例子定义了一个不确定的任务函数 (它的输出不能保证对相同的输入给出相同的结果) 。在这种情况下，运行该函数的副作用是任务暂停执行的时间是随机的。
+
+计算机科学
 
 
-### AIOHTTP
+
+```
+import geventimport randomdef task(pid):    """    Some non-deterministic task    """    gevent.sleep(random.randint(0,2)*0.001)    print('Task %s done' % pid)def synchronous():    for i in range(1,10):        task(i)def asynchronous():    threads = [gevent.spawn(task, i) for i in xrange(10)]    gevent.joinall(threads)print('Synchronous:')synchronous()print('Asynchronous:')asynchronous()
+Synchronous:Task 1 doneTask 2 doneTask 3 doneTask 4 doneTask 5 doneTask 6 doneTask 7 doneTask 8 doneTask 9 doneAsynchronous:Task 1 doneTask 5 doneTask 6 doneTask 2 doneTask 4 doneTask 7 doneTask 8 doneTask 9 doneTask 0 doneTask 3 done
+```
+
+在同步情况下，所有任务都是按顺序运行的，这会导致在执行每个任务时主程序阻塞(即暂停主程序的执行)。
+
+操作系统
 
 
 
-### Tornado
+程序的重要部分是 gevent.spawn，它将给定的函数封装在一个 Greenlet 线程中。初始化的 greenlet 列表存储在传递给 gevent 的数组线程中。gevent.joinall 函数，它会阻塞当前程序，来运行所有给定的 greenlet。只有当所有 greenlet 终止时，执行才会继续进行。
+
+需要注意的是，异步情况下的执行顺序本质上是随机的，异步情况下的总执行时间比同步情况下少得多。实际上，同步的例子完成的最大时间是每个任务停顿0.002秒，导致整个队列停顿0.02秒。在异步情况下，最大运行时间大约为0.002秒，因为没有一个任务会阻塞其他任务的执行。
+
+在更常见的用例中，异步地从服务器获取数据，fetch() 的运行时在请求之间会有所不同，这取决于请求时远程服务器上的负载。
+
+```
+import gevent.monkeygevent.monkey.patch_socket()# 把内置的阻塞的 socket替换成非阻塞的socketimport geventimport urllib2import simplejson as jsondef fetch(pid):    response = urllib2.urlopen('http://json-time.appspot.com/time.json')    result = response.read()    json_result = json.loads(result)    datetime = json_result['datetime']    print('Process %s: %s' % (pid, datetime))    return json_result['datetime']def synchronous():    for i in range(1,10):        fetch(i)def asynchronous():    threads = []    for i in range(1,10):        threads.append(gevent.spawn(fetch, i))    gevent.joinall(threads)print('Synchronous:')synchronous()print('Asynchronous:')asynchronous()
+```
+
+#### 确定性
+
+如前所述，greenlet 是确定的。给定相同的 greenlet 配置和相同的输入集，它们总是产生相同的输出。例如，让我们将一个任务分散到一个多进程（multiprocessing）池中，并将其结果与一个gevent池的结果进行比较。
+
+Linux 与 Unix
 
 
 
-### FastAPI
+```
+import timedef echo(i):    time.sleep(0.001)    return i# Non Deterministic Process Poolfrom multiprocessing.pool import Poolp = Pool(10)run1 = [a for a in p.imap_unordered(echo, xrange(10))]          # imap_unordered 返回一个顺序随机的 iterable 对象run2 = [a for a in p.imap_unordered(echo, xrange(10))]run3 = [a for a in p.imap_unordered(echo, xrange(10))]run4 = [a for a in p.imap_unordered(echo, xrange(10))]print(run1 == run2 == run3 == run4)# Deterministic Gevent Poolfrom gevent.pool import Poolp = Pool(10)run1 = [a for a in p.imap_unordered(echo, xrange(10))]      # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]run2 = [a for a in p.imap_unordered(echo, xrange(10))]      # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]run3 = [a for a in p.imap_unordered(echo, xrange(10))]      # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]run4 = [a for a in p.imap_unordered(echo, xrange(10))]      # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]print(run1 == run2 == run3 == run4)
+FalseTrue
+```
+
+尽管 gevent 通常是确定的，但当您开始与外部服务(如 socket 和文件)进行交互时，非确定性的来源可能会潜入您的程序。因此，即使 green 线程是确定性并发的一种形式，它们仍然会遇到POSIX线程和进程遇到的一些相同的问题。
+
+操作系统
 
 
 
-### Django
+与并发有关的长期问题称为竞争条件。简而言之，当两个并发线程/进程依赖于某些共享资源但还试图修改该值时，就会发生竞争状态。这将导致资源的值变得依赖于执行顺序。这是一个问题，一般来说，应该尽量避免竞态条件，因为它们会导致全局的不确定程序行为。
+
+最好的方法是在任何时候都避免所有全局状态。全局状态和导入时间的副作用总是会回来咬你一口
+
+#### 生成 Greenlets
+
+gevent提供了一些关于Greenlet初始化的包装器。一些最常见的模式是：
+
+```
+import geventfrom gevent import Greenletdef foo(message, n):    """    Each thread will be passed the message, and n arguments    in its initialization.    """    gevent.sleep(n)    print(message)# Initialize a new Greenlet instance running the named function# foothread1 = Greenlet.spawn(foo, "Hello", 1)# Wrapper for creating and running a new Greenlet from the named# function foo, with the passed argumentsthread2 = gevent.spawn(foo, "I live!", 2)# Lambda expressionsthread3 = gevent.spawn(lambda x: (x+1), 2)threads = [thread1, thread2, thread3]# Block until all threads complete.gevent.joinall(threads)
+HelloI live!
+```
+
+除了使用基本的Greenlet类，您还可以子类化 Greenlet 类并覆盖 _run 方法。
+
+Linux 与 Unix
 
 
 
-### Flask
+```
+import geventfrom gevent import Greenletclass MyGreenlet(Greenlet):    def __init__(self, message, n):        Greenlet.__init__(self)        self.message = message        self.n = n    def _run(self):        print(self.message)        gevent.sleep(self.n)g = MyGreenlet("Hi there!", 3)g.start()g.join()
+Hi there!
+```
+
+#### Greenlets 状态
+
+与代码的其他部分一样，greenlet可能以各种方式失败。greenlet可能无法抛出异常、无法停止或消耗太多系统资源。
+
+greenlet 的内部状态通常是一个与时间相关的参数。在greenlets上有许多标志，它们允许您监视线程的状态：
+
+started — 布尔值，指示Greenlet是否已启动
+
+ready() — 布尔值，指示Greenlet是否已停止
+
+successful() — 布尔值，指示Greenlet是否已停止且没有抛出异常
+
+value — Greenlet返回的值
+
+exception — 异常，在greenlet中抛出的未捕获异常实例
+
+```
+import geventdef win():    return 'You win!'def fail():    raise Exception('You fail at failing.')winner = gevent.spawn(win)loser = gevent.spawn(fail)print(winner.started) # Trueprint(loser.started)  # True# Exceptions raised in the Greenlet, stay inside the Greenlet.try:    gevent.joinall([winner, loser])except Exception as e:    print('This will never be reached')print(winner.value) # 'You win!'print(loser.value)  # Noneprint(winner.ready()) # Trueprint(loser.ready())  # Trueprint(winner.successful()) # Trueprint(loser.successful())  # False# The exception raised in fail, will not propagate outside the# greenlet. A stack trace will be printed to stdout but it# will not unwind the stack of the parent.print(loser.exception)# It is possible though to raise the exception again outside# raise loser.exception# or with# loser.get()
+TrueTrueYou win!NoneTrueTrueTrueFalseYou fail at failing.
+```
+
+#### 程序关闭
+
+当主程序接收到SIGQUIT时，无法生成（yield）的 greenlet 可能会使程序的执行时间比预期的更长。这将导致所谓的“僵尸进程”，需要从 Python 解释器外部杀死这些进程。
+
+操作系统
 
 
+
+一种常见的模式是监听主程序上的SIGQUIT事件并在退出前调用 gevent.shutdown 。
+
+```
+import geventimport signaldef run_forever():    gevent.sleep(1000)if __name__ == '__main__':    gevent.signal(signal.SIGQUIT, gevent.kill)    thread = gevent.spawn(run_forever)    thread.join()
+```
+
+#### 超时
+
+超时是对代码块或Greenlet的运行时的约束。
+
+```
+import geventfrom gevent import Timeoutseconds = 10timeout = Timeout(seconds)timeout.start()def wait():    gevent.sleep(10)try:    gevent.spawn(wait).join()except Timeout:    print('Could not complete')
+```
+
+在with语句中，它们还可以与上下文管理器一起使用。
+
+脚本语言
+
+
+
+```
+import geventfrom gevent import Timeouttime_to_wait = 5 # secondsclass TooLong(Exception):    passwith Timeout(time_to_wait, TooLong):    gevent.sleep(10)
+```
+
+此外，gevent 还为各种 Greenlet 和数据结构相关的调用提供超时参数。例如：
+
+```
+import geventfrom gevent import Timeoutdef wait():    gevent.sleep(2)timer = Timeout(1).start()thread1 = gevent.spawn(wait)try:    thread1.join(timeout=timer)except Timeout:    print('Thread 1 timed out')# --timer = Timeout.start_new(1)thread2 = gevent.spawn(wait)try:    thread2.get(timeout=timer)except Timeout:    print('Thread 2 timed out')# --try:    gevent.with_timeout(1, wait)except Timeout:    print('Thread 3 timed out')
+Thread 1 timed outThread 2 timed outThread 3 timed out
+```
+
+#### 猴子补丁
+
+我们来到了Gevent的黑暗角落。到目前为止，我一直避免提到monkey patching，以尝试和激发强大的协同模式，但是现在是讨论monkey patching的黑魔法的时候了。 如果您注意到上面我们调用了命令 monkey.patch_socket()，这是一个纯粹用于修改标准库套接字库(socket)的副作用命令。
+
+计算机科学
+
+
+
+```
+import socketprint(socket.socket)print("After monkey patch")from gevent import monkeymonkey.patch_socket()print(socket.socket)import selectprint(select.select)monkey.patch_select()print("After monkey patch")print(select.select)
+class 'socket.socket'After monkey patchclass 'gevent.socket.socket'built-in function selectAfter monkey patchfunction select at 0x1924de8
+```
+
+Python 允许在运行时修改大多数对象，包括模块、类甚至函数。这通常是一个令人震惊的坏主意，因为它创建了一个“隐式副作用”，如果出现问题，通常非常难以调试，然而在极端情况下，库需要改变Python本身的基本行为，可以使用monkey补丁。在这种情况下，gevent能够修补标准库中的大多数阻塞系统调用，包括 socket、ssl、threading 和 select 模块中的调用。
+
+脚本语言
+
+
+
+例如，Redis-python 的绑定通常使用常规tcp socket与Redis-server实例通信。只需调用gevent.monkey.patch_all()，我们可以让redis绑定协同调度请求，并与gevent堆栈的其他部分一起工作。
+
+这让我们可以在不编写任何代码的情况下集成通常无法与gevent一起工作的库。（尽管猴子补丁仍然是邪恶的，但在这种情况下，它是“有用的邪恶”。）
+
+#### 数据结构
+
+##### 事件
+
+事件是greenlet之间异步通信的一种形式。
+
+```
+import geventfrom gevent.event import Event'''Illustrates the use of events'''evt = Event()def setter():    '''After 3 seconds, wake all threads waiting on the value of evt'''    print('A: Hey wait for me, I have to do something')    gevent.sleep(3)    print("Ok, I'm done")    evt.set()   # 运行到evt.set()会将flag设置为True，然后另外两个被阻塞的waitter的evt.wait()方法在看到flag已经为True之后不再继续阻塞运行并且结束。def waiter():    '''After 3 seconds the get call will unblock'''    print("I'll wait for you")    evt.wait()  # blocking    print("It's about time")def main():    gevent.joinall([        gevent.spawn(setter),        gevent.spawn(waiter),        gevent.spawn(waiter),        gevent.spawn(waiter),        gevent.spawn(waiter),        gevent.spawn(waiter)    ])if __name__ == '__main__': main()
+```
+
+事件对象的扩展是 AsyncResult，它允许您在唤醒调用时发送一个值。这有时被称为future或deferred，因为它有对 future 值的引用，可以在任意的时间设置该值。
+
+计算机科学
+
+
+
+```
+import geventfrom gevent.event import AsyncResulta = AsyncResult()def setter():    """    After 3 seconds set the result of a.    """    gevent.sleep(3)    a.set('Hello!')def waiter():    """    After 3 seconds the get call will unblock after the setter    puts a value into the AsyncResult.    """    print(a.get())gevent.joinall([    gevent.spawn(setter),    gevent.spawn(waiter),])
+```
+
+##### 队列
+
+队列是按顺序排列的数据集，它们具有通常的 put / get 操作，但可以在Greenlets上安全操作的方式编写。
+
+脚本语言
+
+
+
+例如，如果一个Greenlet从队列中获取一个项目(item)，则同一项目(item)不会被同时执行的另一个Greenlet获取。
+
+```
+import geventfrom gevent.queue import Queuetasks = Queue()def worker(n):    while not tasks.empty():        task = tasks.get()        print('Worker %s got task %s' % (n, task))        gevent.sleep(0)    print('Quitting time!')def boss():    for i in xrange(1,25):        tasks.put_nowait(i)gevent.spawn(boss).join()gevent.joinall([    gevent.spawn(worker, 'steve'),    gevent.spawn(worker, 'john'),    gevent.spawn(worker, 'nancy'),])
+Worker steve got task 1Worker john got task 2Worker nancy got task 3Worker steve got task 4Worker john got task 5Worker nancy got task 6Worker steve got task 7Worker john got task 8Worker nancy got task 9Worker steve got task 10Worker john got task 11Worker nancy got task 12Worker steve got task 13Worker john got task 14Worker nancy got task 15Worker steve got task 16Worker john got task 17Worker nancy got task 18Worker steve got task 19Worker john got task 20Worker nancy got task 21Worker steve got task 22Worker john got task 23Worker nancy got task 24Quitting time!Quitting time!Quitting time!
+```
+
+根据需要，队列还可以在put或get上阻塞。
+
+每个put和get操作都有一个非阻塞的对应操作，put_nowait 和 get_nowait 不会阻塞。如果操作是不可能的，会引发 gevent.queue.Empty 或 gevent.queue.Full
+
+在这个例子中，我们让boss同时和workers运行，并且对队列有一个限制，防止它包含三个以上的元素。这个限制意味着put操作将阻塞，直到队列上有空间为止。相反，如果队列上没有要获取的元素，get操作就会阻塞，它还会接受一个超时参数，如果在超时的时间范围内找不到工作(work)，则允许队列以异常 gevent.queue.Empty 退出。
+
+```
+import geventfrom gevent.queue import Queue, Emptytasks = Queue(maxsize=3)def worker(name):    try:        while True:            task = tasks.get(timeout=1) # decrements queue size by 1            print('Worker %s got task %s' % (name, task))            gevent.sleep(0)    except Empty:        print('Quitting time!')def boss():    """    Boss will wait to hand out work until a individual worker is    free since the maxsize of the task queue is 3.    """    for i in xrange(1,10):        tasks.put(i)                            # 输入1，2，3，到4时，队列达到最大值，put方法阻塞，gevent 切换到下一个协程worker（steve）    print('Assigned all work in iteration 1')    for i in xrange(10,20):        tasks.put(i)    print('Assigned all work in iteration 2')gevent.joinall([    gevent.spawn(boss),    gevent.spawn(worker, 'steve'),    gevent.spawn(worker, 'john'),    gevent.spawn(worker, 'bob'),])
+Worker steve got task 1Worker john got task 2Worker bob got task 3Worker steve got task 4Worker john got task 5Worker bob got task 6Assigned all work in iteration 1Worker steve got task 7Worker john got task 8Worker bob got task 9Worker steve got task 10Worker john got task 11Worker bob got task 12Worker steve got task 13Worker john got task 14Worker bob got task 15Worker steve got task 16Worker john got task 17Worker bob got task 18Assigned all work in iteration 2Worker steve got task 19Quitting time!Quitting time!Quitting time!
+```
+
+##### 分组和池
+
+组是运行中的greenlet的集合，这些greenlet作为组一起管理和调度。它还兼做并行调度程序，借鉴 Python multiprocessing 库。
+
+脚本语言
+
+
+
+```
+import geventfrom gevent.pool import Groupdef talk(msg):    for i in xrange(3):        print(msg)g1 = gevent.spawn(talk, 'bar')g2 = gevent.spawn(talk, 'foo')         g3 = gevent.spawn(talk, 'fizz')  group = Group()group.add(g1)                           group.join()                      # 修改了官方的例子，这里join只会让当前线程等待g1，但g2和g3已经被启动，会被继续安排执行
+barbarbarfoofoofoofizzfizzfizz
+```
+
+这对于管理异步任务组非常有用。
+
+计算机科学
+
+
+
+如上所述，Group还提供了一个API，用于将作业分派给分组的greenlet并以各种方式收集它们的结果。
+
+```
+import geventfrom gevent import getcurrentfrom gevent.pool import Groupgroup = Group()def hello_from(n):    print('Size of group %s' % len(group))    print('Hello from Greenlet %s' % id(getcurrent()))group.map(hello_from, xrange(3))def intensive(n):    gevent.sleep(3 - n)    return 'task', nprint('Ordered')ogroup = Group()for i in ogroup.imap(intensive, xrange(3)):    print(i)print('Unordered')igroup = Group()for i in igroup.imap_unordered(intensive, xrange(3)):    print(i)
+Size of group 3Hello from Greenlet 4340152592Size of group 3Hello from Greenlet 4340928912Size of group 3Hello from Greenlet 4340928592Ordered('task', 0)('task', 1)('task', 2)Unordered('task', 2)('task', 1)('task', 0)
+```
+
+池是一种结构，用于处理需要限制并发的动态数量的greenlets。在需要并行执行许多网络或IO绑定任务的情况下，这通常是可取的。
+
+```
+import geventfrom gevent.pool import Poolpool = Pool(2)def hello_from(n):    print('Size of pool %s' % len(pool))pool.map(hello_from, xrange(3))
+Size of pool 2Size of pool 2Size of pool 1
+```
+
+通常在构建gevent驱动的服务时，会将整个服务围绕一个池结构进行中心处理。一个例子可能是在各种套接字（socket）上轮询的类。
+
+```
+from gevent.pool import Poolclass SocketPool(object):    def __init__(self):        self.pool = Pool(1000)        self.pool.start()    def listen(self, socket):        while True:            socket.recv()    def add_handler(self, socket):        if self.pool.full():            raise Exception("At maximum pool size")        else:            self.pool.spawn(self.listen, socket)    def shutdown(self):        self.pool.kill()
+```
+
+##### 锁和信号量
+
+信号量是一种低级同步原语，它允许greenlet协调和限制并发访问或执行。信号量公开两种方法，获取和释放信号量被获取和释放的次数之差称为信号量的界限。如果信号量范围达到0，它就会阻塞，直到另一个greenlet释放它的捕获。
+
+```
+from gevent import sleepfrom gevent.pool import Poolfrom gevent.coros import BoundedSemaphoresem = BoundedSemaphore(2)def worker1(n):    sem.acquire()    print('Worker %i acquired semaphore' % n)    sleep(0)    sem.release()    print('Worker %i released semaphore' % n)def worker2(n):    with sem:        print('Worker %i acquired semaphore' % n)        sleep(0)    print('Worker %i released semaphore' % n)pool = Pool()pool.map(worker1, xrange(0,2))pool.map(worker2, xrange(3,6))
+Worker 0 acquired semaphoreWorker 1 acquired semaphoreWorker 0 released semaphoreWorker 1 released semaphoreWorker 3 acquired semaphoreWorker 4 acquired semaphoreWorker 3 released semaphoreWorker 4 released semaphoreWorker 5 acquired semaphoreWorker 5 released semaphore
+```
+
+界限为1的信号量称为锁。它提供对一个greenlet的独占执行。它们通常用于确保资源只在程序上下文中使用一次。
 
 ## Python项目管理
 
-### 包管理
+### 包管理与环境管理
 
 #### Pip
 
+pip 是 Python 包管理工具，该工具提供了对Python 包的查找、下载、安装、卸载的功能。目前如果你在 [python.org](https://www.python.org/) 下载最新版本的安装包，则是已经自带了该工具。
+
+你可以通过以下命令来判断是否已安装：
+
+```
+pip --version     # Python2.x 版本命令
+pip3 --version    # Python3.x 版本命令
+```
+
+如果你还未安装，则可以使用以下方法来安装：
+
+```
+$ curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py   # 下载安装脚本
+$ sudo python get-pip.py    # 运行安装脚本
+```
+
+> **注意：**用哪个版本的 Python 运行安装脚本，pip 就被关联到哪个版本，如果是 Python3 则执行以下命令：
+>
+> ```
+> $ sudo python3 get-pip.py    # 运行安装脚本。
+> ```
+>
+> 一般情况 pip 对应的是 Python 2.7，pip3 对应的是 Python 3.x。
+
+部分 Linux 发行版可直接用包管理器安装 pip，如 Debian 和 Ubuntu：
+
+```
+sudo apt-get install python-pip
+```
+
+##### pip 最常用命令
+
+**显示版本和路径**
+
+```
+pip --version
+```
+
+**获取帮助**
+
+```
+pip --help
+```
+
+**升级 pip**
+
+```
+pip install -U pip
+```
+
+> 如果这个升级命令出现问题 ，可以使用以下命令：
+>
+> ```
+> sudo easy_install --upgrade pip
+> ```
+
+**安装包**
+
+```
+pip install SomePackage              # 最新版本
+pip install SomePackage==1.0.4       # 指定版本
+pip install 'SomePackage>=1.0.4'     # 最小版本
+```
+
+比如我要安装 Django。用以下的一条命令就可以，方便快捷。
+
+```
+pip install Django==1.7
+```
+
+**升级包**
+
+```
+pip install --upgrade SomePackage
+```
+
+升级指定的包，通过使用==, >=, <=, >, < 来指定一个版本号。
+
+**卸载包**
+
+```
+pip uninstall SomePackage
+```
+
+**搜索包**
+
+```
+pip search SomePackage
+```
+
+**显示安装包信息**
+
+```
+pip show 
+```
+
+**查看指定包的详细信息**
+
+```
+pip show -f SomePackage
+```
+
+**列出已安装的包**
+
+```
+pip list
+```
+
+**查看可升级的包**
+
+```
+pip list -o
+```
+
+##### pip 升级
+
+**Linux 或 macOS**
+
+```
+pip install --upgrade pip    # python2.x
+pip3 install --upgrade pip   # python3.x
+```
+
+**Windows 平台升级：**
+
+```
+python -m pip install -U pip   # python2.x
+python -m pip3 install -U pip    # python3.x
+```
+
+##### pip 清华大学开源软件镜像站
+
+使用国内镜像速度会快很多：
+
+临时使用：
+
+```
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple some-package
+```
+
+例如，安装 Django：
+
+```
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple Django
+```
+
+如果要设为默认需要升级 pip 到最新的版本 (>=10.0.0) 后进行配置：
+
+```
+pip install pip -U
+pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
+如果您到 pip 默认源的网络连接较差，临时使用本镜像站来升级 pip：
+
+```
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pip -U
+```
+
 #### UV
+
+uv 是由 Astral 公司开发的一款 Rust 编写的 Python 包管理器和环境管理器，它的主要目标是提供比现有工具快 10-100 倍的性能，同时保持简单直观的用户体验。uv 可以替代 pip、virtualenv、pip-tools 等工具，提供依赖管理、虚拟环境创建、Python 版本管理等一站式服务。
+
+##### 安装 uv
+
+**在 Linux 上安装**
+
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**在 Windows 上安装**
+
+使用 Winget：
+
+```
+winget install uv
+```
+
+或者使用官方安装脚本：
+
+```
+irm https://astral.sh/uv/install.ps1 | iex
+```
+
+安装完成后，验证安装是否成功：
+
+```
+uv --version
+```
+
+输出内容类似如下，表明安装成功：
+
+```
+uv 0.8.14 (Homebrew 2025-08-28)
+```
+
+------
+
+##### 基本使用指南
+
+**管理 Python 版本**
+
+uv 可以轻松管理多个 Python 版本，无需额外安装 pyenv 等工具。
+
+查看可用的 Python 版本：
+
+```
+uv python list
+```
+
+输出结果类似如下：
+
+```
+cpython-3.14.0rc2-macos-aarch64-none                 <download available>
+cpython-3.14.0rc2+freethreaded-macos-aarch64-none    <download available>
+cpython-3.13.7-macos-aarch64-none                    <download available>
+cpython-3.13.7+freethreaded-macos-aarch64-none       <download available>
+cpython-3.12.11-macos-aarch64-none                   <download available>
+cpython-3.11.13-macos-aarch64-none                   <download available>
+cpython-3.10.18-macos-aarch64-none                   <download available>
+cpython-3.9.23-macos-aarch64-none                    <download available>
+cpython-3.9.6-macos-aarch64-none                     /usr/bin/python3
+cpython-3.8.20-macos-aarch64-none                    <download available>
+pypy-3.11.13-macos-aarch64-none                      <download available>
+```
+
+安装特定版本的 Python：
+
+```
+# 安装最新的 Python 3.12
+uv python install 3.12
+
+# 安装特定版本
+uv python install 3.11.6
+
+# 安装 PyPy 版本
+uv python install pypy3.10
+```
+
+设置全局默认 Python 版本：
+
+```
+uv python default 3.12
+```
+
+**管理虚拟环境**
+
+创建并激活虚拟环境：
+
+```
+# 创建名为 .venv 的虚拟环境（默认）
+uv venv
+
+# 激活环境（macOS/Linux）
+source .venv/bin/activate
+
+# 激活环境（Windows）
+.venv\Scripts\activate
+```
+
+在项目中指定 Python 版本：
+
+```
+# 为当前项目固定 Python 3.11
+uv python pin 3.11
+```
+
+这会创建 .python-version 文件，标识项目所需的 Python 版本。
+
+**包管理**
+
+安装包：
+
+```
+# 安装最新版本
+uv pip install requests
+
+# 安装特定版本
+uv pip install requests==2.31.0
+
+# 从 requirements.txt 安装
+uv pip install -r requirements.txt
+```
+
+安装包到开发环境：
+
+```
+uv pip install --dev pytest
+```
+
+升级包：
+
+```
+uv pip upgrade requests
+```
+
+卸载包：
+
+```
+uv pip uninstall requests
+```
+
+导出依赖：
+
+```
+# 导出当前环境的依赖
+uv pip freeze > requirements.txt
+
+# 导出生产环境依赖（排除开发依赖）
+uv pip freeze --production > requirements.txt
+```
+
+**项目管理**
+
+uv 支持 pyproject.toml 格式的项目管理，这是现代 Python 项目的标准配置文件。
+
+初始化一个新项目：
+
+```
+uv init my_project
+cd my_project
+```
+
+这会创建基本的项目结构和 pyproject.toml 文件。
+
+安装项目的依赖：
+
+```
+uv sync
+```
+
+这个命令会根据 pyproject.toml 和 requirements.txt 安装所有依赖，类似于 **pip install -e .** 但更高效。
+
+> **说明：**
+>
+> uv sync 是一个依赖管理命令，它的作用类似于您可能更熟悉的 pip install -r requirements.txt，但更快、更强大、更可靠。
+>
+> 您可以把它理解为："一键安装这个项目正常运行所需的所有第三方软件包（依赖库）"。
+>
+> uv sync 如果安装太慢，可以设置国内镜像源 https://pypi.tuna.tsinghua.edu.cn/simple：
+>
+> 在项目根目录的 pyproject.toml 文件 [tool.uv] 处设置 index-url：
+>
+> ```
+> [tool.uv]
+> index-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+> ```
+
+##### uv 的优势
+
+- 速度极快：由于使用 Rust 编写，uv 的性能远超 pip 和其他包管理工具，安装依赖的速度可以提升 10-100 倍。
+- 功能集成：集成语法分析、依赖解析、包安装、环境管理和 Python 版本管理于一体，无需再安装和学习多个工具。
+- 确定性构建：uv 会生成 uv.lock 文件，确保在任何环境中都能安装完全相同的依赖版本，避免 "在我机器上能运行" 的问题。
+- 与现有工具兼容：uv 可以处理 requirements.txt 和 pyproject.toml，可以无缝替代现有工作流中的 pip。
+
+##### 迁移到 uv
+
+如果你正在使用其他工具，可以轻松迁移到 uv：对于使用 pip + virtualenv 的项目：
+
+```
+# 创建并激活 uv 虚拟环境
+uv venv
+source .venv/bin/activate
+
+# 安装依赖
+uv pip install -r requirements.txt
+```
+
+对于使用 pip-tools 的项目：
+
+```
+uv pip compile requirements.in -o requirements.txt
+uv pip sync
+```
+
+对于使用 poetry 或 pdm 的项目：
+
+```
+# 直接使用现有的 pyproject.toml
+uv sync
+```
 
 #### Conda
 
-### 环境管理
+Anaconda 是一个数据科学和机器学习的软件套装，它包含了许多工具和库，让您能够更轻松地进行编程、分析数据和构建机器学习模型。Anaconda 包及其依赖项和环境的管理工具为 **conda** 命令，文章后面部分会详细介绍。与传统的 **Python pip** 工具相比 Anaconda 的**conda** 可以更方便地在不同环境之间进行切换，环境管理较为简单。除了界面操作，我们还可以在命令行使用 conda 来管理不同环境。**conda** 是 Anaconda 发行版中的包管理器，用于安装、更新、卸载软件包，以及创建和管理不同的 Python 环境。
 
-#### Pipenv
+以下是一些常用的Conda命令及其简要介绍：
 
-#### Pyenv
+**环境管理**
+
+**创建一个名为 "myenv" 的新环境:**
+
+```
+conda create --name myenv
+```
+
+**创建指定版本的环境**：
+
+```
+conda create --name myenv python=3.8
+```
+
+以上代码创建一个名为 "myenv" 的新环境，并指定 Python 版本为 3.8。
+
+**激活环境：**
+
+```
+conda activate myenv
+```
+
+以上代码激活名为 "myenv" 的环境。
+
+**要退出当前环境使用以下命令：**
+
+```
+deactivate
+```
+
+**查看所有环境：**
+
+```
+conda env list
+```
+
+以上代码查看所有已创建的环境。
+
+**复制环境：**
+
+```
+conda create --name myclone --clone myenv
+```
+
+以上代码通过克隆已有环境创建新环境。
+
+**删除环境：**
+
+```
+conda env remove --name myenv
+```
+
+以上代码删除名为 "myenv" 的环境。
+
+**包管理**
+
+**安装包：**
+
+```
+conda install package_name
+```
+
+以上代码安装名为 "package_name" 的软件包。
+
+**安装指定版本的包：**
+
+```
+conda install package_name=1.2.3
+```
+
+以上代码安装 "package_name" 的指定版本。
+
+**更新包：**
+
+```
+conda update package_name
+```
+
+以上代码更新已安装的软件包。
+
+**卸载包：**
+
+```
+conda remove package_name
+```
+
+以上代码卸载已安装的软件包。
+
+**查看已安装的包：**
+
+```
+conda list
+```
+
+查看当前环境下已安装的所有软件包及其版本。
+
+**其他常用命令**
+
+**查看帮助：**
+
+```
+conda --help
+```
+
+以上代码获取 conda 命令的帮助信息。
+
+**查看 conda 版本：**
+
+```
+conda --version
+```
+
+以上代码查看安装的 conda 版本。
+
+**搜索包：**
+
+```
+conda search package_name
+```
+
+以上代码在 conda 仓库中搜索指定的软件包。
+
+**清理不再需要的包：**
+
+```
+conda clean --all
+```
+
+以上代码清理 conda 缓存，删除不再需要的软件包。
+
+**安装 Jupyter Notebook：**
+
+```
+conda install jupyter
+```
+
+以上代码安装 Jupyter Notebook。
+
+**启动 Jupyter Notebook：**
+
+```
+jupyter notebook
+```
+
+以上代码在已激活的环境中启动 Jupyter Notebook。
+
+#### venv
+
+Python 虚拟环境（Virtual Environment）是一个独立的 Python 运行环境，它允许你在同一台机器上为不同的项目创建隔离的 Python 环境。每个虚拟环境都有自己的：Python 解释器、安装的包/库、环境变量。从机制上看，虚拟环境主要改变的是 Python 的包搜索路径，让 `site-packages` 指向项目自己的目录，同时提供一组指向特定解释器的可执行入口。工程上把依赖显式写进项目配置并锁定版本，才能保证 CI、同事、本地和线上在同一套依赖集合上运行，问题才可复现。
+
+Python 有相当多的虚拟环境管理工具，比如 uv ，venv，conda等等。这里我们以venv这种轻量级管理工具做虚拟环境设置，Python 3.3+ 内置了 `venv` 模块，无需额外安装。
+
+```python
+# 虚拟环境
+## 创建虚拟环境 
+## 表示启动venv模块创建一个 env_name 的虚拟环境
+python3 -m venv env_name
+## 激活虚拟环境
+.venv\Scripts\activate # Windows
+source .venv/bin/activate # Linux
+## 激活成功后会出现环境名 
+(.venv) $
+## 退出虚拟环境
+deactivate
+## 删除虚拟环境 删除对应目录即可
+rm -rf .venv  # Linux/macOS
+del /s /q .venv  # Windows (命令提示符)
+
+# 版本与依赖管理
+python3.8 -m venv .venv  # 使用 Python 3.8
+python -m venv --without-pip env_name # 创建不带pip的虚拟环境
+python -m venv --system-site-packages env_name # 创建继承系统包的虚拟环境
+```
 
 ### 配置管理
 
 #### pyproject.toml
 
+Python从[PEP 518](https://link.zhihu.com/?target=https%3A//peps.python.org/pep-0518/)开始引入的使用pyproject.toml管理项目元数据的方案。
+
+该规范目前已经在很多开源项目中得以支持：
+
+- [Django](https://zhida.zhihu.com/search?content_id=236166208&content_type=Article&match_order=1&q=Django&zhida_source=entity) 这个 Python 生态的顶级项目在 5 个月之前开始使用 pyproject.toml
+
+- [Pytest](https://zhida.zhihu.com/search?content_id=236166208&content_type=Article&match_order=1&q=Pytest&zhida_source=entity) 这个 Python 生态测试框架的领头羊在 4 个月之前开始使用 pyproject.toml
+
+- [SciPy](https://zhida.zhihu.com/search?content_id=236166208&content_type=Article&match_order=1&q=SciPy&zhida_source=entity) 这机器学习的库也在 3 周前切到了 pyproject.toml
+
+- [poetry](https://zhida.zhihu.com/search?content_id=236166208&content_type=Article&match_order=1&q=poetry&zhida_source=entity)包管理可以直拉生成toml文件
+
+##### 工程结构
+
+[PyPI](https://zhida.zhihu.com/search?content_id=236166208&content_type=Article&match_order=1&q=PyPI&zhida_source=entity) 的旧时代的因为规范太松散了，每个项目的结构都五花八门。现在好了，pyproject.toml 它在 Python 项目的结构上都有一个推荐风式了。假设我们软件包的名字是 npts ，那么整个项目的目录结构在推荐的风格下看起来应该像这样。
+
+假设我们软件包的名字是 npts ，那么整个项目的目录结构在推荐的风格下看起来应该像这样。
+
+```text
+tree ./ ./ 
+├── LICENSE 
+├── README.md 
+├── pyproject.toml 
+├── src 
+│ └── npts # src 下面是包名，包下面是业务代码 
+│      ├── __init__.py 
+|      └── core.py 
+└── tests 3 directories, 5 files
+```
+
+> 3 directories, 5 files
+
+简单地在 src/npts/core.py 加一个函数，模拟我们的业务逻辑。
+
+```text
+# -*- coding: utf8 -*- 
+def hello(name: str = "world"): 
+    return f"hello {name} ."
+```
+
+##### pyproject.toml
+
+```text
+[project] 
+name = "npts"
+version = "0.0.1" 
+
+[build-system] 
+requires = ["hatchling"] 
+build-backend = "hatchling.build"
+```
+
+##### 安装 build 依赖并用 build 来打包
+
+```text
+# 安装依赖
+python3 -m pip install --upgrade build
+
+# 打包
+python3 -m build
+# ...
+#... ... Successfully built npts-0.0.1.tar.gz and npts-0.0.1-py2.py3-none-any.whl
+```
+
+- 编译过程中，会产生如下的输出信息：
+
+![img](./assets/v2-236f893c1593912e93bdc50f3410bbc4_1440w.jpg)
+
+
+
+- 该命令执行完后，会在dist目录中生成如下红框内的文件：
+
+![img](./assets/v2-4d31ec387ad820b6ba5b6e94e53e093b_1440w.jpg)
+
+其中，`tar.gz`文件是源发行版`a source distribution `，而`.whl`文件是构建发行版`a built distribution`。
+
+##### 把打包好的软件包上传到 PyPI
+
+```text
+twine upload dist/npts-0.0.1-py3-none-any.whl
+或 
+poetry -m publish #上传发布
+```
+
+##### 安装包
+
+```text
+pip3 install npts
+```
+
+##### pyproject.toml 完整参数说明
+
+```text
+[tool.poetry] # 是最基本的section，然后它由多个 sections 组成
+
+name #package 名字，必填
+version #package 版本号  ，必填
+description #package 描述  ，必填
+license #package 许可证，可选
+authors #package 作者，必填
+maintainers #package 维护者，可选
+readme #package readme 文件，可选
+README.rst 或 README.md
+homepage #package 项目网站的 URL，可选
+repository #package 指向项目 repository 的 URL，可选
+documentation #package 项目文档的 URL，可选
+
+keywords #与 package 相关的关键字列表(最多5个)，可选
+
+[dependencies] and [dev-dependencies]
+# 默认情况下，poetry 会从 Pypi 库中查找依赖项，只需要写名称、版本就行了
+
+[tool.poetry.dependencies]
+python = "^3.9" # 重点：必须声明与包兼容的python版本 python = "^3.9" 
+requests = "^2.26.0"
+
+[[tool.poetry.source]] # 使用私有存储库
+name = 'private'
+url = 'http://example.com/simple'
+
+[extras] #支持可选依赖项
+...
+
+[tool.poetry.dependencies] # 这些软件包是强制性的
+mandatory = "^1.0"
+psycopg2 = { version = "^2.7", optional = true }    # 可选依赖项列表，可自行选择安装哪些
+mysqlclient = { version = "^1.3", optional = true }
+ 
+[tool.poetry.extras] 
+mysql = ["mysqlclient"]
+pgsql = ["psycopg2"]
+```
+
+> 当需要安装可选依赖库时
+> poetry install --extras "mysql pgsql" poetry install -E mysql -E pgsql
+
 ### 类型推断
 
 #### typing
 
+`typing` 是 Python 标准库的一部分，用来写类型标注，比如 `list[int]`、`dict[str, int]`、`Optional[str]`、`TypedDict`、`Protocol`、`Literal` 等。**typing常用类型**
+
+以下是typing包中常用的类型和泛型。
+
+注意，int, float,bool,str, bytes不需要import typing，Any,Union,Tuple等需要import typing
+
+**基本类型:**
+
+- int: 整数类型
+- float: 浮点数类型
+- bool: 布尔类型
+- str: 字符串类型
+- bytes: 字节类型
+- Any: 任意类型
+- Union: 多个类型的联合类型，表示可以是其中任意一个类型
+- Tuple: 固定长度的元组类型
+- List: 列表类型
+- Dict: 字典类型，用于键值对的映射
+
+**泛型:**
+
+- Generic: 泛型基类，用于创建泛型类或泛型函数
+- TypeVar: 类型变量，用于创建表示不确定类型的占位符
+- Callable: 可调用对象类型，用于表示函数类型
+- [Optional](https://zhida.zhihu.com/search?content_id=229764108&content_type=Article&match_order=1&q=Optional&zhida_source=entity): 可选类型，表示一个值可以为指定类型或None
+- Iterable: 可迭代对象类型
+- Mapping: 映射类型，用于表示键值对的映射
+- Sequence: 序列类型，用于表示有序集合类型
+- Type:泛型类，用于表示类型本身
+
+fun1里，标明了形参和返回值的类型，fun2中却没有。
+
+```text
+from typing import List, Tuple, Dict
+
+def fun1(a0: int, s0: str, f0: float, b0: bool) -> Tuple[List, Tuple, Dict, bool]:
+    list1 = list(range(a0))
+    tup1 = (a0, s0, f0, b0)
+    dict1 = {s0: f0}
+    b1 = b0
+    return list1, tup1, dict1, b1
+
+def fun2(a0, s0, f0, b0):
+    list1 = list(range(a0))
+    tup1 = (a0, s0, f0, b0)
+    dict1 = {s0: f0}
+    b1 = b0
+    return list1, tup1, dict1, b1
+
+print(fun1(5, "KeyName", 2.3, False))
+
+
+print(help(fun1))
+"""
+Help on function fun1 in module __main__:
+fun1(a0: int, s0: str, f0: float, b0: bool) -> Tuple[List, Tuple, Dict, bool]
+"""
+
+print(help(fun2))
+"""
+Help on function fun2 in module __main__:
+fun2(a0, s0, f0, b0)
+"""
+```
+
+#### Pyrefly 
+
+Pyrefly 是一个 Python 静态类型检查器，帮助你在代码运行前捕获类型相关的错误。它分析你的 Python 代码，确保整个代码库的类型一致性，使你的应用程序更可靠且易于维护。Pyrefly 支持 IDE 集成和命令行使用，让你在将类型检查融入工作流程时有更大的灵活性。类型检查的优势在你的 Python 代码中添加类型注解并使用 Pyrefly 这样的类型检查器，可以带来几个重要的优势：尽早捕获错误 在开发过程中识别类型相关的错误，而不是在运行时提升代码质量 类型注解作为动态文档，使你的代码更易读且自文档化增强开发者体验 通过准确的自动补全、重构工具和内联文档获得更好的 IDE 支持更安全的重构 在知道类型检查器会捕获不兼容类型使用的情况下，更有信心进行大规模更改更好的协作 类型在代码库的不同部分之间创建了清晰的契约，使团队更容易合作试试 Pyrefly这里有一个简单的例子，展示了 Pyrefly 如何捕获类型错误：# Example: Basic Type Checkingdef greet(name: str) -> str:  return "Hello, " + name# This works fine since both "World" is a string and greet expects a stringmessage = greet("World")# Pyrefly catches this error before runtime due to a type misatch between 42 and "str"# Error: Argument of type 'int' is not assignable to parameter of type 'str'error_message = greet(42)Python在这个例子中，Pyrefly 标记了第二个对 greet() 的调用，因为我们传递了一个整数 (42)，而期望的是字符串，这有助于你在代码运行前捕获这个问题。要了解更多关于 Python 类型注解以及如何有效使用它，请查看我们的 Python 类型注解入门 页面。
+
+#### Pydantic
+
+Pydantic 是 Python 中使用最广泛的数据验证库。快速且可扩展，Pydantic 与你的代码检查器/集成开发环境/大脑配合良好。以纯的、规范的 Python 3.8+ 定义数据应该如何；使用 Pydantic 对其进行验证。
+
+成功
+
+“迁移到 Pydantic V2”
+
+使用 Pydantic V1 吗? 在应用程序中查看[迁移指南](https://pydantic.com.cn/migration/)以获取有关升级到 Pydantic V2 的注意事项！!
+
+**Pydantic Example**
+
+```
+from datetime import datetime
+from typing import Tuple
+
+from pydantic import BaseModel
+
+
+class Delivery(BaseModel):
+    timestamp: datetime
+    dimensions: Tuple[int, int]
+
+
+m = Delivery(timestamp='2020-01-02T03:04:05Z', dimensions=['10', '20'])
+print(repr(m.timestamp))
+#> datetime.datetime(2020, 1, 2, 3, 4, 5, tzinfo=TzInfo(UTC))
+print(m.dimensions)
+#> (10, 20)
+```
+
+问题
+
+“为什么 Pydantic 是这样命名的？”
+
+“Pydantic”这个名字是“Py”和“pedantic”的混合词。“Py”部分表示该库与 Python 相关，而“pedantic”指的是该库在数据验证和类型强制方面的细致方法。
+
+综合这些元素，“Pydantic”描述了我们的 Python 库，它提供了注重细节、严格的数据验证。
+
+我们意识到具有讽刺意味的是，Pydantic V1 在其验证中并不严格，所以如果我们很“吹毛求疵”的话，在 V2 版本之前，“Pydantic”是一个用词不当的名称😉。
+
+**为什么使用 Pydantic?[¶](https://pydantic.com.cn/#pydantic_1)**
+
+- 由类型提示驱动——借助 Pydantic，模式验证和序列化由类型注释控制；学习的更少，编写的代码更少，并且与您的 IDE 和静态分析工具集成。了解更多……
+- 速度——Pydantic 的核心验证逻辑是用 Rust 编写的。因此，Pydantic 是 Python 中最快的数据验证库之一。了解更多……
+- JSON 模式——Pydantic 模型可以生成 JSON 模式，从而便于与其他工具进行集成。了解更多……
+- 严格模式和宽松模式——Pydantic 可以在 `strict=True` 模式（数据不进行转换）或 `strict=False` 模式下运行（在适当的情况下，Pydantic 尝试将数据强制转换为正确类型）。了解更多……
+- 数据类、类型字典等——Pydantic 支持对许多标准库类型的验证，包括 `dataclass` 和 `TypedDict` 。了解更多……
+- 自定义——Pydantic 允许自定义验证器和序列化器以多种强大方式改变数据的处理方式。了解更多……
+- 生态系统——PyPI 上约有 8000 个包使用 Pydantic，包括像 FastAPI、 huggingface、Django Ninja、SQLModel 和 LangChain 这样极受欢迎的库。了解更多……
+- 经过实战检验——Pydantic 每月被下载超过 7000 万次，被所有 FAANG 公司以及纳斯达克 25 家最大公司中的 20 家所使用。如果你正试图用 Pydantic 做某事，那么可能其他人已经做过了。了解更多……
+
+安装 Pydantic 就像这样简单： `pip install pydantic`
+
+**Pydantic 使用例子[¶](https://pydantic.com.cn/#pydantic_2)**
+
+**Validation Successful**
+
+```
+from datetime import datetime
+
+from pydantic import BaseModel, PositiveInt
+
+
+class User(BaseModel):
+    id: int  
+    name: str = 'John Doe'  
+    signup_ts: datetime | None  
+    tastes: dict[str, PositiveInt]  
+
+
+external_data = {
+    'id': 123,
+    'signup_ts': '2019-06-01 12:22',  
+    'tastes': {
+        'wine': 9,
+        b'cheese': 7,  
+        'cabbage': '1',  
+    },
+}
+
+user = User(**external_data)  
+
+print(user.id)  
+#> 123
+print(user.model_dump())  
+"""
+{
+    'id': 123,
+    'name': 'John Doe',
+    'signup_ts': datetime.datetime(2019, 6, 1, 12, 22),
+    'tastes': {'wine': 9, 'cheese': 7, 'cabbage': 1},
+}
+"""
+```
+
+如果验证失败，Pydantic 会引发一个错误并详细说明哪里出错了：
+
+**Validation Error**
+
+```
+# continuing the above example...
+
+from pydantic import ValidationError
+
+
+class User(BaseModel):
+    id: int
+    name: str = 'John Doe'
+    signup_ts: datetime | None
+    tastes: dict[str, PositiveInt]
+
+
+external_data = {'id': 'not an int', 'tastes': {}}  
+
+try:
+    User(**external_data)  
+except ValidationError as e:
+    print(e.errors())
+    """
+    [
+        {
+            'type': 'int_parsing',
+            'loc': ('id',),
+            'msg': 'Input should be a valid integer, unable to parse string as an integer',
+            'input': 'not an int',
+            'url': 'https://pydantic.com.cn/errors/validation_errors#int_parsing',
+        },
+        {
+            'type': 'missing',
+            'loc': ('signup_ts',),
+            'msg': 'Field required',
+            'input': {'id': 'not an int', 'tastes': {}},
+            'url': 'https://pydantic.com.cn/errors/validation_errors#missing',
+        },
+    ]
+    """
+```
+
 ### 代码格式化
+
+#### ruff
+
+Ruff是使用[Rust](https://zhida.zhihu.com/search?content_id=226726558&content_type=Article&match_order=1&q=Rust&zhida_source=entity)编写的超快Python静态分析工具。
+
+我们看看它于市面上主流Python分析工具性能对比
+
+
+
+![img](./assets/v2-caf06a6c5f608c029378eb3f2eed82a7_1440w.jpg)
+
+上面是针对[CPython](https://zhida.zhihu.com/search?content_id=226726558&content_type=Article&match_order=1&q=CPython&zhida_source=entity)源码进行分析时间开销，我们可以很直观看出Ruff完全碾压其余竞品。架设我们项目结构如下：
+
+```text
+number
+    ├── __init__.py
+    └── number.py
+```
+
+**number.py** 包含如下代码：
+
+```python
+from typing import List
+
+import os
+
+
+def sum_even_numbers(numbers: List[int]) -> int:
+    """Given a list of integers, return the sum of all even numbers in the list."""
+    return sum(num for num in numbers if num % 2 == 0)
+```
+
+通过PyPI安装Ruff
+
+```text
+$ pip install ruff
+```
+
+安装完后，我们使用如下执行ruff
+
+```text
+$ ruff check .
+number.py:3:8: F401 [*] `os` imported but unused
+Found 1 error.
+[*] 1 potentially fixable with the --fix option.
+```
+
+Ruff指示这里有未使用的导入，它是一个Python里的常见错误。Ruff还指示该错误是"fixable"，即可以通过如下方式自动修复错误：
+
+```text
+$ ruff check --fix .
+Found 1 error (1 fixed, 0 remaining).
+```
+
+这里我们就发现`import os`给自动移除了。
+
+##### 配置
+
+为给整个项目里的Python文件指定配置，Ruff会目录下寻找`pyproject.toml`或者`ruff.toml`文件。
+
+我们来在项目根目录下创建一个`pyproject.toml`文件。
+
+```text
+[project]
+# Support Python 3.10+.
+requires-python = ">=3.10"
+
+[tool.ruff]
+# Decrease the maximum line length to 79 characters.
+line-length = 79
+src = ["src"]
+```
+
+##### 规则
+
+Ruff支持超过[500个lint规则](https://link.zhihu.com/?target=https%3A//beta.ruff.rs/docs/rules/)，它们分布在超过40个内建插件中，根据项目所需进行选择：一些是非常严格规则，一些是框架特定的。
+
+默认Ruff设定E-和F-前缀的规则相应派生至[pycodestyle](https://zhida.zhihu.com/search?content_id=226726558&content_type=Article&match_order=1&q=pycodestyle&zhida_source=entity)和[Pyflakes](https://zhida.zhihu.com/search?content_id=226726558&content_type=Article&match_order=1&q=Pyflakes&zhida_source=entity)。
+
+如果你是一个linter新手，那么默认规则是一个非常好的开始，只专注公共错误。
+
+如果你是从其它工具迁移过来的linter，你可以开启和之前所使用的相同规则。例如，如果要配置[pyupgrade](https://zhida.zhihu.com/search?content_id=226726558&content_type=Article&match_order=1&q=pyupgrade&zhida_source=entity)规则，我们可以如下对`pyproject.toml`配置：
+
+```text
+[tool.ruff]
+select = [
+  "E",   # pycodestyle
+  "F",   # pyflakes
+  "UP",  # pyupgrade
+]
+```
+
+再次运行Ruff，现在强制遵循pyupgrade规则。
+
+```text
+$ ruff check .
+number/number.py:5:31: UP006 [*] Use `list` instead of `List` for type annotations
+number/number.py:6:80: E501 Line too long (83 > 79 characters)
+Found 2 errors.
+[*] 1 potentially fixable with the --fix option.
+```
+
+或者我们还想强制所有的函数都必须编写docstings：
+
+```text
+[tool.ruff]
+    select = [
+      "E",   # pycodestyle
+      "F",   # pyflakes
+      "UP",  # pyupgrade
+      "D",   # pydocstyle
+    ]
+
+    [tool.ruff.pydocstyle]
+    convention = "google"
+```
+
+再次运行，我们将强制遵循pydocstyle规则：
+
+```text
+$ ruff check .
+number/__init__.py:1:1: D104 Missing docstring in public package
+number/number.py:1:1: D100 Missing docstring in public module
+number/number.py:5:31: UP006 [*] Use `list` instead of `List` for type annotations
+number/number.py:5:80: E501 Line too long (83 > 79 characters)
+Found 3 errors.
+[*] 1 potentially fixable with the --fix option.
+```
+
+##### 忽略错误
+
+通过使用#noqa注释来忽略行级检测。
+
+```python
+from typing import List
+
+
+def sum_even_numbers(numbers: List[int]) -> int:  # noqa: UP006
+    """Given a list of integers, return the sum of all even numbers in the list."""
+    return sum(num for num in numbers if num % 2 == 0)
+```
+
+再次执行就没有指示`List`导入问题了。
+
+如果想整个文件有效那么，在文件顶部加入 `# ruff: noqa: UP006`
+
+```python
+# ruff: noqa: UP006
+from typing import List
+
+
+def sum_even_numbers(numbers: List[int]) -> int:
+    """Given a list of integers, return the sum of all even numbers in the list."""
+    return sum(num for num in numbers if num % 2 == 0)
+```
+
+Ruff支持使用`--add-noqa`参数来为代码增加`# noqa`指令，我们可以组合`--add-noqa`和`--select`配置`UP006`规范忽律
+
+```text
+$ ruff check --select UP006 --add-noqa .
+Added 1 noqa directive.
+```
+
+##### 持续集成
+
+pre-commit 钩子中使用：
+
+```yaml
+- repo: https://github.com/charliermarsh/ruff-pre-commit
+      # Ruff version.
+      rev: 'v0.0.261'
+      hooks:
+        - id: ruff
+```
+
+##### 编辑器集成
+
+[VS Code 扩展](https://link.zhihu.com/?target=https%3A//github.com/charliermarsh/ruff-vscode)或者使用[Ruff LSP](https://link.zhihu.com/?target=https%3A//github.com/charliermarsh/ruff-lsp)集成其它编辑器
 
 #### black
 
+**Black** 被称为”The uncompromising code formatter”（不妥协的代码格式化工具），是由Łukasz Langa开发并由Python Software Foundation维护的Python代码格式化工具。Black的核心理念是：
+
+> “Any color you like.”（任何你喜欢的颜色。）
+
+这句话来自于Henry Ford关于Model T汽车的名言——“你可以选择任何颜色，只要它是黑色的”。Black采用了类似的哲学：**通过放弃对代码格式细节的控制权，换取速度、确定性，以及从格式争论中解放出来的自由**。
+
+Black的主要特点：
+
+- **确定性输出**：相同的代码输入总是产生相同的格式化输出
+- **最小化差异**：生成尽可能小的代码差异，使代码审查更高效
+- **统一风格**：无论是哪个项目，使用Black格式化后的代码看起来都是一致的
+- **AST安全检查**：格式化后会验证代码的抽象语法树（AST）是否与原始代码等效
+
+##### 6.1 Pre-commit集成
+
+使用pre-commit可以在提交代码前自动运行格式化检查：
+
+创建`.pre-commit-config.yaml`：
+
+```
+repos:
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        language_version: python3.11
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black", "--filter-files"]
+```
+
+安装pre-commit钩子：
+
+```
+pip install pre-commit
+pre-commit install
+```
+
+##### 6.2 GitHub Actions集成
+
+创建`.github/workflows/lint.yml`：
+
+```
+name: Lint
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      
+      - name: Install dependencies
+        run: |
+          pip install black isort
+      
+      - name: Check formatting with Black
+        run: black --check --diff .
+      
+      - name: Check import sorting with isort
+        run: isort --check-only --diff --profile black .
+```
+
+##### 6.3 跳过特定代码块
+
+###### Black跳过格式化
+
+```
+# fmt: off
+# 这里的代码不会被格式化
+matrix = [
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+]
+# fmt: on
+
+# 单行跳过
+x = [1,2,3]  # fmt: skip
+```
+
+###### isort跳过导入排序
+
+```
+# isort: skip_file
+"""整个文件跳过isort处理"""
+
+import b
+import a
+
+
+# 或者单个导入跳过
+import specific_module  # isort: skip
+```
+
+### 
+
 ### 文件管理 
 
-### glob
+#### glob
+
+**glob模块**也是Python标准库中一个重要的模块，主要用来**查找符合特定规则的目录和文件**，并将搜索的到的**结果返回到一个列表中**。使用这个模块最主要的原因就是，该模块支持几个特殊的[正则通配符](https://zhida.zhihu.com/search?content_id=199065431&content_type=Article&match_order=1&q=正则通配符&zhida_source=entity)，用起来贼方便，这个将会在下方为大家进行详细讲解。
+
+![img](./assets/v2-7fd0b20a09e63aba2da1c874a0ca64a7_1440w.jpg)
+
+##### 一、支持4个常用的通配符
+
+使用glob模块能够快速查找我们想要的目录和文件，就是由于它支持*、**、? 、[ ]这三个通配符，那么它们到底是 什么意思呢？
+
+*：匹配0个或多个字符；
+
+**：匹配所有文件、目录、子目录和子目录里的文件（3.5版本新增）；
+
+?：代匹配一个字符；
+
+[]：匹配指定范围内的字符，如[0-9]匹配数字，[a-z]匹配小写字母；
+
+注意：这3个通配符的用法，将在讲函数的时候，一起带大家操作一遍；
+
+##### 二、glob库中主要的3个函数
+
+其实glob库很简单，只有3个主要函数供我们使用，它们分别是glob()、iglob()、escape()函数，因此学习起来特别容易。
+
+glob.glob()：返回符合匹配条件的所有文件的路径；
+
+glob.iglob()：返回一个迭代器对象，需要循环遍历获取每个元素，得到的也是符合匹配条件的所有文件的路径；
+
+glob.escape()：escape可以忽略所有的特殊字符，就是星号、问号、中括号，用处不大；
+
+recursive=False：代表递归调用，与特殊通配符“**”一同使用，默认为False，False表示不递归调用，True表示递归调用；
+
+##### 2.1 glob()函数
+
+```text
+path1 = r"C:\Users\黄伟\Desktop\publish\os模块\test_shutil_a\[0-9].png"
+glob.glob(path1)
+
+path2 = r"C:\Users\黄伟\Desktop\publish\os模块\test_shutil_a\[0-9a-z].*"
+glob.glob(path2)
+```
+
+结果如下：
+
+![img](./assets/v2-eb0c02ee59ba196cf2a1708101e78736_1440w.jpg)
+
+##### 2.2 iglob()函数
+
+```text
+path1 = r"C:\Users\黄伟\Desktop\publish\os模块\test_shutil_a\[0-9].png"
+a = glob.iglob(path1)
+for i in a:
+    print(i)
+```
+
+结果如下：
+
+![img](./assets/v2-48dedaafac8759c4f33dbaf5e7d6056e_1440w.jpg)
+
+##### 2.3 escape()函数
+
+通过下方两行代码的对比，可以看出escape()函数只是让*只表示它本来的意思，而不再具有通配符的作用。
+
+```text
+glob.glob('t*')
+glob.escape('t*')
+```
+
+结果如下：
+
+![img](./assets/v2-ee929ce90642925edeabd17fbc2eec20_1440w.jpg)
 
 ### 测试
 
 #### pytest
+
+Pytest是一个基于python的测试框架，用于编写和执行测试代码。在当今的 REST 服务中，pytest 主要用于 API 测试，尽管我们可以使用 pytest 编写简单到复杂的测试，即我们可以编写代码来测试 API、数据库、UI 等。
+
+##### 安装Pytest
+
+要开始安装，请执行以下命令 -
+
+```python
+pip install pytest == 2.9.1
+```
+
+我们可以安装任何版本的 pytest。这里，2.9.1 是我们正在安装的版本。
+
+要安装最新版本的 pytest，请执行以下命令 -
+
+```python
+pip install pytest
+```
+
+使用以下命令确认安装以显示 pytest 的帮助部分。
+
+```python
+pytest -h
+```
+
+##### 使用Pytest
+
+在不提及文件名的情况下运行 pytest 将运行所有格式的文件**test_\*.py**要么***_test.py**在当前目录和子目录中。Pytest 自动将这些文件识别为测试文件。我们**能够**通过明确提及它们使 pytest 运行其他文件名。Pytest 要求测试函数名称以**test**. 不符合格式的函数名称**test\***不被 pytest 视为测试函数。我们**cannot**明确地让 pytest 考虑任何不以**test**作为测试函数。
+
+
+
+
+
+
 
 #### PyUnit / Unittest
 
