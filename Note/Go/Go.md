@@ -4,93 +4,938 @@
 
 ### 环境
 
-### 基础数据
+### 数据类型
 
-#### 数据类型
+数据类型指定有效的[Go变量](https://www.cainiaojc.com/golang/go-variables.html)可以保存的数据类型。在Go语言中，类型分为以下四类：
 
-在 Go 编程语言中，数据类型用于声明函数和变量。数据类型的出现是为了把数据分成所需内存大小不同的数据，编程的时候需要用大数据的时候才需要申请大内存，就可以充分利用内存。
+**基本类型：**数字，字符串和布尔值属于此类别。
 
-Go 语言按类别有以下几种数据类型：
+**聚合类型：**数组和结构属于此类别。
 
-| 序号 | 类型和描述                                                   |
-| :--- | :----------------------------------------------------------- |
-| 1    | **布尔型** 布尔型的值只可以是常量 true 或者 false。一个简单的例子：var b bool = true。 |
-| 2    | **数字类型** 整型 int 和浮点型 float32、float64，Go 语言支持整型和浮点型数字，并且支持复数，其中位的运算采用补码。 |
-| 3    | **字符串类型:** 字符串就是一串固定长度的字符连接起来的字符序列。Go 的字符串是由单个字节连接起来的。Go 语言的字符串的字节使用 UTF-8 编码标识 Unicode 文本。 |
-| 4    | **派生类型:** 包括：(a) 指针类型（Pointer）(b) 数组类型(c) 结构化类型(struct)(d) Channel 类型(e) 函数类型(f) 切片类型(g) 接口类型（interface）(h) Map 类型 |
+**引用类型：**指针，切片，map集合，函数和Channel属于此类别。
 
-* **数字类型**
+**接口类型**
 
-Go 也有基于架构的类型，例如：int、uint 和 uintptr。
+#### 基本类型
 
-| 序号 | 类型和描述                                                   |
-| :--- | :----------------------------------------------------------- |
-| 1    | **uint8** 无符号 8 位整型 (0 到 255)                         |
-| 2    | **uint16** 无符号 16 位整型 (0 到 65535)                     |
-| 3    | **uint32** 无符号 32 位整型 (0 到 4294967295)                |
-| 4    | **uint64** 无符号 64 位整型 (0 到 18446744073709551615)      |
-| 5    | **int8** 有符号 8 位整型 (-128 到 127)                       |
-| 6    | **int16** 有符号 16 位整型 (-32768 到 32767)                 |
-| 7    | **int32** 有符号 32 位整型 (-2147483648 到 2147483647)       |
-| 8    | **int64** 有符号 64 位整型 (-9223372036854775808 到 9223372036854775807) |
+##### 数字类型
 
-* **浮点型**
+在Go语言中，数字分为*三个*子类别：
 
-| 序号 | 类型和描述                        |
-| :--- | :-------------------------------- |
-| 1    | **float32** IEEE-754 32位浮点型数 |
-| 2    | **float64** IEEE-754 64位浮点型数 |
-| 3    | **complex64** 32 位实数和虚数     |
-| 4    | **complex128** 64 位实数和虚数    |
+- **整数：**在Go语言中，有符号和无符号整数都可以使用四种不同的大小，如下表所示。有符号的int由int表示，而无符号的整数由uint表示。
 
-* **其他数字类型**
+  | 数据类型    | 描述                                                         |
+  | :---------- | :----------------------------------------------------------- |
+  | **int8**    | 8位有符号整数                                                |
+  | **int16**   | 16位有符号整数                                               |
+  | **int32**   | 32位有符号整数                                               |
+  | **int64**   | 64位有符号整数                                               |
+  | **uint8**   | 8位无符号整数                                                |
+  | **uint16**  | 16位无符号整数                                               |
+  | **uint32**  | 32位无符号整数                                               |
+  | **uint64**  | 64位无符号整数                                               |
+  | **int**     | in和uint都包含相同的大小，无论是32位还是64位。               |
+  | **uint**    | in和uint都包含相同的大小，无论是32位还是64位。               |
+  | **rune**    | 它是int32的同义词，也表示Unicode代码点。                     |
+  | **byte**    | 它是int8的同义词。                                           |
+  | **uintptr** | 它是无符号整数类型。它的宽度未定义，但是可以容纳指针值的所有位。 |
 
-以下列出了其他更多的数字类型：
+  ```
+  // 使用整数 
+  package main  
+  import "fmt"
+           
+  func main() { 
+        
+      // 使用8位无符号整型
+      var X uint8 = 225 
+      fmt.Println(X+1, X) 
+        
+      // 使用16位有符号整型
+      var Y int16 = 32767 
+      fmt.Println(Y+2, Y-2)  
+  }
+  
+  226 225
+  -32767 32765
+  ```
 
-| 序号 | 类型和描述                               |
-| :--- | :--------------------------------------- |
-| 1    | **byte** 类似 uint8                      |
-| 2    | **rune** 类似 int32                      |
-| 3    | **uint** 32 或 64 位                     |
-| 4    | **int** 与 uint 一样大小                 |
-| 5    | **uintptr** 无符号整型，用于存放一个指针 |
+- **浮点数：**在Go语言，浮点数被分成***2\***类如示于下表：
 
-#### 派生类型
+  | 数据类型    | 描述               |
+  | :---------- | :----------------- |
+  | **float32** | 32位IEEE 754浮点数 |
+  | **float64** | 64位IEEE 754浮点数 |
 
-##### 指针类型
+  ```
+  // 浮点数的使用 
+  package main  
+  import "fmt"
+           
+  func main() { 
+      a := 20.45 
+      b := 34.89 
+        
+      //两个浮点数相减
+      c := b-a 
+        
+      //显示结果 
+      fmt.Printf("结果: %f", c) 
+        
+      //显示c变量的类型
+      fmt.Printf("\nc的类型是 : %T", c)   
+  }
+  
+  结果: 14.440000
+  c的类型是: float64
+  ```
 
-变量是一种使用方便的占位符，用于引用计算机内存地址。Go 语言的取地址符是 &，放到一个变量前使用就会返回相应变量的内存地址。一个指针变量指向了一个值的内存地址。类似于变量和常量，在使用指针前你需要声明指针。指针声明格式如下：
+- **复数：**将复数分为两部分，如下表所示。float32和float64也是这些复数的一部分。内建函数从它的虚部和实部创建一个复数，内建虚部和实部函数提取这些部分。
+
+  | 数据类型       | 描述                                  |
+  | :------------- | :------------------------------------ |
+  | **complex64**  | 包含float32作为实数和虚数分量的复数。 |
+  | **complex128** | 包含float64作为实数和虚数分量的复数。 |
+
+  
+
+  ```
+  //复数的使用 
+  package main 
+  import "fmt"
+    
+  func main() { 
+        
+     var a complex128 = complex(6, 2) 
+     var b complex64 = complex(9, 2) 
+     fmt.Println(a) 
+     fmt.Println(b) 
+       
+     //显示类型 
+    fmt.Printf("a的类型是 %T 以及"+ "b的类型是 %T", a, b) 
+  }
+  
+  (6+2i)
+  (9+2i)
+  a的类型是 complex128 以及b的类型是 complex64
+  ```
+
+##### 布尔类型
+
+布尔数据类型仅表示true或false。布尔类型的值不会隐式或显式转换为任何其他类型。
 
 ```
-var var_name *var-type
-```
-
-var-type 为指针类型，var_name 为指针变量名，* 号用于指定变量是作为一个指针。
-
-在指针类型前面加上 * 号（前缀）来获取指针所指向的内容。
-
-```go
+//布尔值的使用
 package main
 
 import "fmt"
 
 func main() {
-   var a int= 20   /* 声明实际变量 */
-   var ip *int        /* 声明指针变量 */
 
-   ip = &a  /* 指针变量的存储地址 */
+    //变量
+    str1 := "cainiaojc"
+    str2 := "cainiaojc"
+    str3 := "cainiaojc"
+    result1 := str1 == str2
+    result2 := str1 == str3
 
-   fmt.Printf("a 变量的地址是: %x\n", &a  )
+    //打印结果
+    fmt.Println(result1)
+    fmt.Println(result2)
 
-   /* 指针变量的存储地址 */
-   fmt.Printf("ip 变量储存的指针地址: %x\n", ip )
+    //显示result1和result2的类型
+    fmt.Printf("result1 的类型是 %T ， "+"result2的类型是 %T", result1, result2)
 
-   /* 使用指针访问值 */
-   fmt.Printf("*ip 变量的值: %d\n", *ip )
 }
+
+true
+true
+result1 的类型是 bool ， result2的类型是 bool
 ```
 
-当一个指针被定义后没有分配到任何变量时，它的值为 nil。nil 指针也称为空指针。nil在概念上和其它语言的null、None、nil、NULL一样，都指代零值或空值。
+##### 字符串
+
+在Go语言中，字符串不同于其他语言，如Java、c++、Python等。它是一个变宽字符序列，其中每个字符都用UTF-8编码的一个或多个字节表示。或者换句话说，字符串是任意字节(包括值为零的字节)的不可变链，或者字符串是一个只读字节片，字符串的字节可以使用UTF-8编码在Unicode文本中表示。由于采用UTF-8编码，Golang字符串可以包含文本，文本是世界上任何语言的混合，而不会造成页面的混乱和限制。
+
+**注意：**字符串可以为空，但不能为nil。
+
+###### 字符串字面量
+
+在Go语言中，字符串字面量是通过两种不同的方式创建的：
+
+- **使用双引号（“”）：**在这里，字符串字面量使用双引号（“”）创建。此类字符串支持转义字符，如下表所示，但不跨越多行。这种类型的字符串文字在Golang程序中被广泛使用。
+
+  | 转义符     | 描述                                           |
+  | :--------- | :--------------------------------------------- |
+  | **\\**     | 反斜杠（\）                                    |
+  | **\000**   | 具有给定的3位8位八进制代码点的Unicode字符      |
+  | **\’**     | 单引号（'）。仅允许在字符文字中使用            |
+  | **\”**     | 双引号（""）。仅允许在解释的字符串文字中使用   |
+  | **\a**     | ASCII铃声(BEL)                                 |
+  | **\b**     | ASCII退格键(BS)                                |
+  | **\f**     | ASCII换页(FF)                                  |
+  | **\n**     | ASCII换行符(LF)                                |
+  | **\r**     | ASCII回车(CR)                                  |
+  | **\t**     | ASCII标签(TAB)                                 |
+  | **\uhhhh** | 具有给定的4位16位十六进制代码点的Unicode字符。 |
+  |            | 具有给定的8位32位十六进制代码点的Unicode字符。 |
+  | **\v**     | ASCII垂直制表符(VT)                            |
+  | **\xhh**   | 具有给定的2位8位十六进制代码点的Unicode字符。  |
+
+- **使用反引号（``）：**此处，字符串文字是使用反引号（``）创建的，也称为**raw literals**(原始文本)。原始文本不支持转义字符，可以跨越多行，并且可以包含除反引号之外的任何字符。通常，它用于在正则表达式和HTML中编写多行消息。
+
+  ```
+  package main
+  
+  import "fmt"
+  
+  func main() {
+  
+      //创建并初始化
+      //带有字符串文字的变量
+      //使用双引号
+      My_value_1 := "Welcome to cainiaojc"
+  
+      //添加转义字符
+      My_value_2 := "Welcome!\ncainiaojc$1quot;
+  
+      //使用反引号
+      My_value_3 := `Hello!cainiaojc$1
+  
+      //添加转义字符
+  
+      //原始文本
+      My_value_4 := `Hello!\ncainiaojc$1
+  
+      //显示
+      fmt.Println("String 1: ", My_value_1)
+      fmt.Println("String 2: ", My_value_2)
+      fmt.Println("String 3: ", My_value_3)
+      fmt.Println("String 4: ", My_value_4)
+  }
+  ```
+
+###### 字符串比较
+
+在Go语言中，字符串是使用UTF-8编码编码的不可变的任意字节链。您可以使用两种不同的方式来比较字符串：
+
+**使用比较运算符：**转到字符串支持比较运算符，即*==，！=，> =，<=，<，>*。在这里，**==**和**！=**运算符用于检查给定的字符串是否相等。和> =，<=，<，>操作符用于查找词法顺序。这些运算符的结果为布尔类型，意味着如果条件满足，则返回*true*，否则返回*false*。
+
+**使用Compare()方法：**您还可以使用字符串包提供的内置函数Compare()比较两个字符串。在比较两个字符串后，此函数返回整数值。返回值为：
+
+- 如果*str1 == str2*，则返回0 。
+- 如果*str1> str2*，返回1 。
+- 如果*str1 <str2，*返回-1 。
+
+**语法：**
+
+```
+func Compare(str1, str2 string) int
+```
+
+```
+//字符串使用compare()函数
+package main 
+  
+import ( 
+    "fmt"
+    "strings"
+) 
+  
+func main() { 
+  
+          //创建和初始化
+        //使用速记声明
+    myslice := []string{"Geeks", "Geeks", 
+                    "gfg", "GFG", "for"} 
+      
+    fmt.Println("Slice: ", myslice) 
+  
+    //使用比较运算符
+    result1 := "GFG" > "Geeks"
+    fmt.Println("Result 1: ", result1) 
+  
+    result2 := "GFG" < "Geeks"
+    fmt.Println("Result 2: ", result2) 
+  
+    result3 := "Geeks" >= "for"
+    fmt.Println("Result 3: ", result3) 
+  
+    result4 := "Geeks" <= "for"
+    fmt.Println("Result 4: ", result4) 
+  
+    result5 := "Geeks" == "Geeks"
+    fmt.Println("Result 5: ", result5) 
+  
+    result6 := "Geeks" != "for"
+    fmt.Println("Result 6: ", result6) 
+    
+    //比较字符串使用比较函数
+    fmt.Println(strings.Compare("gfg", "Geeks")) 
+      
+    fmt.Println(strings.Compare("cainiaojc", "cainiaojc")) 
+      
+    fmt.Println(strings.Compare("Geeks", " GFG")) 
+      
+    fmt.Println(strings.Compare("GeeKS", "GeeKs")) 
+
+}
+
+
+Slice:  [Geeks Geeks gfg GFG for]
+Result 1:  false
+Result 2:  true
+Result 3:  false
+Result 4:  true
+Result 5:  true
+Result 6:  true
+
+1
+0
+1
+-1
+```
+
+###### 字符串连接
+
+在Go语言中，字符串是使用UTF-8编码编码的不可变的任意字节链。在Go字符串中，将两个或多个字符串添加到新的单个字符串中的过程称为串联。连接Go语言中两个或多个字符串的最简单方法是使用运算符（+）。也称为串联运算符。
+
+**使用bytes.Buffer：**您还可以通过使用bytes.Buffer和WriteString()方法来连接字符串的字节来创建字符串。 它在字节包下定义。 它可以防止生成不必要的字符串对象，这意味着它不会从两个或多个字符串中生成新的字符串（如+运算符）。
+
+**使用Sprintf：**在Go语言中，您还可以使用*Sprintf()*方法连接字符串。
+
+**使用+ =运算符或字符串附加：**在Go字符串中，允许您使用*+ =运算符连接*字符串。该运算符将新的或给定的字符串添加到指定字符串的末尾。
+
+**使用Join()函数：**此函数将字符串切片中存在的所有元素连接为单个字符串。此函数在字符串包中可用。
+
+**语法：**
+
+```
+func Join(str []string, sep string) string
+```
+
+在这里，*str*是可以用来连接元素的字符串，sep是放置在最终字符串中元素之间的分隔符。
+
+```
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"strings"
+)
+
+func main() {
+	// 原始字符串
+	str1 := "Hello"
+	str2 := "Go"
+	str3 := "Lang"
+
+	// 1. 使用 + 运算符
+	result1 := str1 + " " + str2 + " " + str3
+	fmt.Println("1. 使用 + 运算符:", result1)
+
+	// 2. 使用 bytes.Buffer
+	var buffer bytes.Buffer
+	buffer.WriteString(str1)
+	buffer.WriteString(" ")
+	buffer.WriteString(str2)
+	buffer.WriteString(" ")
+	buffer.WriteString(str3)
+	result2 := buffer.String()
+	fmt.Println("2. 使用 bytes.Buffer:", result2)
+
+	// 3. 使用 fmt.Sprintf
+	result3 := fmt.Sprintf("%s %s %s", str1, str2, str3)
+	fmt.Println("3. 使用 fmt.Sprintf:", result3)
+
+	// 4. 使用 += 运算符
+	result4 := str1
+	result4 += " "
+	result4 += str2
+	result4 += " "
+	result4 += str3
+	fmt.Println("4. 使用 += 运算符:", result4)
+
+	// 5. 使用 strings.Join
+	parts := []string{str1, str2, str3}
+	result5 := strings.Join(parts, " ")
+	fmt.Println("5. 使用 strings.Join:", result5)
+}
+
+```
+
+###### 字符串修剪
+
+**Trim：**此函数用于修剪此函数中指定的所有前导和后缀Unicode代码点的字符串。
+
+**语法：**
+
+```
+func Trim(str string, cutstr string) string
+```
+
+在这里，*str*表示当前字符串，而*cutstr*表示要在给定字符串中修剪的元素。
+
+**TrimLeft：**此函数用于修剪字符串的左侧（在函数中指定）Unicode代码点。
+
+**语法：**
+
+```
+func TrimLeft(str string, cutstr string) string
+```
+
+在这里，*str*表示当前字符串，而*cutstr*表示要在给定字符串中修剪的左侧元素。
+
+**TrimRight：**此函数用于修剪字符串的右侧（在函数中指定）Unicode代码点。
+
+**语法：**
+
+```
+func TrimRight(str string, cutstr string) string
+```
+
+在这里，*str*表示当前字符串，而*cutstr*表示要在给定字符串中修剪的右侧元素。
+
+**TrimSpace：**此函数用于修剪指定字符串中的所有前导和尾随空白（空格）。
+
+**语法：**
+
+```
+func TrimSpace(str string) string
+```
+
+**TrimSuffix：**此方法用于修剪给定字符串中的尾随后缀字符串。如果给定的字符串不包含指定的后缀字符串，则此函数将返回原始字符串，而不进行任何更改。
+
+**语法：**
+
+```
+func TrimSuffix(str, suffstr string) string
+```
+
+在这里，*str*表示原始字符串，*suffstr*表示后缀字符串。
+
+**TrimPrefix：**此方法用于从给定字符串中修剪前导前缀字符串。如果给定的字符串不包含指定的前缀字符串，则此函数将返回原始字符串，而不进行任何更改。
+
+**语法：**
+
+```
+func TrimPrefix(str, suffstr string) string
+```
+
+在这里，*str*表示原始字符串，*suffstr*表示前缀字符串。
+
+```
+package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+func main() {
+	// 1. Trim：修剪两侧指定字符集合中的字符
+	str1 := "!!@@Hello Go@@!!"
+	result1 := strings.Trim(str1, "!@")
+	fmt.Println("1. Trim:")
+	fmt.Println("原字符串:", str1)
+	fmt.Println("结果   :", result1)
+	fmt.Println()
+
+	// 2. TrimLeft：只修剪左侧指定字符集合中的字符
+	str2 := "###Welcome###"
+	result2 := strings.TrimLeft(str2, "#")
+	fmt.Println("2. TrimLeft:")
+	fmt.Println("原字符串:", str2)
+	fmt.Println("结果   :", result2)
+	fmt.Println()
+
+	// 3. TrimRight：只修剪右侧指定字符集合中的字符
+	str3 := "***Golang***"
+	result3 := strings.TrimRight(str3, "*")
+	fmt.Println("3. TrimRight:")
+	fmt.Println("原字符串:", str3)
+	fmt.Println("结果   :", result3)
+	fmt.Println()
+
+	// 4. TrimSpace：修剪两侧空白字符
+	str4 := "   Hello World   \n"
+	result4 := strings.TrimSpace(str4)
+	fmt.Println("4. TrimSpace:")
+	fmt.Printf("原字符串: %q\n", str4)
+	fmt.Printf("结果   : %q\n", result4)
+	fmt.Println()
+
+	// 5. TrimSuffix：去掉指定后缀
+	str5 := "main.go"
+	result5 := strings.TrimSuffix(str5, ".go")
+	fmt.Println("5. TrimSuffix:")
+	fmt.Println("原字符串:", str5)
+	fmt.Println("结果   :", result5)
+	fmt.Println()
+
+	// 6. TrimPrefix：去掉指定前缀
+	str6 := "prefix_filename"
+	result6 := strings.TrimPrefix(str6, "prefix_")
+	fmt.Println("6. TrimPrefix:")
+	fmt.Println("原字符串:", str6)
+	fmt.Println("结果   :", result6)
+}
+
+1. Trim:
+原字符串: !!@@Hello Go@@!!
+结果   : Hello Go
+
+2. TrimLeft:
+原字符串: ###Welcome###
+结果   : Welcome###
+
+3. TrimRight:
+原字符串: ***Golang***
+结果   : ***Golang
+
+4. TrimSpace:
+原字符串: "   Hello World   \n"
+结果   : "Hello World"
+
+5. TrimSuffix:
+原字符串: main.go
+结果   : main
+
+6. TrimPrefix:
+原字符串: prefix_filename
+结果   : filename
+
+```
+
+
+
+###### 字符串分割
+
+**Split：**此函数将字符串拆分为由给定分隔符分隔的所有子字符串，并返回包含这些子字符串的切片。
+
+**语法：**
+
+```
+func Split(str, sep string) []string
+```
+
+在这里，str是字符串，sep是分隔符。 如果str不包含给定的sep且sep为非空，则它将返回长度为1的切片，其中仅包含str。 或者，如果sep为空，则它将在每个UTF-8序列之后拆分。 或者，如果str和sep均为空，则它将返回一个空切片。
+
+**SplitAfter：**此函数在给定分隔符的每个实例之后将字符串拆分为所有子字符串，并返回包含这些子字符串的切片。
+
+**语法：**
+
+```
+func SplitAfter(str, sep string) []string
+```
+
+在这里，str是字符串，sep是分隔符。 如果str不包含给定的sep且sep为非空，则它将返回长度为1的切片，其中仅包含str。 或者，如果sep为空，则它将在每个UTF-8序列之后拆分。 或者，如果str和sep均为空，则它将返回一个空切片。
+
+**SplitAfterN：**此函数在给定分隔符的每个实例之后将字符串拆分为所有子字符串，并返回包含这些子字符串的切片。
+
+**语法：**
+
+```
+func SplitAfterN(str, sep string, m int) []string
+```
+
+在这里，*str*是字符串，*sep*是分隔符，m用于查找要返回的子字符串数。在这里，如果**m> 0**，那么它最多返回*m*个子字符串，并且最后一个字符串子字符串不会拆分。如果**m == 0**，则它将返回nil。如果**m <0**，则它将返回所有子字符串。
+
+```
+package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+func main() {
+	str := "Go,Java,Python,C++"
+
+	// 1. Split：按分隔符拆分，分隔符不会保留在结果中
+	result1 := strings.Split(str, ",")
+	fmt.Println("1. Split:")
+	fmt.Println("原字符串:", str)
+	fmt.Println("结果   :", result1)
+	fmt.Println()
+
+	// 2. SplitAfter：按分隔符拆分，分隔符会保留在每个子串末尾
+	result2 := strings.SplitAfter(str, ",")
+	fmt.Println("2. SplitAfter:")
+	fmt.Println("原字符串:", str)
+	fmt.Println("结果   :", result2)
+	fmt.Println()
+
+	// 3. SplitAfterN：按分隔符拆分，限制返回的子串数量
+	result3 := strings.SplitAfterN(str, ",", 2)
+	fmt.Println("3. SplitAfterN (m = 2):")
+	fmt.Println("原字符串:", str)
+	fmt.Println("结果   :", result3)
+	fmt.Println()
+
+	// 4. SplitAfterN：m < 0，返回所有子串
+	result4 := strings.SplitAfterN(str, ",", -1)
+	fmt.Println("4. SplitAfterN (m = -1):")
+	fmt.Println("原字符串:", str)
+	fmt.Println("结果   :", result4)
+	fmt.Println()
+
+	// 5. SplitAfterN：m == 0，返回 nil
+	result5 := strings.SplitAfterN(str, ",", 0)
+	fmt.Println("5. SplitAfterN (m = 0):")
+	fmt.Println("原字符串:", str)
+	fmt.Println("结果   :", result5)
+	fmt.Println()
+
+	// 6. 特殊情况：字符串中不包含分隔符
+	str2 := "Golang"
+	result6 := strings.Split(str2, ",")
+	fmt.Println("6. Split（字符串中不包含分隔符）:")
+	fmt.Println("原字符串:", str2)
+	fmt.Println("结果   :", result6)
+	fmt.Println()
+
+	// 7. 特殊情况：分隔符为空
+	str3 := "Go"
+	result7 := strings.Split(str3, "")
+	fmt.Println("7. Split（分隔符为空）:")
+	fmt.Println("原字符串:", str3)
+	fmt.Println("结果   :", result7)
+}
+
+1. Split:
+原字符串: Go,Java,Python,C++
+结果   : [Go Java Python C++]
+
+2. SplitAfter:
+原字符串: Go,Java,Python,C++
+结果   : [Go, Java, Python, C++]
+
+3. SplitAfterN (m = 2):
+原字符串: Go,Java,Python,C++
+结果   : [Go, Java,Python,C++]
+
+4. SplitAfterN (m = -1):
+原字符串: Go,Java,Python,C++
+结果   : [Go, Java, Python, C++]
+
+5. SplitAfterN (m = 0):
+原字符串: Go,Java,Python,C++
+结果   : []
+
+6. Split（字符串中不包含分隔符）:
+原字符串: Golang
+结果   : [Golang]
+
+7. Split（分隔符为空）:
+原字符串: Go
+结果   : [G o]
+
+```
+
+###### 字符串包含
+
+**Contains：**此函数用于检查给定字符串中是否存在给定字符。如果字符存在于给定的字符串中，则它将返回true，否则返回false。
+
+**语法：**
+
+```
+func Contains(str, chstr string) bool
+```
+
+在这里，*str*是原始字符串，而*chstr*是您要检查的字符串。
+
+**ContainsAny：**此函数用于检查给定字符串(str)中是否存在 charstr 中的任何Unicode字符。如果给定字符串(str)中有 charstr 中的任何Unicode字符，则此方法返回true，否则返回false。
+
+**语法：**
+
+```
+func ContainsAny(str, charstr string) bool
+```
+
+在这里，*str* 是原始字符串，*charstr* 是chars中的Unicode字符。
+
+```
+package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+func main() {
+	str := "Hello Golang"
+
+	// 1. Contains：检查字符串中是否包含指定子串
+	result1 := strings.Contains(str, "Go")
+	fmt.Println("1. Contains:")
+	fmt.Println("原字符串:", str)
+	fmt.Println("是否包含 \"Go\":", result1)
+	fmt.Println()
+
+	// 2. Contains：检查不存在的子串
+	result2 := strings.Contains(str, "Java")
+	fmt.Println("2. Contains:")
+	fmt.Println("原字符串:", str)
+	fmt.Println("是否包含 \"Java\":", result2)
+	fmt.Println()
+
+	// 3. ContainsAny：检查字符串中是否包含给定字符集合中的任意字符
+	result3 := strings.ContainsAny(str, "xyzG")
+	fmt.Println("3. ContainsAny:")
+	fmt.Println("原字符串:", str)
+	fmt.Println("是否包含 \"xyzG\" 中任意字符:", result3)
+	fmt.Println()
+
+	// 4. ContainsAny：检查不存在的字符
+	result4 := strings.ContainsAny(str, "xyz")
+	fmt.Println("4. ContainsAny:")
+	fmt.Println("原字符串:", str)
+	fmt.Println("是否包含 \"xyz\" 中任意字符:", result4)
+	fmt.Println()
+
+	// 5. ContainsAny：支持 Unicode 字符
+	str2 := "你好，Go语言"
+	result5 := strings.ContainsAny(str2, "界语")
+	fmt.Println("5. ContainsAny（Unicode）:")
+	fmt.Println("原字符串:", str2)
+	fmt.Println("是否包含 \"界语\" 中任意字符:", result5)
+}
+
+1. Contains:
+原字符串: Hello Golang
+是否包含 "Go": true
+
+2. Contains:
+原字符串: Hello Golang
+是否包含 "Java": false
+
+3. ContainsAny:
+原字符串: Hello Golang
+是否包含 "xyzG" 中任意字符: true
+
+4. ContainsAny:
+原字符串: Hello Golang
+是否包含 "xyz" 中任意字符: false
+
+5. ContainsAny（Unicode）:
+原字符串: 你好，Go语言
+是否包含 "界语" 中任意字符: true
+
+```
+
+###### 字符串包含
+
+**Index：**此函数用于从原始字符串中查找给定字符串的第一个实例的索引值。如果给定的字符串在原始字符串中不存在，则此方法将返回-1。
+
+**语法：**
+
+```
+func Index(str, sbstr string) int
+```
+
+在这里，*str*是原始字符串，*sbstr*是我们要查找索引值的字符串。
+
+**IndexAny：**此方法从原始字符串中的chars返回任何Unicode码的第一个实例的索引值。如果原始字符中没有来自chars的Unicode代码点，则此方法将返回-1。
+
+**语法：**
+
+```
+func IndexAny(str, charstr string) int
+```
+
+在这里，*str*是原始字符串，*charstr*是chars的Unicode代码点，我们想要查找索引值。
+
+**IndexByte：**此函数返回原始字符串中给定字节的第一个实例的索引。如果给定的字节在原始字符串中不存在，则此方法将返回-1。
+
+**语法：**
+
+```
+func IndexByte(str string, b byte) int
+```
+
+在这里，*str*是原始字符串，*b*是一个字节，我们要查找其索引值。
+
+###### 关于字符串的要点
+
+- **字符串是不可变的：**在Go语言中，一旦创建了字符串，则字符串是不可变的，无法更改字符串的值。换句话说，字符串是只读的。如果尝试更改，则编译器将引发错误。
+
+  ```
+  //字符串是不可变的
+  package main 
+    
+  import "fmt"
+    
+  func main() { 
+    
+          //创建和初始化字符串
+          //使用简写声明
+      mystr := "Welcome to cainiaojc"
+    
+      fmt.Println("String:", mystr) 
+    
+      /* 果你试图改变字符串的值，编译器将抛出一个错误,例如, 
+       cannot assign to mystr[1] 
+         mystr[1]= 'G' 
+         fmt.Println("String:", mystr) 
+      */
+    
+  }
+  
+  String: Welcome to cainiaojc
+  ```
+
+- **如何遍历字符串：**您可以使用for range循环遍历字符串。此循环可以在Unicode代码点上迭代一个字符串。
+
+  **语法：**
+
+  ```
+  for index, chr:= range str{
+       // 语句..
+  }
+  ```
+
+  在这里，索引是存储UTF-8编码代码点的第一个字节的变量，而*chr是*存储给定字符串的字符的变量，str是字符串。
+
+  ```
+  //遍历字符串
+  //使用for范围循环
+  package main
+  
+  import "fmt"
+  
+  func main() {
+  
+      //字符串作为for循环中的范围
+      for index, s := range "cainiaojc" {
+  
+          fmt.Printf("%c 索引值是 %d\n", s, index)
+      }
+  }
+  
+  n 索引值是 0
+  h 索引值是 1
+  o 索引值是 2
+  o 索引值是 3
+  o 索引值是 4
+  ```
+
+- **如何访问字符串的单个字节？**：字符串是一个字节，因此，我们可以访问给定字符串的每个字节。
+
+  示例
+
+  ```
+  //访问字符串的字节
+  package main
+  
+  import "fmt"
+  
+  func main() {
+  
+      //创建和初始化一个字符串
+      str := "Welcome to cainiaojc"
+  
+      //访问给定字符串的字节
+      for c := 0; c < len(str); c++ {
+  
+          fmt.Printf("\n字符 = %c 字节 = %v", str[c], str[c])
+      }
+  }
+  
+  
+  字符 = W 字节 = 87
+  字符 = e 字节 = 101
+  字符 = l 字节 = 108
+  字符 = c 字节 = 99
+  字符 = o 字节 = 111
+  字符 = m 字节 = 109
+  字符 = e 字节 = 101
+  字符 =   字节 = 32
+  字符 = t 字节 = 116
+  字符 = o 字节 = 111
+  字符 =   字节 = 32
+  字符 = n 字节 = 110
+  字符 = h 字节 = 104
+  字符 = o 字节 = 111
+  字符 = o 字节 = 111
+  字符 = o 字节 = 111
+  ```
+
+- **如何从切片创建字符串？：**在Go语言中，允许您从字节切片创建字符串。
+
+  示例
+
+  ```
+  //从切片创建一个字符串 
+  package main 
+    
+  import "fmt"
+    
+  func main() { 
+    
+      //创建和初始化一个字节片
+      myslice1 := []byte{0x47, 0x65, 0x65, 0x6b, 0x73} 
+    
+      //从切片创建字符串
+      mystring1 := string(myslice1) 
+    
+      //显示字符串
+      fmt.Println("String 1: ", mystring1) 
+    
+      //创建和初始化一个符文切片 
+      myslice2 := []rune{0x0047, 0x0065, 0x0065, 0x006b, 0x0073} 
+    
+      //从切片创建字符串
+      mystring2 := string(myslice2) 
+    
+      //显示字符串
+      fmt.Println("String 2: ", mystring2) 
+  }
+  
+  String 1:  Geeks
+  String 2:  Geeks
+  ```
+
+- **如何查找字符串的长度？：**在Golang字符串中，可以使用两个函数（一个是**len()**，另一个是**RuneCountInString()）**来找到字符串的长度。UTF-8包提供了RuneCountInString()函数，该函数返回字符串中存在的符文总数。*len()*函数返回字符串的字节数。
+
+  示例
+
+  ```
+  //查找字符串的长度
+  package main
+  
+  import (
+      "fmt"
+      "unicode/utf8"
+  )
+  
+  func main() {
+  
+      //创建和初始化字符串
+      //使用简写声明
+      mystr := "Welcome to cainiaojc ??????"
+  
+      //查找字符串的长度
+      //使用len()函数
+      length1 := len(mystr)
+  
+      //使用RuneCountInString()函数
+      length2 := utf8.RuneCountInString(mystr)
+  
+      //显示字符串的长度
+      fmt.Println("string:", mystr)
+      fmt.Println("Length 1:", length1)
+      fmt.Println("Length 2:", length2)
+  
+  }
+  
+  string: Welcome to cainiaojc ??????
+  Length 1: 31
+  Length 2: 31
+  ```
+
+#### 聚合类型
 
 ##### 数组
 
@@ -204,6 +1049,134 @@ func myFunction(param []int) {
 
 如果你想要在函数内修改原始数组，可以通过传递数组的指针来实现。
 
+##### 结构体
+
+Go 语言中数组可以存储同一类型的数据，但在结构体中我们可以为不同项定义不同的数据类型。结构体是由一系列具有相同类型或不同类型的数据构成的数据集合。结构体定义需要使用 type 和 struct 语句。struct 语句定义一个新的数据类型，结构体中有一个或多个成员。type 语句设定了结构体的名称。结构体的格式如下：
+
+```
+type struct_variable_type struct {
+   member definition
+   member definition
+   ...
+   member definition
+}
+```
+
+一旦定义了结构体类型，它就能用于变量的声明，语法格式如下：
+
+```
+variable_name := structure_variable_type {value1, value2...valuen}
+或
+variable_name := structure_variable_type { key1: value1, key2: value2..., keyn: valuen}
+```
+
+如果要访问结构体成员，需要使用点号 **.** 操作符，格式为：
+
+```
+结构体.成员名"
+```
+
+结构体类型变量使用 struct 关键字定义。
+
+```go
+package main
+
+import "fmt"
+
+type Books struct {
+   title string
+   author string
+   subject string
+   book_id int
+}
+
+func main() {
+   var Book1 Books        /* 声明 Book1 为 Books 类型 */
+   var Book2 Books        /* 声明 Book2 为 Books 类型 */
+
+   /* book 1 描述 */
+   Book1.title = "Go 语言"
+   Book1.author = "www.runoob.com"
+   Book1.subject = "Go 语言教程"
+   Book1.book_id = 6495407
+
+   /* book 2 描述 */
+   Book2.title = "Python 教程"
+   Book2.author = "www.runoob.com"
+   Book2.subject = "Python 语言教程"
+   Book2.book_id = 6495700
+
+   /* 打印 Book1 信息 */
+   fmt.Printf( "Book 1 title : %s\n", Book1.title)
+   fmt.Printf( "Book 1 author : %s\n", Book1.author)
+   fmt.Printf( "Book 1 subject : %s\n", Book1.subject)
+   fmt.Printf( "Book 1 book_id : %d\n", Book1.book_id)
+
+   /* 打印 Book2 信息 */
+   fmt.Printf( "Book 2 title : %s\n", Book2.title)
+   fmt.Printf( "Book 2 author : %s\n", Book2.author)
+   fmt.Printf( "Book 2 subject : %s\n", Book2.subject)
+   fmt.Printf( "Book 2 book_id : %d\n", Book2.book_id)
+}
+```
+
+**结构体参数**：结构体允许按值作为函数参数传递。
+
+**结构体指针:**你可以定义指向结构体的指针类似于其他指针变量，格式如下：
+
+```
+var struct_pointer *Books
+```
+
+以上定义的指针变量可以存储结构体变量的地址。查看结构体变量地址，可以将 & 符号放置于结构体变量前：
+
+```
+struct_pointer = &Book1
+```
+
+使用结构体指针访问结构体成员，使用 "." 操作符：
+
+```
+struct_pointer.title
+```
+
+#### 引用类型
+
+##### 指针
+
+变量是一种使用方便的占位符，用于引用计算机内存地址。Go 语言的取地址符是 &，放到一个变量前使用就会返回相应变量的内存地址。一个指针变量指向了一个值的内存地址。类似于变量和常量，在使用指针前你需要声明指针。指针声明格式如下：
+
+```
+var var_name *var-type
+```
+
+var-type 为指针类型，var_name 为指针变量名，* 号用于指定变量是作为一个指针。
+
+在指针类型前面加上 * 号（前缀）来获取指针所指向的内容。
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+   var a int= 20   /* 声明实际变量 */
+   var ip *int        /* 声明指针变量 */
+
+   ip = &a  /* 指针变量的存储地址 */
+
+   fmt.Printf("a 变量的地址是: %x\n", &a  )
+
+   /* 指针变量的存储地址 */
+   fmt.Printf("ip 变量储存的指针地址: %x\n", ip )
+
+   /* 使用指针访问值 */
+   fmt.Printf("*ip 变量的值: %d\n", *ip )
+}
+```
+
+当一个指针被定义后没有分配到任何变量时，它的值为 nil。nil 指针也称为空指针。nil在概念上和其它语言的null、None、nil、NULL一样，都指代零值或空值。
+
 ##### 切片
 
 Go 语言切片是对数组的抽象。Go 数组的长度不可改变，在特定场景中这样的集合就不太适用，Go 中提供了一种灵活，功能强悍的内置类型切片("动态数组")，与数组相比切片的长度是不固定的，可以追加元素，在追加时可能使切片的容量增大。
@@ -309,97 +1282,6 @@ s :=make([]int,len,cap)
 可以通过设置下限及上限来设置截取切片 *[lower-bound:upper-bound]*
 
 **切片作为函数参数**：切片作为函数参数时是按**引用传递**的。
-
-##### 结构体
-
-Go 语言中数组可以存储同一类型的数据，但在结构体中我们可以为不同项定义不同的数据类型。结构体是由一系列具有相同类型或不同类型的数据构成的数据集合。结构体定义需要使用 type 和 struct 语句。struct 语句定义一个新的数据类型，结构体中有一个或多个成员。type 语句设定了结构体的名称。结构体的格式如下：
-
-```
-type struct_variable_type struct {
-   member definition
-   member definition
-   ...
-   member definition
-}
-```
-
-一旦定义了结构体类型，它就能用于变量的声明，语法格式如下：
-
-```
-variable_name := structure_variable_type {value1, value2...valuen}
-或
-variable_name := structure_variable_type { key1: value1, key2: value2..., keyn: valuen}
-```
-
-如果要访问结构体成员，需要使用点号 **.** 操作符，格式为：
-
-```
-结构体.成员名"
-```
-
-结构体类型变量使用 struct 关键字定义。
-
-```go
-package main
-
-import "fmt"
-
-type Books struct {
-   title string
-   author string
-   subject string
-   book_id int
-}
-
-func main() {
-   var Book1 Books        /* 声明 Book1 为 Books 类型 */
-   var Book2 Books        /* 声明 Book2 为 Books 类型 */
-
-   /* book 1 描述 */
-   Book1.title = "Go 语言"
-   Book1.author = "www.runoob.com"
-   Book1.subject = "Go 语言教程"
-   Book1.book_id = 6495407
-
-   /* book 2 描述 */
-   Book2.title = "Python 教程"
-   Book2.author = "www.runoob.com"
-   Book2.subject = "Python 语言教程"
-   Book2.book_id = 6495700
-
-   /* 打印 Book1 信息 */
-   fmt.Printf( "Book 1 title : %s\n", Book1.title)
-   fmt.Printf( "Book 1 author : %s\n", Book1.author)
-   fmt.Printf( "Book 1 subject : %s\n", Book1.subject)
-   fmt.Printf( "Book 1 book_id : %d\n", Book1.book_id)
-
-   /* 打印 Book2 信息 */
-   fmt.Printf( "Book 2 title : %s\n", Book2.title)
-   fmt.Printf( "Book 2 author : %s\n", Book2.author)
-   fmt.Printf( "Book 2 subject : %s\n", Book2.subject)
-   fmt.Printf( "Book 2 book_id : %d\n", Book2.book_id)
-}
-```
-
-**结构体参数**：结构体允许按值作为函数参数传递。
-
-**结构体指针:**你可以定义指向结构体的指针类似于其他指针变量，格式如下：
-
-```
-var struct_pointer *Books
-```
-
-以上定义的指针变量可以存储结构体变量的地址。查看结构体变量地址，可以将 & 符号放置于结构体变量前：
-
-```
-struct_pointer = &Book1
-```
-
-使用结构体指针访问结构体成员，使用 "." 操作符：
-
-```
-struct_pointer.title
-```
 
 ##### 字典
 
@@ -982,140 +1864,529 @@ go func() {
 
 类似timer, ticker也可以通过`Stop`方法来停止。一旦它停止，接收者不再会从channel中接收数据了。
 
+#### 别名类型
 
+##### Rune
 
+`rune` 类型是 Go 语言的一种特殊数字类型。在 `builtin/builtin.go` 文件中，它的定义：`type rune = int32`；官方对它的解释是：`rune` 是类型 `int32` 的别名，在所有方面都等价于它，用来区分字符值跟整数值。使用单引号定义 ，返回采用 UTF-8 编码的 Unicode 码点。Go 语言通过 `rune` 处理中文，支持国际化多语言。
 
+众所周知，Go 语言有两种类型声明方式：一种叫类型定义声明，另一种叫类型别名声明。其中，别名的使用在大型项目重构中作用最为明显，它能解决代码升级或迁移过程中可能存在的类型兼容性问题。而`rune` 跟 `byte` 是 Go 语言中仅有的两个类型别名，专门用来处理字符。当然，我们也可以通过 `type` 关键字加等号的方式声明更多的类型别名。
+
+我们知道，字符串由字符组成，字符的底层由字节组成，而一个字符串在底层的表示是一个字节序列。在 Go 语言中，字符可以被分成两种类型处理：对占 1 个字节的英文类字符，可以使用 `byte`（或者 `unit8` ）；对占 1 ~ 4 个字节的其他字符，可以使用 `rune`（或者 `int32` ），如中文、特殊符号等。
+
+下面，我们通过示例应用来具体感受一下。
+
+- 统计带中文字符串长度
+
+```go
+// 使用内置函数 len() 统计字符串长度
+fmt.Println(len("Go语言编程"))  // 输出：14  
+```
+
+前面说到，字符串在底层的表示是一个字节序列。其中，英文字符占用 1 字节，中文字符占用 3 字节，所以得到的长度 14 显然是底层占用字节长度，而不是字符串长度，这时，便需要用到 `rune` 类型。
+
+```go
+// 转换成 rune 数组后统计字符串长度
+fmt.Println(len([]rune("Go语言编程")))  // 输出：6
+```
+
+这回对了。很容易，我们解锁了 `rune` 类型的第一个功能，即统计字符串长度。
+
+- 截取带中文字符串
+
+如果想要截取字符串中 ”Go语言“ 这一段，考虑到底层是一个字节序列，或者说是一个数组，通常情况下，我们会这样：
+
+```go
+s := "Go语言编程"
+// 8=2*1+2*3
+fmt.Println(s[0:8])  // 输出：Go语言
+```
+
+结果符合预期。但是，按照字节的方式进行截取，必须预先计算出需要截取字符串的字节数，如果字节数计算错误，就会显示乱码，比如这样：
+
+```go
+s := "Go语言编程"
+fmt.Println(s[0:7]) // 输出：Go语�
+```
+
+此外，如果截取的字符串较长，那通过字节的方式进行截取显然不是一个高效准确的办法。那有没有不用计算字节数，简单又不会出现乱码的方法呢？不妨试试这样：
+
+```go
+s := "Go语言编程"
+// 转成 rune 数组，需要几个字符，取几个字符
+fmt.Println(string([]rune(s)[:4])) // 输出：Go语言    
+```
+
+到这里，我们解锁了 `rune` 类型的第二个功能，即截取字符串。
+
+通过上面的示例，我们发现似乎在处理带中文的字符串时，都需要用到 `rune` 类型，这究竟是为什么呢？除了使用 `rune` 类型，还有其他方法吗？
+
+在深入思考之前，我们需要首先弄清楚 `string` 、`byte`、`rune` 三者间的关系。
+
+字符串在底层的表示是由单个字节组成的一个不可修改的字节序列，字节使用 UTF-8[1] 编码标识 Unicode[2] 文本。Unicode 文本意味着 `.go` 文件内可以包含世界上的任意语言或字符，该文件在任意系统上打开都不会乱码。UTF-8 是 Unicode 的一种实现方式，是一种针对 Unicode 可变长度的字符编码，它定义了字符串具体以何种方式存储在内存中。UFT-8 使用 1 ~ 4 为每个字符编码。
+
+Go 语言把字符分 `byte` 和 `rune` 两种类型处理。`byte` 是类型 `unit8` 的别名，用于存放占 1 字节的 ASCII 字符，如英文字符，返回的是字符原始字节。`rune` 是类型 `int32` 的别名，用于存放多字节字符，如占 3 字节的中文字符，返回的是字符 Unicode 码点值。如下图所示：
+
+```go
+s := "Go语言编程"
+// byte
+fmt.Println([]byte(s)) // 输出：[71 111 232 175 173 232 168 128 231 188 150 231 168 139]
+// rune
+fmt.Println([]rune(s)) // 输出：[71 111 35821 35328 32534 31243]
+```
+
+它们的对应关系如下图：![图片](https://mmbiz.qpic.cn/mmbiz_png/rJDC5vuwJCNoUJI5HH4uiaAYjK4vIgnu7W7h9Y0LezHISIzDTxDCE6FVVxzUb6gefUYo2X5mraBO4p9uiaK0QRuA/640?wx_fmt=png&wxfrom=5&wx_lazy=1&wx_co=1)了解了这些，我们再回过来看看，刚才的问题是不是清楚明白很多？接下来，让我们再来看看源码中是如何处理的，以 utf8.RuneCountInString()[3] 函数为例。  
+
+ 
+
+示例：
+
+```cpp
+// 统计字符串长度
+fmt.Println(utf8.RuneCountInString("Go语言编程")) // 输出：6
+```
+
+源码：
+
+```go
+// RuneCountInString is like RuneCount but its input is a string.
+func RuneCountInString(s string) (n int) {
+ // 调用 len() 函数得到字节数
+ ns := len(s)
+ for i := 0; i < ns; n++ {
+  c := s[i]
+  // 如码点值小于 128，则为占 1 字节的 ASCII 字符（或者说英文字符），长度 + 1
+  if c < RuneSelf { // RuneSelf = 128
+   // ASCII fast path
+   i++
+   continue
+  }
+  // 查询首字节信息表，得到中文占 3 字节，所以这里的 x = 3
+  x := first[c]
+  // 判断 x = 3,xx = 241（0xF1）
+  if x == xx {
+   i++ // invalid.
+   continue
+  }
+  // 提取有效的 UTF-8 字节长度编码信息，size = 3
+  size := int(x & 7)
+  if i+size > ns {
+   i++ // Short or invalid.
+   continue
+  }
+  // 提取有效字节范围
+  accept := acceptRanges[x>>4]
+  // accept.lo，accept.hi，表示 UTF-8 中第二字节的有效范围
+  // locb = 0b10000000，表示 UTF-8 编码非首字节的数值下限
+  // hicb = 0b10111111，表示 UTF-8 编码非首字节的数值上限
+  if c := s[i+1]; c < accept.lo || accept.hi < c {
+   size = 1
+  } else if size == 2 {
+  } else if c := s[i+2]; c < locb || hicb < c {
+   size = 1
+  } else if size == 3 {
+  } else if c := s[i+3]; c < locb || hicb < c {
+   size = 1
+  }
+  i += size
+ }
+ return n
+}
+```
+
+调用该函数时，传入一个原始的字符串，代码会根据每个字符的码点大小判断是否为 ASCII 字符，如果是，则算做 1 位；如果不是，则查询首字节表，明确字符占用的字节数，验证有效性后再进行计数。
 
 ### 变量
 
-**变量声明的三种方式**
+典型的程序使用各种值，这些值在执行过程中可能会发生变化。
 
-①指定变量类型，如没有初始化，则默认为零值
+*例如*，对用户输入的值执行某些操作的程序。一个用户输入的值可能与另一个用户输入的值不同。因此，这就需要使用变量，因为其他用户可能不会使用相同的值。当一个用户输入一个新值将用于在操作的过程中,可以将暂时存储在计算机的随机存取存储器,这些值在执行这部分内存不同,因此这来的另一个术语称为***变量***。变量是可以在运行时更改的信息的占位符。并且变量允许检索和处理存储的信息。
 
-```go
+**变量命名规则：**
+
+变量名称必须以字母或下划线（_）开头。并且名称中可能包含字母“ a-z”或“ A-Z”或数字0-9，以及字符“ _”。变量名称不应以数字开头。变量名称区分大小写。关键字不允许用作变量名。变量名称的长度没有限制，但是建议仅使用4到15个字母的最佳长度。
+
+```
+Geeks, geeks, _geeks23  //合法变量
+123Geeks, 23geeks      // 非法变量
+234geeks  //非法变量
+geeks 和Geeks 是两个不同的变量
+```
+
+#### 声明变量
+
+*在Go语言中，变量是通过两种不同的方式创建的：*
+
+**使用var关键字：**在Go语言中，变量是使用特定类型的*var*关键字创建的，该关键字与变量名关联并赋予其初始值。
+
+**语法：**
+
+```
+var variable_name type = expression
+```
+
+**重要事项：**
+
+在上述语法中，*类型（type）* 或*=*表达式可以删除，但不能同时删除变量声明中的两个。
+
+如果删除了类型，则变量的类型由表达式中的值初始化确定。
+
+示例
+
+```
+//变量的概念
 package main
+
 import "fmt"
 
 func main() {
-	var a int
-	a = 2
-	var b int
-	var c bool
-	var d string
-	var e *int
-	fmt.Println(a,b,c,d,e)
+
+    //变量声明和初始化
+    //显式类型
+    var myvariable1 = 20
+    var myvariable2 = "cainiaojc"
+    var myvariable3 = 34.80
+
+    // Display the value and the
+    // type of the variables
+    fmt.Printf("myvariable1的值是 : %d\n", myvariable1)
+
+    fmt.Printf("myvariable1的类型是 : %T\n", myvariable1)
+
+    fmt.Printf("myvariable2的值是 : %s\n", myvariable2)
+
+    fmt.Printf("myvariable2的类型是 : %T\n", myvariable2)
+
+    fmt.Printf("myvariable3的值是 : %f\n", myvariable3)
+
+    fmt.Printf("myvariable3的类型是 : %T\n", myvariable3)
+
 }
 ```
 
-"零值"
+**输出：**
 
-- 数值类型（包括complex64/128）为0
+```
+myvariable1的值是 : 20
+myvariable1的类型是 : int
+myvariable2的值是 : cainiaojc
+myvariable2的类型是 : string
+myvariable3的值是 : 34.800000
+myvariable3的类型是 : float64
+```
 
-- 布尔类型为false
+如果删除了表达式，则该变量的类型为零，数字为零，布尔值为false，字符串为**“”**，接口和引用类型为nil。因此，***在Go语言中没有这样的未初始化变量的概念。***
 
-- 字符串为“”(空字符串)
+示例
 
-- 以下几种类型为nil：
-
-  ```go
-  var a *int
-  var a []int
-  var a map[string] int
-  var a chan int
-  var a func(string) int
-  var a error // error 是接口
-  ```
-
-②根据值自行判断变量类型
-
-```go
+```
 package main
+
 import "fmt"
 
 func main() {
-	var a = "str"
-	fmt.Println(a)
+
+    //变量声明和初始化不使用表达式
+    var myvariable1 int
+    var myvariable2 string
+    var myvariable3 float64
+
+    //显示0值变量
+    fmt.Printf("myvariable1的值是 : %d\n", myvariable1)
+    fmt.Printf("myvariable2的值是 : %d\n", myvariable2)
+    fmt.Printf("myvariable3的值是 : %d\n", myvariable3)
 }
 ```
 
-③省略var，注意 `:=`左侧如果没有声明新的变量就会产生编译错误
+**输出：**
 
-```go
+```
+myvariable1的值是 : 0
+myvariable2的值是 : %!d(string=)
+myvariable3的值是 : %!d(float64=0)
+```
+
+如果使用类型，则可以在单个声明中声明相同类型的多个变量。
+
+示例
+
+```
 package main
+
 import "fmt"
 
 func main() {
-	a := "str"
-	var b int
-	// b := 2（编译错误）
-	b,c := 2,3 //有声明新的变量，ok
-	fmt.Println(a,b,c)
+
+    // 在一行上同时声明和初始化多个类型相同的变量
+    var myvariable1, myvariable2, myvariable3 int = 2, 454, 67
+
+    // 输出变量的值
+    fmt.Printf("myvariable1的值是 : %d\n", myvariable1)
+    fmt.Printf("myvariable2的值是 : %d\n", myvariable2)
+    fmt.Printf("myvariable3的值是 : %d\n", myvariable3)
+
 }
 ```
 
-**多变量声明**
+**输出：**
 
-```go
-//类型相同多个变量，非全局变量
-var vname1,vname2,vname3 type
-vname1,vname2,vname3 = v1,v2,v3
-//和python很像，不需要显式声明类型
-var vname1,vname2,vname3 = v1,v2,v3
-//:=左侧变量不应该是已经被声明过的
-vname1,vname2,vname3 := v1,v2,v3
-//这种因式分解关键字写法一般用于声明全局变量
-var(
-	vname1 v_type1
-    vname2 v_type2
-)
+```
+myvariable1的值是 : 2
+myvariable2的值是 : 454
+myvariable3的值是 : 67
 ```
 
-实例
+如果删除类型，则可以在单个声明中声明不同类型的多个变量。变量的类型由初始化值确定。
 
-```go
+示例
+
+```
 package main
+
 import "fmt"
 
-var x,y int
-var(
-	a int
-	b bool
-)
-var c,d int = 1, 5
-var e,f = 123,"str"
-// g,h := 123,"str"（这种不带声明格式的只能在函数体内出现）
 func main() {
-	g,h := 123,"str"
-	fmt.Println(x,y,a,b,c,d,e,f,g,h)
+
+    //多个不同类型的变量
+    //在单行中声明和初始化
+    var myvariable1, myvariable2, myvariable3 = 2, "GFG", 67.56
+
+    // 打印变量值和类型
+    fmt.Printf("myvariable1的值是 : %d\n", myvariable1)
+
+    fmt.Printf("myvariable1的类型是 : %T\n", myvariable1)
+
+    fmt.Printf("\nmyvariable2的值是 : %s\n", myvariable2)
+
+    fmt.Printf("myvariable2的类型是 : %T\n", myvariable2)
+
+    fmt.Printf("\nmyvariable3的值是 : %f\n", myvariable3)
+
+    fmt.Printf("myvariable3的类型是 : %T\n", myvariable3)
 }
 ```
 
-**值类型和引用类型**
+**输出：**
 
-①值类型
+```
+myvariable1的值是 : 2
+myvariable1的类型是 : int
 
-- 所有像int、float、bool和string这些基本类型都属于值类型，使用这些类型的变量直接指向内存中的值。
-- 当使用等号进行赋值时，如 b = a ，实际上是在内存中将a的值进行了拷贝
+myvariable2的值是 : GFG
+myvariable2的类型是 : string
 
-②引用类型
+myvariable3的值是 : 67.560000
+myvariable3的类型是 : float64
+```
 
-- 更复杂的数据通常需要使用多个字，这些数据使用引用类型保存
-- 一个引用类型的变量r1存储r1的值所在的内存地址，或内存地址中第一个字所在的位置。这个内存地址称为指针，这个指针实际上也被存在了另外的某一个字中
-- 当使用等号进行赋值时，只有引用（地址）被复制，如 r2 = r1，如果r1值被改变，那么这个值的所有引用都会指向被修改后的内容，r2也受到影响
+返回多个值的调用函数允许您初始化一组变量。
 
-**使用 := 赋值操作符**
+**例如：**
 
-- :=为变量赋值只能被用于函数体内，不可以用于全局变量的声明与赋值。使用操作符 := 高效创建一个新的变量，称之为初始化声明。
-- 声明了一个局部变量却没有在相同的代码块中使用它，也会有编译错误
-- 全局变量允许声明但不使用。同一类型的多个变量可声明在同一行
-- 多变量可在同一行赋值
-- 如果想要交换两个变量的值，可以用 `a,b=b,a`，两变量类型必须相同
+```
+//这里，os.Open函数返回一个
+//文件中的i变量和一个错误
+//在j变量中
+var i, j = os.Open(name)
+```
 
-**空白标识符 _**
+**（二）使用短变量声明：使用短变量声明**来声明在函数中声明和初始化的局部变量。
 
-用于抛弃值。如 `_,b = 5,7`中，值5被抛弃
+**语法：**
 
-_ 实际上是一个只写变量，不能得到它的值。因为Go语言中必须使用所有被声明的变量。但有时并不需要使用从一个函数得到的所有返回值。
+```
+variable_name:= expression
+```
+
+**注意：**请不要在*：=*和*=*之间混淆，因为*：=* 是声明，而 *=* 是赋值。
+
+**重要事项：**
+
+在上面的表达式中，变量的类型由表达式的类型确定。
+
+示例
+
+```
+package main
+
+import "fmt"
+
+func main() {
+
+    // 使用短变量声明
+    myvariable1 := 39
+    myvariable2 := "(cainiaojc.com)"
+    myvariable3 := 34.67
+
+    // 打印变量值和类型
+    fmt.Printf("myvariable1的值是 : %d\n", myvariable1)
+
+    fmt.Printf("myvariable1的类型是 : %T\n", myvariable1)
+
+    fmt.Printf("\nmyvariable2的值是 : %s\n", myvariable2)
+
+    fmt.Printf("myvariable2的类型是 : %T\n", myvariable2)
+
+    fmt.Printf("\nmyvariable3的值是 : %f\n", myvariable3)
+
+    fmt.Printf("myvariable3的类型是 : %T\n", myvariable3)
+}
+```
+
+**输出：**
+
+```
+myvariable1的值是 : 39
+myvariable1的类型是 : int
+
+myvariable2的值是 : (cainiaojc.com)
+myvariable2的类型是 : string
+
+myvariable3的值是 : 34.670000
+myvariable3的类型是 : float64
+```
+
+由于它们的简洁性和灵活性，大多数局部变量都是使用短变量声明来声明和初始化的。
+
+变量的var声明用于那些需要与初始值设定项表达式不同的显式类型的局部变量，或用于其值稍后分配且初始值不重要的那些变量。
+
+使用短变量声明，可以在单个声明中声明多个变量。
+
+示例
+
+```
+package main
+
+import "fmt"
+
+func main() {
+
+    //在单行中声明和初始化变量
+    //使用简短的变量声明
+    //多个相同类型的变量
+
+    myvariable1, myvariable2, myvariable3 := 800, 34.7, 56.9
+
+    // 打印变量值和类型
+    fmt.Printf("myvariable1的值是 : %d\n", myvariable1)
+
+    fmt.Printf("myvariable1的类型是 : %T\n", myvariable1)
+
+    fmt.Printf("\nmyvariable2的值是 : %f\n", myvariable2)
+
+    fmt.Printf("myvariable2的类型是 : %T\n", myvariable2)
+
+    fmt.Printf("\nmyvariable3的值是 : %f\n", myvariable3)
+
+    fmt.Printf("myvariable3的类型是 : %T\n", myvariable3)
+}
+```
+
+**输出：**
+
+```
+myvariable1的值是 : 800
+myvariable1的类型是 : int
+
+myvariable2的值是 : 34.700000
+myvariable2的类型是 : float64
+
+myvariable3的值是 : 56.900000
+myvariable3的类型是 : float64
+```
+
+在简短的变量声明中，允许返回多个值的调用函数初始化一组变量。
+
+```
+//这里，os.Open函数返回一个
+//文件中的i变量和一个错误
+//在j变量中
+i, j := os.Open(name)
+```
+
+简短的变量声明仅当对于已在同一语法块中声明的那些变量起作用时，才像赋值一样。在外部块中声明的变量将被忽略。如下面的示例所示，这两个变量中至少有一个是新变量。
+
+示例
+
+```
+package main
+
+import "fmt"
+
+func main() {
+
+    //使用简短的变量声明
+    //这里，短变量声明动作
+    //作为myvar2变量的赋值
+    //因为相同的变量存在于同一块中
+    //因此myvar2的值从45更改为100
+
+    myvar1, myvar2 := 39, 45
+    myvar3, myvar2 := 45, 100
+
+    //如果您尝试运行注释行，
+    //然后编译器将给出错误，因为
+    //这些变量已经定义，例如
+    // myvar1，myvar2：= 43，47
+    // myvar2：= 200
+
+    // 打印变量值
+    fmt.Printf("myvar1 和 myvar2 的值 : %d %d\n", myvar1, myvar2)
+
+    fmt.Printf("myvar3 和 myvar2 的值 : %d %d\n", myvar3, myvar2)
+}
+```
+
+**输出：**
+
+```
+myvar1 和 myvar2 的值 : 39 100
+myvar3 和 myvar2 的值 : 45 100
+```
+
+使用短变量声明，可以在单个声明中声明不同类型的多个变量。这些变量的类型由表达式确定。
+
+示例
+
+```
+package main
+
+import "fmt"
+
+func main() {
+
+    //在单行中声明和初始化
+    //使用简短的变量声明
+    //多个不同类型的变量
+    myvariable1, myvariable2, myvariable3 := 800, "NHOOO", 47.56
+
+    // 打印变量值和类型
+    fmt.Printf("myvariable1的值是 : %d\n", myvariable1)
+
+    fmt.Printf("myvariable1的类型是 : %T\n", myvariable1)
+
+    fmt.Printf("\nmyvariable2的值是 : %s\n", myvariable2)
+
+    fmt.Printf("myvariable2的类型是 : %T\n", myvariable2)
+
+    fmt.Printf("\nmyvariable3的值是 : %f\n", myvariable3)
+
+    fmt.Printf("myvariable3的类型是 : %T\n", myvariable3)
+}
+```
+
+**输出：**
+
+```
+myvariable1的值是 : 800
+myvariable1的类型是 : int
+
+myvariable2的值是 : NHOOO
+myvariable2的类型是 : string
+
+myvariable3的值是 : 47.560000
+myvariable3的类型是 : float64
+```
 
 ### 常量
 
