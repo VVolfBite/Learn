@@ -939,206 +939,448 @@ func IndexByte(str string, b byte) int
 
 ##### 数组
 
-Go 语言提供了数组类型的数据结构。数组是具有相同唯一类型的一组已编号且长度固定的数据项序列，这种类型可以是任意的原始类型例如整型、字符串或者自定义类型。相对于去声明 **number0, number1, ..., number99** 的变量，使用数组形式 **numbers[0], numbers[1] ..., numbers[99]** 更加方便且易于扩展。数组元素可以通过索引（位置）来读取（或者修改），索引从 0 开始，第一个元素索引为 0，第二个索引为 1，以此类推。
+Go编程语言中的数组与其他编程语言非常相似。在程序中，有时我们需要存储一组相同类型的数据，例如学生分数列表。这种类型的集合使用数组存储在程序中。数组是固定长度的序列，用于将同类元素存储在内存中。由于它们的固定长度数组不像Go语言中的Slice(切片)这样受欢迎。
+在数组中，允许在其中存储零个或零个以上的元素。通过使用[]索引运算符及其从零开始的位置对数组的元素进行索引，这意味着第一个元素的索引为*array [0]*，最后一个元素的索引为*array [len（array）-1]*。
 
-![img](./assets/goarray.png)
+![golang中的数组](./assets/Untitled-Diagram33.jpg)
 
+在Go语言中，数组是通过两种不同的方式创建的：
 
+- **使用var关键字：**在Go语言中，使用具有名称，大小和元素的特定类型的var关键字创建数组。
 
-Go 语言数组声明需要指定元素类型及元素个数，语法格式如下：
+  **语法：**
+
+  ```
+  Var array_name[length]Type
+  或
+  var array_name[length]Typle{item1, item2, item3, ...itemN}
+  ```
+
+  **重要事项：**
+
+  - 在Go语言中，数组是可变的，因此您可以在分配的左侧使用array [index]语法在给定索引处设置数组的元素。
+
+    ```
+    Var array_name[index] = element[object Object]
+    ```
+
+  - 您可以使用索引值或使用for循环来访问数组的元素。
+
+  - 在Go语言中，数组类型是一维的。
+
+  - 数组的长度是固定的，不能更改。
+
+  - 您可以将重复的元素存储在数组中。
+
+  - 示例
+
+    ```
+    //使用var关键字创建一个数组
+    //使用其索引值访问数组
+    package main
+    
+    import "fmt"
+    
+    func main() {
+    
+        //使用var关键字，创建一个字符串类型的数组
+        var myarr [3]string
+    
+        //使用索引分配元素
+        myarr[0] = "GFG"
+        myarr[1] = "www.cainiaojc.com"
+        myarr[2] = "cainiaojc"
+    
+        //访问数组的元素
+        //使用索引值
+        fmt.Println("数组的元素:")
+        fmt.Println("元素 1: ", myarr[0])
+        fmt.Println("元素 2: ", myarr[1])
+        fmt.Println("元素 3: ", myarr[2])
+    }
+    ```
+
+  - **输出：**
+
+  - 数组的元素: 元素 1: GFG 元素 2: www.cainiaojc.com 元素 3: cainiaojc
+
+- **使用简写声明：**在Go语言中，数组也可以使用简写声明进行声明。它比上面的声明更灵活。
+
+  **语法：**
+
+  ```
+  array_name:= [length]Type{item1, item2, item3,...itemN}[object Object]
+  ```
+
+  示例
+
+  ```
+  //使用简写声明的数组
+  //使用for循环访问数组
+  package main
+  
+  import "fmt"
+  
+  func main() {
+  
+      //数组的简写声明
+      arr := [4]string{"cainiaojc", "gfg", "cainiaojcs1231", "www.cainiaojc.com"}
+  
+      //访问的元素,使用for循环的数组
+      fmt.Println("数组的元素:")
+  
+      for i := 0; i < 3; i++ {
+          fmt.Println(arr[i])
+      }
+  
+  }
+  ```
+
+  **输出：**
+
+  ```
+  数组的元素:
+  cainiaojc
+  gfg
+  cainiaojc$11231
+  ```
+
+- 多维数组
+
+- 我们已经知道数组是一维的，但是允许创建多维数组。多维数组是相同类型数组的数组。在Go语言中，您可以使用以下语法创建多维数组:
+
+- Array_name[Length1][Length2]..[LengthN]Type
+
+- 您可以*使用Var关键字*或*使用简写声明*来创建多维数组，如下例所示。
+
+- **注意：**在多维数组中，如果用户未使用某个值初始化单元格，则编译器将自动将其初始化为零。Golang中没有未初始化的概念。
+
+- 示例
+
+  ```
+  package main
+  
+  import "fmt"
+  
+  func main() {
+  
+      //创建和初始化
+      //二维数组
+      //使用简写声明
+      //这里需要用（，）逗号
+      arr := [3][3]string{{"C#", "C", "Python"},
+          {"Java", "Scala", "Perl"},
+          {"C++", "Go", "HTML"}}
+  
+      //访问的值
+      //数组使用for循环
+      fmt.Println("数组的元素 1")
+      for x := 0; x < 3; x++ {
+          for y := 0; y < 3; y++ {
+              fmt.Println(arr[x][y])
+          }
+      }
+  
+      //创建二维数组
+      //使用var关键字的数组
+      //并初始化一个
+      //使用索引的维数组
+      var arr1 [2][2]int
+      arr1[0][0] = 100
+      arr1[0][1] = 200
+      arr1[1][0] = 300
+      arr1[1][1] = 400
+  
+      //访问数组的值
+      fmt.Println("数组的元素 2")
+      for p := 0; p < 2; p++ {
+          for q := 0; q < 2; q++ {
+              fmt.Println(arr1[p][q])
+  
+          }
+      }
+  }
+  ```
+
+- **输出：**
+
+- 数组的元素 1 C# C Python Java Scala Perl C++ Go HTML 数组的元素 2 100 200 300 400
+
+- 关于数组的注意事项
+
+- 在数组中，如果未显式初始化数组，则**此数组**的**默认值为0**。
+
+  示例
+
+  ```
+  package main 
+    
+  import "fmt"
+    
+  func main() { 
+    
+  //创建一个int类型的数组,存储两个元素
+  //在这里，我们不初始化数组，所以数组的值为零
+  var myarr[2]int 
+  fmt.Println("数组元素 :", myarr) 
+    
+  }
+  ```
+
+  **输出：**
+
+  ```
+  数组元素 : [0 0]
+  ```
+
+- 在数组中，您可以**使用\*len()方法\*****获取**数组**的长度，**如下所示：
+
+  示例
+
+  ```
+  package main
+  
+  import "fmt"
+  
+  func main() {
+  
+      //创建数组
+      //使用简写声明
+      arr1 := [3]int{9, 7, 6}
+      arr2 := [...]int{9, 7, 6, 4, 5, 3, 2, 4}
+      arr3 := [3]int{9, 3, 5}
+  
+      // 使用len方法计算数组大小
+      fmt.Println("数组1的长度是:", len(arr1))
+      fmt.Println("数组2的长度是:", len(arr2))
+      fmt.Println("数组3的长度是:", len(arr3))
+  }
+  ```
+
+  **输出：**
+
+  ```
+  数组1的长度是: 3
+  数组2的长度是: 8
+  数组3的长度是: 3
+  ```
+
+- 在数组中，***如果省略号“ ...”\***在长度位置处可见，则数组的长度由初始化的元素确定。如下例所示：
+
+  示例
+
+  ```
+  //数组中省略号的使用方法
+  package main
+  
+  import "fmt"
+  
+  func main() {
+  
+      //创建大小已确定的数组
+      //根据其中元素的数量
+      //使用省略号
+      myarray := [...]string{"GFG", "gfg", "cainiaojcs", "www.cainiaojc.com", "cainiaojc"}
+  
+      fmt.Println("数组元素: ", myarray)
+  
+      //数组的长度
+      //由...决定
+      //使用len()方法
+      fmt.Println("数组的长度为:", len(myarray))
+  }
+  ```
+
+  **输出：**
+
+  ```
+  数组元素:  [GFG gfg cainiaojcs www.cainiaojc.com cainiaojc]
+  数组的长度为: 5
+  ```
+
+- 在数组中，**允许您**在array **的元素范围内进行迭代**。如下例所示：
+
+  示例
+
+  ```
+  //如何迭代数组
+  package main
+  
+  import "fmt"
+  
+  func main() {
+  
+      //创建一个数组，其大小
+      //用省略号表示
+      myarray := [...]int{29, 79, 49, 39, 20, 49, 48, 49}
+  
+      //使用for循环迭代数组
+      for x := 0; x < len(myarray); x++ {
+          fmt.Printf("%d\n", myarray[x])
+      }
+  }
+  ```
+
+  **输出：**
+
+  ```
+  29
+  79
+  49
+  39
+  20
+  49
+  48
+  49
+  ```
+
+- 在Go语言中，**数组的值类型不是引用类型**。因此，当将数组分配给新变量时，在新变量中所做的更改不会影响原始数组。如下例所示：
+
+  示例
+
+  ```
+  package main
+  
+  import "fmt"
+  
+  func main() {
+  
+      //创建一个数组，其大小
+      //用省略号表示
+      my_array := [...]int{100, 200, 300, 400, 500}
+      fmt.Println("原始数组(改变前):", my_array)
+  
+      //创建一个新变量
+      //并使用my_array进行初始化
+      new_array := my_array
+  
+      fmt.Println("新数组(改变前):", new_array)
+  
+      //将索引0处的值更改为500
+      new_array[0] = 500
+  
+      fmt.Println("新数组(改变后):", new_array)
+  
+      fmt.Println("原始数组(改变后):", my_array)
+  }
+  ```
+
+  **输出：**
+
+  ```
+  原始数组(改变前): [100 200 300 400 500]
+  新数组(改变前): [100 200 300 400 500]
+  新数组(改变后): [500 200 300 400 500]
+  原始数组(改变后): [100 200 300 400 500]
+  ```
+
+- 在数组中，如果数组的元素类型是可比较的，则数组类型也是可比较的。因此，**我们可以使用==运算符直接比较两个数组**。如下例所示：
+
+  示例
+
+  ```
+  //如何比较两个数组
+  package main
+  
+  import "fmt"
+  
+  func main() {
+  
+      arr1 := [3]int{9, 7, 6}
+      arr2 := [...]int{9, 7, 6}
+      arr3 := [3]int{9, 5, 3}
+  
+      //使用==运算符比较数组
+      fmt.Println(arr1 == arr2)
+      fmt.Println(arr2 == arr3)
+      fmt.Println(arr1 == arr3)
+  
+      //这将给出和错误，因为
+      // arr1和arr4的类型不匹配
+      /*
+         arr4:= [4]int{9,7,6}
+         fmt.Println(arr1==arr4)
+      */
+  }
+  ```
+
+  **输出：**
+
+  ```
+  true
+  false
+  false
+  ```
+
+Golang编程语言中的[数组](https://www.cainiaojc.com/golang/go-arrays.html)与其他编程语言非常相似。在程序中，有时我们需要存储一组相同类型的数据，例如学生评分列表。这种类型的集合使用数组存储在程序中。数组是固定长度的序列，用于将同类元素存储在内存中。Golang没有提供将一个数组复制到另一个数组的特定内置函数。但是我们可以通过简单地通过值或引用将数组分配给新变量来创建数组的副本。
+
+如果我们通过值创建数组的副本并在原始数组的值中进行了一些更改，则它不会反映在该数组的副本中。 而且，如果我们通过引用创建数组的副本，并对原始数组的值进行了一些更改，那么它将反映在该数组的副本中。 如以下示例所示：
+
+**语法：**
 
 ```
-var arrayName [size]dataType
+//按值创建数组的副本
+arr := arr1
+
+//通过引用创建数组的副本
+arr := &arr1
 ```
 
-其中，**arrayName** 是数组的名称，**size** 是数组的大小，**dataType** 是数组中元素的数据类型。
+o编程语言中的数组与其他编程语言非常相似。在程序中，有时我们需要存储一组相同类型的数据，例如学生评分列表。这种类型的集合使用数组存储在程序中。数组是固定长度的序列，用于将同类元素存储在内存中。
+在Go语言中，允许您在函数中传递数组作为参数。为了在函数中将数组作为参数传递，您必须首先使用以下语法创建形式参数：
 
-以下实例声明一个名为 numbers 的整数数组，其大小为 5，在声明时，数组中的每个元素都会根据其数据类型进行默认初始化，对于整数类型，初始值为 0。
-
-```
-var numbers [5]int
-```
-
-还可以使用初始化列表来初始化数组的元素：
+**语法：**
 
 ```
-var numbers = [5]int{1, 2, 3, 4, 5}
-```
-
-以上代码声明一个大小为 5 的整数数组，并将其中的元素分别初始化为 1、2、3、4 和 5。
-
-另外，还可以使用 **:=** 简短声明语法来声明和初始化数组：
-
-```
-numbers := [5]int{1, 2, 3, 4, 5}
-```
-
-以上代码创建一个名为 numbers 的整数数组，并将其大小设置为 5，并初始化元素的值。
-
-**注意：**在 Go 语言中，数组的大小是类型的一部分，因此不同大小的数组是不兼容的，也就是说 **[5]int** 和 **[10]int** 是不同的类型。
-
-如果数组长度不确定，可以使用 **...** 代替数组的长度，编译器会根据元素个数自行推断数组的长度：
-
-```
-var balance = [...]float32{1000.0, 2.0, 3.4, 7.0, 50.0}
-或
-balance := [...]float32{1000.0, 2.0, 3.4, 7.0, 50.0}
-```
-
-如果设置了数组的长度，我们还可以通过指定下标来初始化元素：
-
-```
-//  将索引为 1 和 3 的元素初始化
-balance := [5]float32{1:2.0,3:7.0}
-```
-
-初始化数组中 **{}** 中的元素个数不能大于 **[]** 中的数字。
-
-如果忽略 **[]** 中的数字不设置数组大小，Go 语言会根据元素的个数来设置数组的大小：
-
-```
- balance[4] = 50.0
-```
-
-以上实例读取了第五个元素。数组元素可以通过索引（位置）来读取（或者修改），索引从 0 开始，第一个元素索引为 0，第二个索引为 1，以此类推。
-
-![img](./assets/array_presentation.jpg)
-
-
-
-数组元素可以通过索引（位置）来读取。格式为数组名后加中括号，中括号中为索引的值。例如：
-
-```
-var salary float32 = balance[9]
-```
-
-**多维数组**：
-
-Go 语言支持多维数组，以下为常用的多维数组声明方式：
-
-```
-var variable_name [SIZE1][SIZE2]...[SIZEN] variable_type
-a := [3][4]int{  
- {0, 1, 2, 3} ,   /*  第一行索引为 0 */
- {4, 5, 6, 7} ,   /*  第二行索引为 1 */
- {8, 9, 10, 11},   /* 第三行索引为 2 */
+//对于指定大小的数组
+func function_name(variable_name [size]type){
+// Code
 }
 
-注意：以上代码中倒数第二行的 } 必须要有逗号，因为最后一行的 } 不能单独一行
-```
-
-**数组参数**：Go 语言中的数组是值类型，因此在将数组传递给函数时，实际上是传递数组的副本。
-
-如果你想向函数传递数组参数，你需要在函数定义时，声明形参为数组，我们可以通过以下两种方式来声明：
-
-* 形参设定数组大小：
-
-```
-func myFunction(param [10]int) {
-    ....
+//对于无大小的数组
+func function_name(variable_name []type){
+// Code
 }
 ```
 
-* 形参未设定数组大小：
-
-```
-func myFunction(param []int) {
-    ....
-}
-```
-
-如果你想要在函数内修改原始数组，可以通过传递数组的指针来实现。
-
-##### 结构体
-
-Go 语言中数组可以存储同一类型的数据，但在结构体中我们可以为不同项定义不同的数据类型。结构体是由一系列具有相同类型或不同类型的数据构成的数据集合。结构体定义需要使用 type 和 struct 语句。struct 语句定义一个新的数据类型，结构体中有一个或多个成员。type 语句设定了结构体的名称。结构体的格式如下：
-
-```
-type struct_variable_type struct {
-   member definition
-   member definition
-   ...
-   member definition
-}
-```
-
-一旦定义了结构体类型，它就能用于变量的声明，语法格式如下：
-
-```
-variable_name := structure_variable_type {value1, value2...valuen}
-或
-variable_name := structure_variable_type { key1: value1, key2: value2..., keyn: valuen}
-```
-
-如果要访问结构体成员，需要使用点号 **.** 操作符，格式为：
-
-```
-结构体.成员名"
-```
-
-结构体类型变量使用 struct 关键字定义。
+使用这些语法，您可以将1或多维数组传递给该函数。
 
 ```go
+//数组作为函数的参数
 package main
 
 import "fmt"
 
-type Books struct {
-   title string
-   author string
-   subject string
-   book_id int
+//此函数接受
+//将数组作为参数
+func myfun(a [6]int, size int) int {
+    var k, val, r int
+
+    for k = 0; k < size; k++ {
+        val += a[k]
+    }
+
+    r = val / size
+    return r
 }
 
 func main() {
-   var Book1 Books        /* 声明 Book1 为 Books 类型 */
-   var Book2 Books        /* 声明 Book2 为 Books 类型 */
 
-   /* book 1 描述 */
-   Book1.title = "Go 语言"
-   Book1.author = "www.runoob.com"
-   Book1.subject = "Go 语言教程"
-   Book1.book_id = 6495407
+    //创建和初始化数组
+    var arr = [6]int{67, 59, 29, 35, 4, 34}
+    var res int
 
-   /* book 2 描述 */
-   Book2.title = "Python 教程"
-   Book2.author = "www.runoob.com"
-   Book2.subject = "Python 语言教程"
-   Book2.book_id = 6495700
-
-   /* 打印 Book1 信息 */
-   fmt.Printf( "Book 1 title : %s\n", Book1.title)
-   fmt.Printf( "Book 1 author : %s\n", Book1.author)
-   fmt.Printf( "Book 1 subject : %s\n", Book1.subject)
-   fmt.Printf( "Book 1 book_id : %d\n", Book1.book_id)
-
-   /* 打印 Book2 信息 */
-   fmt.Printf( "Book 2 title : %s\n", Book2.title)
-   fmt.Printf( "Book 2 author : %s\n", Book2.author)
-   fmt.Printf( "Book 2 subject : %s\n", Book2.subject)
-   fmt.Printf( "Book 2 book_id : %d\n", Book2.book_id)
+    //将数组作为参数传递
+    res = myfun(arr, 6)
+    fmt.Printf("最终结果是: %d ", res)
 }
 ```
 
-**结构体参数**：结构体允许按值作为函数参数传递。
 
-**结构体指针:**你可以定义指向结构体的指针类似于其他指针变量，格式如下：
 
-```
-var struct_pointer *Books
-```
+##### 结构体
 
-以上定义的指针变量可以存储结构体变量的地址。查看结构体变量地址，可以将 & 符号放置于结构体变量前：
-
-```
-struct_pointer = &Book1
-```
-
-使用结构体指针访问结构体成员，使用 "." 操作符：
-
-```
-struct_pointer.title
-```
+Go 语言中数组可以存储同一类型的数据，但在结构体中我们可以为不同项定义不同的数据类型。结构体是由一系列具有相同类型或不同类型的数据构成的数据集合。
 
 #### 引用类型
 
@@ -1349,164 +1591,7 @@ delete(m, "banana")
 
 ##### 接口
 
-接口（interface）是 Go 语言中的一种类型，用于定义行为的集合，它通过描述类型必须实现的方法，规定了类型的行为契约。Go 语言提供了另外一种数据类型即接口，它把所有的具有共性的方法定义在一起，任何其他类型只要实现了这些方法就是实现了这个接口。Go 的接口设计简单却功能强大，是实现多态和解耦的重要工具。接口可以让我们将不同的类型绑定到一组公共的方法上，从而实现多态和灵活的设计。interface 本质是一个指针。
-
-**隐式实现**：
-
-- Go 中没有关键字显式声明某个类型实现了某个接口。
-- 只要一个类型实现了接口要求的所有方法，该类型就自动被认为实现了该接口。
-
-**接口类型变量**：
-
-- 接口变量可以存储实现该接口的任意值。
-- 接口变量实际上包含了两个部分：
-  - **动态类型**：存储实际的值类型。
-  - **动态值**：存储具体的值。
-
-**零值接口**：
-
-- 接口的零值是 `nil`。
-- 一个未初始化的接口变量其值为 `nil`，且不包含任何动态类型或值。
-
-**空接口**：
-
-- 定义为 `interface{}`，可以表示任何类型。
-- 常用于需要存储任意类型数据的场景，如泛型容器、通用参数等。
-
-接口定义使用关键字 **interface**，其中包含方法声明。类型通过实现接口要求的所有方法来实现接口。
-
-```go
-/* 定义接口 */
-type interface_name interface {
-   method_name1 [return_type]
-   method_name2 [return_type]
-   method_name3 [return_type]
-   ...
-   method_namen [return_type]
-}
-
-/* 定义结构体 */
-type struct_name struct {
-   /* variables */
-}
-
-/* 实现接口方法 */
-func (struct_name_variable struct_name) method_name1() [return_type] {
-   /* 方法实现 */
-}
-...
-func (struct_name_variable struct_name) method_namen() [return_type] {
-   /* 方法实现*/
-}
-```
-
-**类型断言**：类型断言用于从接口类型中提取其底层值。
-
-基本语法:
-
-```
-value := iface.(Type)
-```
-
-- `iface` 是接口变量。
-- `Type` 是要断言的具体类型。
-- 如果类型不匹配，会触发 `panic`。
-
-为了避免 panic，可以使用带检查的类型断言：
-
-```
-value, ok := iface.(Type)
-```
-
-- `ok` 是一个布尔值，表示断言是否成功。
-- 如果断言失败，`value` 为零值，`ok` 为 `false`。
-
-**类型选择**：type switch 是 Go 中的语法结构，用于根据接口变量的具体类型执行不同的逻辑。
-
-```go
-package main
-
-import "fmt"
-
-func printType(val interface{}) {
-        switch v := val.(type) {
-        case int:
-                fmt.Println("Integer:", v)
-        case string:
-                fmt.Println("String:", v)
-        case float64:
-                fmt.Println("Float:", v)
-        default:
-                fmt.Println("Unknown type")
-        }
-}
-
-func main() {
-        printType(42)
-        printType("hello")
-        printType(3.14)
-        printType([]int{1, 2, 3})
-}
-```
-
-**接口组合**
-
-接口可以通过嵌套组合，实现更复杂的行为描述。
-
-```go
-package main
-
-import "fmt"
-
-type Reader interface {
-        Read() string
-}
-
-type Writer interface {
-        Write(data string)
-}
-
-type ReadWriter interface {
-        Reader
-        Writer
-}
-
-type File struct{}
-
-func (f File) Read() string {
-        return "Reading data"
-}
-
-func (f File) Write(data string) {
-        fmt.Println("Writing data:", data)
-}
-
-func main() {
-        var rw ReadWriter = File{}
-        fmt.Println(rw.Read())
-        rw.Write("Hello, Go!")
-}
-```
-
-**动态值和动态类型**
-
-接口变量实际上包含了两部分：
-
-1. **动态类型**：接口变量存储的具体类型。
-2. **动态值**：具体类型的值。
-
-动态值和动态类型示例：
-
-```go
-package main
-
-import "fmt"
-
-func main() {
-        var i interface{} = 42
-        fmt.Printf("Dynamic type: %T, Dynamic value: %v\n", i, i)
-}
-```
+接口（interface）是 Go 语言中的一种类型，用于定义行为的集合，它通过描述类型必须实现的方法，规定了类型的行为契约。
 
 ##### 管道
 
@@ -2013,11 +2098,9 @@ Geeks, geeks, _geeks23  //合法变量
 geeks 和Geeks 是两个不同的变量
 ```
 
-#### 声明变量
-
 *在Go语言中，变量是通过两种不同的方式创建的：*
 
-**使用var关键字：**在Go语言中，变量是使用特定类型的*var*关键字创建的，该关键字与变量名关联并赋予其初始值。
+* **使用var关键字：**在Go语言中，变量是使用特定类型的*var*关键字创建的，该关键字与变量名关联并赋予其初始值。
 
 **语法：**
 
@@ -2025,59 +2108,11 @@ geeks 和Geeks 是两个不同的变量
 var variable_name type = expression
 ```
 
-**重要事项：**
+在上述语法中，*类型（type）* 或*=*表达式可以删除，但不能同时删除变量声明中的两个。如果删除了类型，则变量的类型由表达式中的值初始化确定。
 
-在上述语法中，*类型（type）* 或*=*表达式可以删除，但不能同时删除变量声明中的两个。
+如果删除了表达式，则该变量的类型为零，数字为零，布尔值为false，字符串为**“”**，接口和引用类型为nil。因此，在Go语言中没有这样的未初始化变量的概念。如果使用类型，则可以在单个声明中声明相同类型的多个变量。
 
-如果删除了类型，则变量的类型由表达式中的值初始化确定。
-
-示例
-
-```
-//变量的概念
-package main
-
-import "fmt"
-
-func main() {
-
-    //变量声明和初始化
-    //显式类型
-    var myvariable1 = 20
-    var myvariable2 = "cainiaojc"
-    var myvariable3 = 34.80
-
-    // Display the value and the
-    // type of the variables
-    fmt.Printf("myvariable1的值是 : %d\n", myvariable1)
-
-    fmt.Printf("myvariable1的类型是 : %T\n", myvariable1)
-
-    fmt.Printf("myvariable2的值是 : %s\n", myvariable2)
-
-    fmt.Printf("myvariable2的类型是 : %T\n", myvariable2)
-
-    fmt.Printf("myvariable3的值是 : %f\n", myvariable3)
-
-    fmt.Printf("myvariable3的类型是 : %T\n", myvariable3)
-
-}
-```
-
-**输出：**
-
-```
-myvariable1的值是 : 20
-myvariable1的类型是 : int
-myvariable2的值是 : cainiaojc
-myvariable2的类型是 : string
-myvariable3的值是 : 34.800000
-myvariable3的类型是 : float64
-```
-
-如果删除了表达式，则该变量的类型为零，数字为零，布尔值为false，字符串为**“”**，接口和引用类型为nil。因此，***在Go语言中没有这样的未初始化变量的概念。***
-
-示例
+如果删除类型，则可以在单个声明中声明不同类型的多个变量。变量的类型由初始化值确定。返回多个值的调用函数允许您初始化一组变量。
 
 ```
 package main
@@ -2085,112 +2120,49 @@ package main
 import "fmt"
 
 func main() {
+	// 1. 只写变量名和表达式，类型自动推断
+	var a = 20
+	var b = "cainiaojc"
+	var c = 34.80
 
-    //变量声明和初始化不使用表达式
-    var myvariable1 int
-    var myvariable2 string
-    var myvariable3 float64
+	// 2. 写类型但不写初始值，使用零值
+	var d int
+	var e string
+	var f bool
 
-    //显示0值变量
-    fmt.Printf("myvariable1的值是 : %d\n", myvariable1)
-    fmt.Printf("myvariable2的值是 : %d\n", myvariable2)
-    fmt.Printf("myvariable3的值是 : %d\n", myvariable3)
+	// 3. 同一行声明多个相同类型变量
+	var x, y, z int = 2, 454, 67
+
+	// 4. 同一行声明多个不同类型变量（省略类型，自动推断）
+	var m, n, p = 100, "GFG", 67.56
+
+	// 输出值和类型
+	fmt.Printf("a = %d, 类型 = %T\n", a, a)
+	fmt.Printf("b = %s, 类型 = %T\n", b, b)
+	fmt.Printf("c = %f, 类型 = %T\n", c, c)
+
+	fmt.Println()
+
+	fmt.Printf("d = %d, 类型 = %T\n", d, d)
+	fmt.Printf("e = %q, 类型 = %T\n", e, e)
+	fmt.Printf("f = %t, 类型 = %T\n", f, f)
+
+	fmt.Println()
+
+	fmt.Printf("x = %d, y = %d, z = %d\n", x, y, z)
+
+	fmt.Println()
+
+	fmt.Printf("m = %d, 类型 = %T\n", m, m)
+	fmt.Printf("n = %s, 类型 = %T\n", n, n)
+	fmt.Printf("p = %f, 类型 = %T\n", p, p)
 }
-```
-
-**输出：**
 
 ```
-myvariable1的值是 : 0
-myvariable2的值是 : %!d(string=)
-myvariable3的值是 : %!d(float64=0)
-```
 
-如果使用类型，则可以在单个声明中声明相同类型的多个变量。
 
-示例
 
-```
-package main
-
-import "fmt"
-
-func main() {
-
-    // 在一行上同时声明和初始化多个类型相同的变量
-    var myvariable1, myvariable2, myvariable3 int = 2, 454, 67
-
-    // 输出变量的值
-    fmt.Printf("myvariable1的值是 : %d\n", myvariable1)
-    fmt.Printf("myvariable2的值是 : %d\n", myvariable2)
-    fmt.Printf("myvariable3的值是 : %d\n", myvariable3)
-
-}
-```
-
-**输出：**
-
-```
-myvariable1的值是 : 2
-myvariable2的值是 : 454
-myvariable3的值是 : 67
-```
-
-如果删除类型，则可以在单个声明中声明不同类型的多个变量。变量的类型由初始化值确定。
-
-示例
-
-```
-package main
-
-import "fmt"
-
-func main() {
-
-    //多个不同类型的变量
-    //在单行中声明和初始化
-    var myvariable1, myvariable2, myvariable3 = 2, "GFG", 67.56
-
-    // 打印变量值和类型
-    fmt.Printf("myvariable1的值是 : %d\n", myvariable1)
-
-    fmt.Printf("myvariable1的类型是 : %T\n", myvariable1)
-
-    fmt.Printf("\nmyvariable2的值是 : %s\n", myvariable2)
-
-    fmt.Printf("myvariable2的类型是 : %T\n", myvariable2)
-
-    fmt.Printf("\nmyvariable3的值是 : %f\n", myvariable3)
-
-    fmt.Printf("myvariable3的类型是 : %T\n", myvariable3)
-}
-```
-
-**输出：**
-
-```
-myvariable1的值是 : 2
-myvariable1的类型是 : int
-
-myvariable2的值是 : GFG
-myvariable2的类型是 : string
-
-myvariable3的值是 : 67.560000
-myvariable3的类型是 : float64
-```
-
-返回多个值的调用函数允许您初始化一组变量。
-
-**例如：**
-
-```
-//这里，os.Open函数返回一个
-//文件中的i变量和一个错误
-//在j变量中
-var i, j = os.Open(name)
-```
-
-**（二）使用短变量声明：使用短变量声明**来声明在函数中声明和初始化的局部变量。
+**使用短变量声明：使用短变量声明**来声明在函数中声明和初始化的局部变量。
 
 **语法：**
 
@@ -2200,153 +2172,17 @@ variable_name:= expression
 
 **注意：**请不要在*：=*和*=*之间混淆，因为*：=* 是声明，而 *=* 是赋值。
 
-**重要事项：**
-
 在上面的表达式中，变量的类型由表达式的类型确定。
 
-示例
-
-```
-package main
-
-import "fmt"
-
-func main() {
-
-    // 使用短变量声明
-    myvariable1 := 39
-    myvariable2 := "(cainiaojc.com)"
-    myvariable3 := 34.67
-
-    // 打印变量值和类型
-    fmt.Printf("myvariable1的值是 : %d\n", myvariable1)
-
-    fmt.Printf("myvariable1的类型是 : %T\n", myvariable1)
-
-    fmt.Printf("\nmyvariable2的值是 : %s\n", myvariable2)
-
-    fmt.Printf("myvariable2的类型是 : %T\n", myvariable2)
-
-    fmt.Printf("\nmyvariable3的值是 : %f\n", myvariable3)
-
-    fmt.Printf("myvariable3的类型是 : %T\n", myvariable3)
-}
-```
-
-**输出：**
-
-```
-myvariable1的值是 : 39
-myvariable1的类型是 : int
-
-myvariable2的值是 : (cainiaojc.com)
-myvariable2的类型是 : string
-
-myvariable3的值是 : 34.670000
-myvariable3的类型是 : float64
-```
-
-由于它们的简洁性和灵活性，大多数局部变量都是使用短变量声明来声明和初始化的。
-
-变量的var声明用于那些需要与初始值设定项表达式不同的显式类型的局部变量，或用于其值稍后分配且初始值不重要的那些变量。
-
-使用短变量声明，可以在单个声明中声明多个变量。
-
-示例
-
-```
-package main
-
-import "fmt"
-
-func main() {
-
-    //在单行中声明和初始化变量
-    //使用简短的变量声明
-    //多个相同类型的变量
-
-    myvariable1, myvariable2, myvariable3 := 800, 34.7, 56.9
-
-    // 打印变量值和类型
-    fmt.Printf("myvariable1的值是 : %d\n", myvariable1)
-
-    fmt.Printf("myvariable1的类型是 : %T\n", myvariable1)
-
-    fmt.Printf("\nmyvariable2的值是 : %f\n", myvariable2)
-
-    fmt.Printf("myvariable2的类型是 : %T\n", myvariable2)
-
-    fmt.Printf("\nmyvariable3的值是 : %f\n", myvariable3)
-
-    fmt.Printf("myvariable3的类型是 : %T\n", myvariable3)
-}
-```
-
-**输出：**
-
-```
-myvariable1的值是 : 800
-myvariable1的类型是 : int
-
-myvariable2的值是 : 34.700000
-myvariable2的类型是 : float64
-
-myvariable3的值是 : 56.900000
-myvariable3的类型是 : float64
-```
+由于它们的简洁性和灵活性，大多数局部变量都是使用短变量声明来声明和初始化的。变量的var声明用于那些需要与初始值设定项表达式不同的显式类型的局部变量，或用于其值稍后分配且初始值不重要的那些变量。使用短变量声明，可以在单个声明中声明多个变量。
 
 在简短的变量声明中，允许返回多个值的调用函数初始化一组变量。
 
-```
-//这里，os.Open函数返回一个
-//文件中的i变量和一个错误
-//在j变量中
-i, j := os.Open(name)
-```
-
 简短的变量声明仅当对于已在同一语法块中声明的那些变量起作用时，才像赋值一样。在外部块中声明的变量将被忽略。如下面的示例所示，这两个变量中至少有一个是新变量。
-
-示例
-
-```
-package main
-
-import "fmt"
-
-func main() {
-
-    //使用简短的变量声明
-    //这里，短变量声明动作
-    //作为myvar2变量的赋值
-    //因为相同的变量存在于同一块中
-    //因此myvar2的值从45更改为100
-
-    myvar1, myvar2 := 39, 45
-    myvar3, myvar2 := 45, 100
-
-    //如果您尝试运行注释行，
-    //然后编译器将给出错误，因为
-    //这些变量已经定义，例如
-    // myvar1，myvar2：= 43，47
-    // myvar2：= 200
-
-    // 打印变量值
-    fmt.Printf("myvar1 和 myvar2 的值 : %d %d\n", myvar1, myvar2)
-
-    fmt.Printf("myvar3 和 myvar2 的值 : %d %d\n", myvar3, myvar2)
-}
-```
-
-**输出：**
-
-```
-myvar1 和 myvar2 的值 : 39 100
-myvar3 和 myvar2 的值 : 45 100
-```
 
 使用短变量声明，可以在单个声明中声明不同类型的多个变量。这些变量的类型由表达式确定。
 
-示例
+借助短变量声明操作符（：=），**您只能声明**仅具有块级作用域**的局部变量**。通常，局部变量在功能块内部声明。如果尝试使用short声明运算符声明全局变量，则会抛出错误消息。
 
 ```
 package main
@@ -2354,143 +2190,196 @@ package main
 import "fmt"
 
 func main() {
+	// 1. 使用 := 声明单个变量
+	a := 39
+	b := "(cainiaojc.com)"
+	c := 34.67
 
-    //在单行中声明和初始化
-    //使用简短的变量声明
-    //多个不同类型的变量
-    myvariable1, myvariable2, myvariable3 := 800, "NHOOO", 47.56
+	// 2. 使用 := 同时声明多个变量
+	x, y, z := 800, "NHOOO", 47.56
 
-    // 打印变量值和类型
-    fmt.Printf("myvariable1的值是 : %d\n", myvariable1)
+	// 3. := 遇到“旧变量 + 新变量”时
+	// 只要左边至少有一个新变量，就可以继续使用 :=
+	m, n := 39, 45
+	p, n := 45, 100 // p 是新变量，n 是已有变量，这里合法
 
-    fmt.Printf("myvariable1的类型是 : %T\n", myvariable1)
+	// 输出值和类型
+	fmt.Printf("a = %d, 类型 = %T\n", a, a)
+	fmt.Printf("b = %s, 类型 = %T\n", b, b)
+	fmt.Printf("c = %f, 类型 = %T\n", c, c)
 
-    fmt.Printf("\nmyvariable2的值是 : %s\n", myvariable2)
+	fmt.Println()
 
-    fmt.Printf("myvariable2的类型是 : %T\n", myvariable2)
+	fmt.Printf("x = %d, 类型 = %T\n", x, x)
+	fmt.Printf("y = %s, 类型 = %T\n", y, y)
+	fmt.Printf("z = %f, 类型 = %T\n", z, z)
 
-    fmt.Printf("\nmyvariable3的值是 : %f\n", myvariable3)
+	fmt.Println()
 
-    fmt.Printf("myvariable3的类型是 : %T\n", myvariable3)
+	fmt.Printf("m = %d, n = %d\n", m, n)
+	fmt.Printf("p = %d, n = %d\n", p, n)
 }
-```
 
-**输出：**
-
-```
-myvariable1的值是 : 800
-myvariable1的类型是 : int
-
-myvariable2的值是 : NHOOO
-myvariable2的类型是 : string
-
-myvariable3的值是 : 47.560000
-myvariable3的类型是 : float64
 ```
 
 ### 常量
 
-常量中的数据类型只可以是布尔型、数字型（整型、浮点型和复数）和字符串型
+正如名称“ **CONSTANTS”所**暗示的意思是固定的，在编程语言中也是如此，即，一旦定义了常量的值，就无法再对其进行修改。常量可以有任何基本数据类型，例如整数常量，浮点常量，字符常量或字符串文字。
 
-常量定义格式：`const identifier [type] = value`
+常量就像变量一样声明，但是使用***const\*** 关键字作为前缀来声明具有特定类型的常量。不能使用**：=**语法声明。
 
-- 显式类型定义：`const b string = "str"`
-- 隐式类型定义：`const b = "str"`
-- 多个相同类型声明：`const c_name1,c_name2 = value1,value2`
-
-常量还可以用于枚举：
-
-```go
-const(
-	Unknown = 0
-	Female = 1
-	Male = 2
-)
 ```
-
-常量可用len()、cap()、unsafe.Sizeof()函数计算表达式的值。常量表达式中，函数必须是内置函数：
-
-```go
 package main
-import "unsafe"
 
-const(
-	a = "str"
-	b = len(a)
-	c = unsafe.Sizeof(a)
-)
+import "fmt"
+
+const PI = 3.14
+
 func main() {
-	println(a,b,c)
+    const GFG = "cainiaojc"
+    fmt.Println("Hello", GFG)
+    fmt.Println("Happy", PI, "Day")
+    const Correct= true
+    fmt.Println("Go rules?", Correct)
 }
-/*
-输出 str 3 16
-*/
+
+Hello cainiaojc
+Happy 3.14 Day
+Go rules? true
 ```
 
-🔺字符串类型在go里是个结构，包含指向底层数组的指针和长度，这两部分每部分都是8个字节，所以字符串类型大小为16个字节
+**未类型化和类型化的数字常量：**
+类型化常量的工作方式就像不可变变量只能与相同类型互操作，而未类型化常量的工作方式就像文字常量可以与相似类型互操作。可以在Go中使用或不使用类型来声明常量。下面的示例显示已命名和未命名的类型化和未类型化的数字常量。
 
-**iota**
+```
+const untypedInteger          = 123
+const untypedFloating typed   = 123.12
 
-特殊常量，可认为是一个可被编译器修改的常量
-
-iota在const关键字出现时将被重置为0(const内部的第一行之前)，const中每新增一行常量声明将使iota计数一次（iota可理解为const语句块中行索引）
-
-iota可被用作枚举值：
-
-```go
-const(
-	a = iota
-	b = iota
-	c = iota
-)
+const typedInteger  int             = 123
+const typedFloatingPoint   float64  = 123.12
 ```
 
-iota用法：
+**以下是Go语言中的常量列表：**
 
-```go
+- 数值常量（整数常量，浮点常量，复数常量）
+- 字符串字面量
+- 布尔常量
+
+**数值常量：**
+数值常量是***高精度值\***。Go是一种静态类型的语言，不允许混合数字类型的操作。您不能将***float64\***添加到***int\***，甚至不能将***int32添加\*** 到***int\***。虽然，写***1e6 \* time.Second\*** 或***math.Exp（1）\***甚至 ***1 <<（'\ t'+ 2.0）\*** 都是合法的。在Go中，常量与变量不同，其行为类似于常规数字。
+
+数值常量可以是3种，即整数，浮点数，复数
+
+* **整数常量：**前缀指定基数：十六进制为0x或0X，八进制为0，十进制为0。整数字面量也可以具有*后缀*，分别是U（大写）和L（大写）的组合，分别表示无符号和长整数。它可以是*十进制，八进制或十六进制常量*。一个int最多可以存储64位整数，有时更少。
+
+以下是*整数常量的*一些示例*：*
+
+```
+85         /* decimal */
+0213       /* octal */
+0x4b       /* 十六进制 */
+30         /* int */
+30u        /* unsigned int */
+30l        /* long */
+30ul       /* unsigned long */
+212         /* 合法 */
+215u        /* 合法 */
+0xFeeL      /* 合法 */
+078         /* 非法的:8不是八进制数字 */
+032UU       /* 非法的:不能重复后缀 */
+```
+
+* **复数常量：**
+  复数常量的行为与浮点常量非常相似。它是整数常数（或参数）的*有序对* 或 *实数对*，并且该常数用逗号分隔，并且该对包含在括号之间。第一个常数是实部，第二个常数是虚部。复数常量COMPLEX * 8使用*8个字节*的存储空间。
+
+```
+(0.0, 0.0) (-123.456E+30, 987.654E-29)
+```
+
+* **浮动类型常量：**浮点型常量具有一个*整数部分，一个小数点，一个小数部分和一个指数部分*。可以用十进制或指数形式表示浮点常量。*虽然*用十进制形式表示，必须包含小数点，指数，或两者兼而有之。并且在使用*指数*形式表示时，必须包括整数部分，小数部分或两者。
+
+以下是浮点类型常量的示例：
+
+```
+3.14159       /* 合法 */
+314159E-5L    /* 合法 */
+510E          /* 非法：不完整的指数 */
+210f          /* 非法:没有小数或指数 */
+.e55          /* 非法：缺少整数或分数 */
+```
+
+* **字符串文字**:Go支持两种类型的字符串文字，即“”（双引号样式）和“”（反引号）。字符串可以*级联*以**+**和**+ =**运算符。字符串包含与字符字面量相似的字符：纯字符，转义序列和通用字符，这是无类型的。字符串类型的零值是空白字符串，可以用或以文字表示。通过使用**==，！=**和（用于比较相同类型）等运算符**，**可比较字符串类型
+
+**语法**
+
+```
+type _string struct {
+    elements *byte // 底层字节
+    len      int   //字节数
+}
+```
+
+**显示字符串文字的示例：**
+"hello, cainiaojc$1quot;
+
+"hello, \
+
+cainiaojc$1quot;
+
+"hello, " "geeks" "forgeeks"
+
+在这里，以上所有三个语句都是相似的，即它们没有任何特定的类型。
+
+```
 package main
+
 import "fmt"
 
 func main() {
-	const(
-		a = iota
-		b
-		c
-		d = 50
-		e
-		f = iota
-		g
-	)
-	fmt.Println(a,b,c,d,e,f,g)
+    const A= "GFG"
+    var B = "cainiaojc"
+    
+    //拼接字符串
+    var helloWorld = A+ " " + B
+    helloWorld += "!"
+    fmt.Println(helloWorld) 
+    
+    //比较字符串
+    fmt.Println(A == "GFG")   
+    fmt.Println(B < A) 
 }
-/*
-输出 0 1 2 50 50 5 6
-*/
+
+GFG cainiaojc!
+true
+false
 ```
 
-🔺在定义常量组时，如不提供初始值，则表示使用上行的表达式
+* **布尔常量：**
+  布尔常量类似于字符串常量。它应用与字符串常量相同的规则，不同之处仅在于它具有两个未类型化的常量true和false。
 
-另一个iota实例：
-
-```go
+```
 package main
+
 import "fmt"
 
-func main() {
-	const(
-		a = 1<<iota
-		b = 3<<iota
-		c
-		d
-	)
-	fmt.Println(a,b,c,d)
-}
-/*
-输出 1 6 12 24
-*/
-```
+const Pi = 3.14
 
-a = 1<<0，b=3<<1，c=3<<2，d=3<<3
+func main() {
+    const trueConst = true
+    type myBool bool
+    var defaultBool = trueConst       // 允许
+    var customBool myBool = trueConst // 允许
+
+    //  defaultBool = customBool // 不允许
+
+    fmt.Println(defaultBool)
+    fmt.Println(customBool)
+
+}
+
+true
+true
+```
 
 ### 运算符
 
@@ -2589,10 +2478,11 @@ Go 语言支持的位运算符如下表所示。假定 A 为60，B 为13：
 
 下表列出了Go语言的其他运算符。
 
-| 运算符 | 描述             | 实例                       |
-| :----- | :--------------- | :------------------------- |
-| &      | 返回变量存储地址 | &a; 将给出变量的实际地址。 |
-| *      | 指针变量。       | *a; 是一个指针变量         |
+| 运算符 | 描述                                       | 实例                       |
+| :----- | :----------------------------------------- | :------------------------- |
+| &      | 返回变量存储地址                           | &a; 将给出变量的实际地址。 |
+| *      | 指针变量。                                 | *a; 是一个指针变量         |
+| **<-*  | 该运算符的名称为接收。它用于从通道接收值。 |                            |
 
 **运算符优先级**
 
@@ -3079,31 +2969,304 @@ func swap(x *int, y *int) {
 
 ```
 
-##### 函数特殊用法
+##### 变参函数
 
-**函数参数**：Go 语言可以很灵活的创建函数，并作为另外一个函数的实参。以下实例中我们在定义的函数中初始化一个变量。
+用不同数量的参数调用的函数称为可变参数函数。换句话说，允许用户在可变函数中传递零个或多个参数。*fmt.Printf*是可变参数函数的示例，它在开始时需要一个固定的参数，之后它可以接受任意数量的参数。
+
+在可变参数函数的声明中，最后一个参数的类型前面带有省略号，即（**…**）。它表明该函数可以调用任意数量的这种类型的参数
+
+**语法：**
+
+```
+function function_name(para1, para2...type)type{
+    // code...
+}
+```
+
+函数function …type*的*的行为类似于切片（slice）。例如，假设我们有一个函数签名，即add（b…int）int，现在是type [] int的参数。您还可以在可变参数函数中传递现有切片。为此，我们将完整数组的一部分传递给函数，如下面的*示例2*所示。当您在可变参数函数中不传递任何参数时，函数内部的默认为nil。可变参数函数通常用于字符串格式化。您还可以在可变参数函数中传递多个切片。您不能将可变参数用作返回值，但可以将其作为切片返回。
+
+```
+package main 
+  
+import( 
+    "fmt"
+    "strings"
+) 
+  
+//可变参数函数联接字符串
+func joinstr(element...string)string{ 
+    return strings.Join(element, "-") 
+} 
+  
+func main() { 
+     
+   //在可变函数中传递一个切片
+   element:= []string{"geeks", "FOR", "geeks"} 
+   fmt.Println(joinstr(element...)) 
+}
+
+geeks-FOR-geeks
+```
+
+##### **匿名函数/闭包**
+
+Go 语言支持匿名函数，可作为闭包。匿名函数是一个"内联"语句或表达式。匿名函数的优越性在于可以直接使用函数内的变量，不必申明。在Go语言中，可以将匿名函数分配给变量。将函数分配给变量时，变量的类型就是函数类型，您可以像调用函数一样调用该变量,您也可以在匿名函数中传递参数。还可以将匿名函数作为参数传递给其他函数。还可以从另一个函数返回匿名函数。
+
+**语法：**
+
+```
+    func(parameter_list) return_type {
+        //代码
+        //如果给定return_type，则使用return语句
+        //如果未提供return_type，则不
+        //使用return语句
+        return
+    }()
+```
 
 ```go
 package main
 
-import (
-   "fmt"
-   "math"
-)
+import "fmt"
 
-func main(){
-   /* 声明函数变量 */
-   getSquareRoot := func(x float64) float64 {
-      return math.Sqrt(x)
-   }
+// 1. 将匿名函数作为参数传递给其他函数
+func showResult(fn func(p, q string) string) {
+	fmt.Println(fn("Geeks", "for"))
+}
 
-   /* 使用函数 */
-   fmt.Println(getSquareRoot(9))
+// 2. 从另一个函数返回匿名函数
+func getMessageFunc() func(i, j string) string {
+	myf := func(i, j string) string {
+		return i + j + "cainiaojc"
+	}
+	return myf
+}
+
+func main() {
+	// 3. 将匿名函数赋值给变量
+	value := func() {
+		fmt.Println("Welcome! to (cainiaojc.com)")
+	}
+	value()
+
+	// 4. 直接调用带参数的匿名函数
+	func(ele string) {
+		fmt.Println(ele)
+	}("cainiaojc")
+
+	// 5. 把匿名函数作为参数传递给其他函数
+	join := func(p, q string) string {
+		return p + q + "Geeks"
+	}
+	showResult(join)
+
+	// 6. 接收另一个函数返回的匿名函数
+	msgFunc := getMessageFunc()
+	fmt.Println(msgFunc("Welcome ", "to "))
+}
+
+Welcome! to (cainiaojc.com)
+cainiaojc
+GeeksforGeeks
+Welcome to cainiaojc
+```
+
+##### 多值返回与命名返回
+
+在Go语言中，允许您使用return语句从一个[函数](https://www.cainiaojc.com/functions-in-go-language/index.html)返回多个值。换句话说，在函数中，单个return语句可以返回多个值。返回值的类型类似于参数列表中定义的参数的类型。
+
+**语法：**
+
+```
+func function_name(parameter_list)(return_type_list){
+     // code...
+}
+```
+
+*这里，*
+
+- **function_name：**它是**函数**的名称。
+- **parameter-list：**它包含函数参数的名称和类型。
+- **return_type_list：**这是可选的，它包含函数返回的值的类型。如果在函数中使用return_type，则必须在函数中使用return语句。
+
+在Go语言中，允许为返回值提供名称。你也可以在代码中使用这些变量名。没有必要用return语句来编写这些名称，因为Go编译器将自动理解这些变量必须被分派回去。这种类型的回报被称为裸回报。简单的返回减少了程序中的重复。
+
+**语法：**
+
+```
+func function_name(para1, para2 int)(name1 int, name2 int){
+    // code...
+}
+
+或
+
+func function_name(para1, para2 int)(name1, name2 int){
+   // code...
+}
+```
+
+这里，*name1*和*name2*是返回值的名称，而para1和para2是函数的参数。
+
+```go
+package main
+
+import "fmt"
+
+// myfunc返回2个int类型的值
+//这里是返回值名称
+//是rectangle and square
+func myfunc(p, q int) (rectangle int, square int) {
+    rectangle = p * q
+    square = p * p
+    return
+}
+
+func main() {
+
+    //将返回值分配到
+    //两个不同的变量
+    var area1, area2 = myfunc(2, 4)
+
+    fmt.Printf("矩形面积为: %d", area1)
+    fmt.Printf("\n正方形面积为: %d", area2)
 
 }
 ```
 
-**函数作为参数传递，实现回调**
+使用命名的返回参数后，return语句通常称为"**裸返**"。默认情况下，Golang用零值定义所有命名变量，函数将能够使用它们。如果函数未修改值，则将自动返回零值。如果您将使用[短声明运算符（：=）](https://www.cainiaojc.com/golang/go-short-variable-declaration-operator.html)初始化命名的返回参数，则将给出错误，因为它们已被Go编译器初始化。因此，您可以使用简单的赋值方式（=）将值分配给命名的返回参数。
+
+```
+//具有命名参数的函数
+func calculator(a, b int) (mul int, div int) {
+
+    //在这里，它将抛出一个错误
+    //因为已经定义了参数
+    //在函数签名中
+    mul := a * b
+    div := a / b
+
+    //这里有return关键字
+    //没有任何结果参数
+    return
+}
+```
+
+##### 特殊函数
+
+**main函数**
+
+在Go语言中，**main**包是一个特殊的软件包，与可执行程序一起使用，并且该package包含*main()*函数。在*main()*函数是一种特殊类型的函数，它是可执行程序的入口点。它不带任何参数也不返回任何内容。由于可以自动调用*main()*函数，因此无需显式调用*main()*函数，并且每个可执行程序必须包含一个package main和*main()*函数。
+
+**init()函数**
+
+init()函数就像main函数一样，不带任何参数也不返回任何东西。 每个包中都存在此函数，并且在初始化包时将调用此函数。 该函数是隐式声明的，因此您不能从任何地方引用它，并且可以在同一程序中创建多个init()函数，并且它们将按照创建顺序执行。 您可以在程序中的任何位置创建init()函数，并且它们以词汇文件名顺序（字母顺序）调用。 并允许在init()函数中放置语句，但始终记住要在main()函数调用之前执行init()函数，因此它不依赖于main()函数。  init()函数的主要目的是初始化无法在全局上下文中初始化的全局变量。
+
+##### 函数特殊用法
+
+###### 空白标识符
+
+[Golang中的](https://www.cainiaojc.com/)**_**（下划线）称为空白标识符。[标识符](https://www.cainiaojc.com/golang/go-identifiers.html)是用于识别目的的程序组件的用户定义名称。
+
+Golang有一个特殊的特性，可以使用空白标识符定义和使用未使用的变量。未使用变量是指用户在整个程序中定义但从未使用过的[变量](https://www.cainiaojc.com/golang/go-variables.html)。这些变量使程序几乎不可读。如你所知，Golang是一种更加简洁和可读的编程语言，因此它不允许程序员定义未使用的变量，如果你这样做，编译器将抛出一个错误。
+当函数返回多个值时，才真正使用Blank Identifier，但是我们只需要几个值并希望丢弃一些值。 基本上，它告诉编译器不需要此变量，并且将其忽略而没有任何错误。 它隐藏变量的值并使程序可读。 因此，每当您将值分配给Bank Identifier时，它就变得不可用。
+
+您可以在同一程序中使用多个空白标识符。因此，可以说Golang程序可以使用相同的标识符名称（即空白标识符）来包含多个变量。在很多情况下，即使知道这些值将不会在程序中的任何地方使用，也需要分配值来完成语法。就像一个返回多个值的函数。在这种情况下，通常使用空白标识符。您可以将任何类型的任何值与空白标识符一起使用。
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+
+    //调用函数
+    //函数返回两个值
+    //分配给mul和空白标识符
+    mul, _ := mul_div(105, 7)
+
+    //只使用mul变量
+    fmt.Println("105 x 7 = ", mul)
+}
+
+//函数返回两个
+//整数类型的值
+func mul_div(n1 int, n2 int) (int, int) {
+    //返回值
+    return n1 * n2, n1 / n2
+}
+```
+
+###### defer 关键字
+
+在Go语言中，defer语句会延迟[函数](https://www.cainiaojc.com/golang/go-functions.html)或方法或[匿名方法](https://www.cainiaojc.com/404.html)的执行，直到附近的函数返回为止。换句话说，延迟函数或方法调用参数会立即求值，但是它们会执行到附近的函数返回为止。您可以使用defer关键字创建延迟的方法，函数或匿名函数。
+
+**语法：**
+
+```
+// 函数
+defer func func_name(parameter_list Type) return_type{
+    // Code
+}
+
+// 方法
+defer func (receiver Type) method_name(parameter_list){
+    // Code
+}
+
+defer func (parameter_list)(return_type){
+    // code
+}()
+```
+
+**注意事项：**
+
+- 在Go语言中，同一程序中允许多个defer语句，并且它们按LIFO（后进先出）顺序执行，如示例2所示。
+- 在defer语句中，将在执行defer语句时（而不是在调用它们时）评估参数。
+- defer语句通常用于确保在完成文件处理后关闭文件，关闭通道或捕获程序中的紧急情况。
+
+```go
+package main
+
+import "fmt"
+
+// 函数
+func mul(a1, a2 int) int {
+    res := a1 * a2
+    fmt.Println("Result: ", res)
+    return 0
+}
+
+func show() {
+    fmt.Println("Hello!, www.cainiaojc.com Go语言菜鸟教程")
+}
+
+func main() {
+
+    //调用mul()函数
+    //这里mul函数的行为
+    //像普通函数一样
+    mul(23, 45)
+
+    //调用mul()函数
+    //使用defer关键字
+    //这里是mul()函数
+    //是延迟函数
+    defer mul(23, 56)
+    //调用show()函数
+    show()
+}
+
+
+Result:  1035
+Hello!, www.cainiaojc.com Go语言菜鸟教程
+Result:  1288
+```
+
+
+
+###### **函数作为参数**
+
+Go 语言可以很灵活的创建函数，并作为另外一个函数的实参。以下实例中我们在定义的函数中初始化一个变量。
 
 ```go
 package main
@@ -3134,86 +3297,24 @@ func callBack(x int) int {
 */
 ```
 
-
-
-**匿名函数/闭包**：Go 语言支持匿名函数，可作为闭包。匿名函数是一个"内联"语句或表达式。匿名函数的优越性在于可以直接使用函数内的变量，不必申明。匿名函数是一种没有函数名的函数，通常用于在函数内部定义函数，或者作为函数参数进行传递。
-
-```go
-package main
-import "fmt"
-func main() {
-	add_func := add(1,2)
-	fmt.Println(add_func(1,1))
-	fmt.Println(add_func(0,0))
-	fmt.Println(add_func(2,2))
-}
-// 闭包使用方法
-func add(x1, x2 int) func(x3 int,x4 int)(int,int,int)  {
-	i := 0
-	return func(x3 int,x4 int) (int,int,int){
-		i++
-		return i,x1+x2,x3+x4
-	}
-}
-/*
-1 3 2
-2 3 0
-3 3 4
-*/
-```
-
-**Go语言函数方法**
-
-Go语言同时有函数和方法。一个方法就是一个包含了接受者的参数，接受者可以是命名类型或者是结构体类型的一个值或者是一个指针。所有给定类型的方法属于该类型的方法集。
-
-```go
-func(variable_name variable_data_type) function_name()[return_type]{
-	/* 函数体 */
-}
-```
-
-实例：
-
-```go
-package main
-
-import (
-	"fmt"
-)
-
-/* 定义结构体 */
-type Circle struct {
-	radius float64
-}
-
-func main() {
-	var c1 Circle
-	c1.radius = 10.00
-	fmt.Println("圆的面积 = ", c1.getArea())
-}
-
-//该 method 属于 Circle 类型对象中的方法
-func (c Circle) getArea() float64 {
-	//c.radius 即为 Circle 类型对象中的属性
-	return 3.14 * c.radius * c.radius
-}
-```
-
 #### 变量作用域
 
-作用域为已声明标识符所表示的常量、类型、变量、函数或包在源代码中的作用范围
+变量的作用域可以定义为可访问特定变量的程序的一部分。可以在类，方法，循环等中定义变量。像C / [C ++一样](https://www.cainiaojc.com/cpp/index.html)，在Golang中，所有的标识符都是词法(或静态)作用域，即变量的作用域可以在编译时确定。或者你可以说一个变量只能从定义它的代码块中调用。
 
-- 函数内定义的变量称为局部变量
-- 函数外定义的变量称为全局变量
-- 函数定义中的变量称为形式参数
+Golang变量的范围规则可以分为两类，具体取决于声明变量的位置：
+
+- **局部变量**（在块或函数内部声明）
+- **全局变量**（在块或函数外部声明）
 
 **局部变量**
 
-在函数体内声明的变量称之为局部变量，它们的作用域只在函数体内，参数和返回值变量也是局部变量。
+在函数或块中声明的变量称为局部变量。这些不能在函数或块之外访问。这些变量也可以在函数内的for，while语句等内部声明。但是，这些变量可以由函数内的嵌套代码块访问。这些变量也称为块变量。如果在同一作用域中用相同的名称声明两次这些变量，则会出现编译时错误。函数执行结束后，这些变量将不存在。在循环外声明的变量也可以在嵌套循环内访问。这意味着方法和所有循环都可以访问全局变量。局部变量可被循环访问，并在该函数内执行函数。在循环体内声明的变量对循环体外不可见。
 
 **全局变量**
 
-在函数体外声明的变量称之为全局变量，全局变量可以在整个包甚至外部包（被导出后）使用。Go 语言程序中全局变量与局部变量名称可以相同，但是函数内的局部变量会被优先考虑。
+在函数或块之外定义的变量称为全局变量。这些在程序的整个生命周期中都可用。这些在所有函数或块之外的程序顶部声明。这些可以从程序的任何部分进行访问。
+
+如果函数中存在与全局变量同名的局部变量，编译器将优先选择局部变量。通常，当定义了两个具有相同名称的变量时，编译器会产生编译时错误。但是，如果变量在不同的范围内定义，则编译器会允许它。只要定义了与全局变量同名的局部变量，编译器就会优先考虑该局部变量。
 
 **形式参数**
 
@@ -3865,6 +3966,725 @@ func main() {
 }
 ```
 
+## 类型系统与抽象设计
+
+### 结构体
+
+Golang中的结构(struct)是一种用户定义的类型，允许将可能不同类型的项分组/组合成单个类型。任何现实世界中拥有一组属性/字段的实体都可以表示为结构。这个概念通常与面向对象编程中的类进行比较。它可以被称为不支持继承但支持组合的轻量级类。
+
+例如，一个地址具有name,street,city,state,Pincode。如下所示，将这三个属性组合为一个结构*Address*是有意义的。
+
+**声明结构：**
+
+```
+ type Address struct {
+      name string 
+      street string
+      city string
+      state string
+      Pincode int
+}
+```
+
+在上面，***type***关键字引入了一个新类型。其后是类型的名称（*Address*）和关键字*struct，*以说明我们正在定义结构。该结构包含花括号内各个字段的列表。每个字段都有一个名称和类型。
+
+**注意：**我们还可以通过组合相同类型的各个字段来使它们紧凑，如下例所示：
+
+```
+type Address struct {
+    name, street, city, state string
+    Pincode int
+}
+```
+
+**定义结构：**声明结构的语法：
+
+```
+var a Address
+```
+
+上面的代码创建一个*Address类型*的变量，默认情况下将其设置为零。对于结构，零表示所有字段均设置为其对应的零值。因此，字段name,street,city,state都设置为“”，而Pincode设置为0。
+
+您还可以*使用结构字面量来初始化结构类型的变量，*如下所示：
+
+```
+var a = Address{"Akshay", "PremNagar", "Dehradun", "Uttarakhand", 252636}
+```
+
+**注意：**
+
+始终以在结构中声明它们的顺序传递字段值。同样，您不能仅使用上述语法初始化字段的子集。
+
+Go还支持*名称：value*语法，用于初始化结构（使用此语法时字段的顺序无关紧要）。而且，这仅允许您初始化字段的子集。所有未初始化的字段均设置为其相应的零值。
+
+*例如：*
+
+```
+var a = Address{"Akshay", "PremNagar", "Dehradun", "Uttarakhand", 252636}
+```
+
+要访问*结构的*各个字段，您必须使用点*（.）*运算符。Golang中的指针是一个变量，用于存储另一个变量的内存地址。您还可以创建一个指向结构的指针。
+
+```go
+// 指向结构体的指针
+package main 
+  
+import "fmt"
+  
+// 定义一个结构
+type Employee struct { 
+    firstName, lastName string 
+    age, salary int
+} 
+  
+func main() { 
+  
+        //传递struct变量的地址
+        // emp8是指向Employee结构的指针
+    emp8 := &Employee{"Sam", "Anderson", 55, 6000} 
+  
+        //（* emp8）.firstName是要访问的语法
+        // emp8结构的firstName字段
+    fmt.Println("First Name:", (*emp8).firstName) 
+    fmt.Println("Age:", (*emp8).age) 
+}
+```
+
+Golang中的结构或struct是用户定义的类型，它允许我们在一个单元中创建一组不同类型的元素。任何具有一组属性或字段的真实实体都可以表示为结构。这个概念通常与面向对象编程中的类进行比较。它可以被称为轻量级类，不支持继承，但支持组合。
+
+在Go语言中，可以通过**==运算符**或**DeeplyEqual()方法**比较两个结构相同的类型并包含相同的字段值的结构。如果结构彼此相等（就其字段值而言），则运算符和方法均返回true；否则，返回false。并且，如果比较的变量属于不同的结构，则编译器将给出错误。让我们借助示例来讨论这个概念：
+
+**注意：** DeeplyEqual()方法在“ reflect”包下定义。
+
+```go
+package main
+
+import (
+	"fmt"
+	"reflect"
+)
+
+type Person struct {
+	Name string
+	Age  int
+}
+
+type Student struct {
+	Name   string
+	Scores []int
+}
+
+func main() {
+	// ----------------------------
+	// 1. 结构体字段都可比较：可以用 ==
+	// ----------------------------
+	p1 := Person{Name: "Tom", Age: 20}
+	p2 := Person{Name: "Tom", Age: 20}
+	p3 := Person{Name: "Jack", Age: 20}
+
+	fmt.Println("p1 == p2:", p1 == p2)
+	fmt.Println("p1 == p3:", p1 == p3)
+
+	fmt.Println("DeepEqual(p1, p2):", reflect.DeepEqual(p1, p2))
+	fmt.Println("DeepEqual(p1, p3):", reflect.DeepEqual(p1, p3))
+
+	fmt.Println()
+
+	// ----------------------------
+	// 2. 结构体含有 slice：不能用 ==
+	// ----------------------------
+	s1 := Student{Name: "Alice", Scores: []int{90, 80, 70}}
+	s2 := Student{Name: "Alice", Scores: []int{90, 80, 70}}
+	s3 := Student{Name: "Alice", Scores: []int{90, 80}}
+
+	// 下面这句不能写，会报错：
+	// fmt.Println(s1 == s2)
+
+	fmt.Println("DeepEqual(s1, s2):", reflect.DeepEqual(s1, s2))
+	fmt.Println("DeepEqual(s1, s3):", reflect.DeepEqual(s1, s3))
+}
+
+p1 == p2: true
+p1 == p3: false
+DeepEqual(p1, p2): true
+DeepEqual(p1, p3): false
+
+DeepEqual(s1, s2): true
+DeepEqual(s1, s3): false
+
+```
+
+#### 结构体嵌套
+
+[结构](https://www.cainiaojc.com/golang/go-structures.html)在Golang中是一个用户定义的类型，它允许我们在一个单元中创建一组不同类型的元素。任何具有一组属性或字段的真实实体都可以表示为结构。Go语言允许嵌套结构。一个结构是另一个结构的字段，称为嵌套结构。换句话说，另一个结构中的结构称为嵌套结构。
+
+**语法：**
+
+```
+type struct_name_1 struct{
+  // Fields
+} 
+type struct_name_2 struct{
+  variable_name  struct_name_1
+
+}
+```
+
+#### 匿名结构
+
+##### 匿名结构体
+
+在Go语言中，允许您创建匿名结构。匿名结构是不包含名称的结构。当您要创建一次性可用结构时，它很有用。您可以使用以下语法创建匿名结构：
+
+```
+variable_name := struct{
+// fields
+}{// Field_values}
+```
+
+##### 匿名字段
+
+在Go结构中，允许创建匿名字段。匿名字段是那些不包含任何名称的字段，你只需要提到字段的类型，然后Go就会自动使用该类型作为字段的名称。您可以使用以下语法创建结构的匿名字段:
+
+```
+type struct_name struct{
+    int
+    bool
+    float64
+}
+```
+
+**重要事项：**
+
+- 在结构中，不允许创建两个或多个相同类型的字段，如下所示：
+
+  ```
+  type student struct{
+  int
+  int
+  }
+  ```
+
+  如果尝试这样做，则编译器将抛出错误。
+
+- 允许将匿名字段与命名字段组合，如下所示：
+
+  ```
+  type student struct{
+   name int
+   price int
+   string
+  }
+  ```
+
+- 让我们借助一个示例来讨论匿名字段概念：
+
+- 示例
+
+  ```
+  package main 
+    
+  import "fmt"
+    
+  //创建一个结构匿名字段 
+  type student struct { 
+      int
+      string 
+      float64 
+  } 
+    
+  // Main function 
+  func main() { 
+    
+      // 将值分配给匿名,学生结构的字段
+      value := student{123, "Bud", 8900.23} 
+    
+      fmt.Println("入学人数 : ", value.int) 
+      fmt.Println("学生姓名 : ", value.string) 
+      fmt.Println("套餐价格 : ", value.float64) 
+  }
+  ```
+
+#### 函数字段
+
+Golang中的结构或struct是用户定义的类型，它允许我们在一个单元中创建一组不同类型的元素。任何具有一组属性或字段的真实实体都可以表示为结构。我们知道在Go语言中函数也是用户定义的类型，所以你可以在Go结构中创建一个函数字段。您还可以使用匿名函数在Go结构中创建一个函数字段，如示例2所示。
+
+**语法：**
+
+```
+type function_name func()
+type strcut_name struct{
+  var_name  function_name
+}
+```
+
+让我们借助示例来讨论这个概念：
+
+示例
+
+```
+//作为Go结构中的字段
+package main 
+  
+import "fmt"
+  
+// Finalsalary函数类型
+type Finalsalary func(int, int) int
+  
+//创建结构
+type Author struct { 
+    name      string 
+    language  string 
+    Marticles int
+    Pay       int
+  
+    //函数作为字段
+    salary Finalsalary 
+} 
+  
+func main() { 
+  
+    // 初始化字段结构
+    result := Author{ 
+        name:      "Sonia", 
+        language:  "Java", 
+        Marticles: 120, 
+        Pay:       500, 
+        salary: func(Ma int, pay int) int { 
+            return Ma * pay 
+        }, 
+    } 
+  
+    fmt.Println("作者姓名: ", result.name) 
+    fmt.Println("语言: ", result.language) 
+    fmt.Println("五月份发表的文章总数: ", result.Marticles) 
+    fmt.Println("每篇报酬: ", result.Pay) 
+    fmt.Println("总工资: ", result.salary(result.Marticles, result.Pay)) 
+}
+```
+
+**输出：**
+
+```
+作者姓名:  Sonia
+语言:  Java
+五月份发表的文章总数:  120
+每篇报酬:  500
+总工资:  60000
+```
+
+### 方法
+
+Go语言支持方法。Go方法与Go函数相似，但有一点不同，就是方法中包含一个接收者参数。在接收者参数的帮助下，该方法可以访问接收者的属性。在这里，接收方可以是结构类型或非结构类型。在代码中创建方法时，接收者和接收者类型必须出现在同一个包中。而且不允许创建一个方法，其中的接收者类型已经在另一个包中定义，包括像int、string等内建类型。如果您尝试这样做，那么编译器将抛出错误。
+
+**语法：**
+
+```
+func(reciver_name Type) method_name(parameter_list)(return_type){
+    // Code
+}
+```
+
+在此，可以在方法内访问接收器。
+
+#### 结构类型接收器的方法
+
+在Go语言中，允许您定义其接收者为结构类型的方法。可以在方法内部访问此接收器，如以下示例所示：
+
+示例
+
+```
+package main 
+  
+import "fmt"
+  
+//Author 结构体
+type author struct { 
+    name      string 
+    branch    string 
+    particles int
+    salary    int
+} 
+  
+//接收者的方法 
+func (a author) show() { 
+  
+    fmt.Println("Author's Name: ", a.name) 
+    fmt.Println("Branch Name: ", a.branch) 
+    fmt.Println("Published articles: ", a.particles) 
+    fmt.Println("Salary: ", a.salary) 
+} 
+  
+func main() { 
+  
+    //初始化值
+    //Author结构体
+    res := author{ 
+        name:      "Sona", 
+        branch:    "CSE", 
+        particles: 203, 
+        salary:    34000, 
+    } 
+  
+    //调用方法
+    res.show() 
+}
+```
+
+**输出：**
+
+```
+Author's Name:  Sona
+Branch Name:  CSE
+Published articles:  203
+Salary:  34000
+```
+
+#### 非结构类型接收器的方法
+
+在Go语言中，只要类型和方法定义存在于同一包中，就可以使用非结构类型接收器创建方法。如果它们存在于int，string等不同的包中，则编译器将抛出错误，因为它们是在不同的包中定义的。
+
+示例
+
+```
+package main 
+  
+import "fmt"
+  
+//类型定义
+type data int
+
+//定义一个方法
+//非结构类型的接收器 
+func (d1 data) multiply(d2 data) data { 
+    return d1 * d2 
+} 
+  
+/* 
+//如果您尝试运行此代码，
+
+//然后编译器将抛出错误 
+func(d1 int)multiply(d2 int)int{ 
+return d1 * d2 
+} 
+*/
+  
+func main() { 
+    value1 := data(23) 
+    value2 := data(20) 
+    res := value1.multiply(value2) 
+    fmt.Println("最终结果: ", res) 
+}
+```
+
+**输出：**
+
+```
+最终结果:  460
+```
+
+#### 带指针接收器的Go方法
+
+在Go语言中，允许您使用**指针**接收器创建方法。在指针接收器的帮助下，如果方法中所做的更改将反映在调用方中，这对于值接收器是不可能的。
+
+**语法：**
+
+```
+func (p *Type) method_name(...Type) Type {
+    // Code
+}
+```
+
+示例
+
+```
+package main 
+  
+import "fmt"
+  
+// Author 结构体
+type author struct { 
+    name      string 
+    branch    string 
+    particles int
+} 
+  
+//方法，使用author类型的接收者
+func (a *author) show(abranch string) { 
+    (*a).branch = abranch 
+} 
+  
+// Main function 
+func main() { 
+  
+    //初始化author结构体
+    res := author{ 
+        name:   "Sona", 
+        branch: "CSE", 
+    } 
+  
+    fmt.Println("Author's name: ", res.name) 
+    fmt.Println("Branch Name(Before): ", res.branch) 
+  
+    //创建一个指针
+    p := &res 
+  
+    //调用show方法
+    p.show("ECE") 
+    fmt.Println("Author's name: ", res.name) 
+    fmt.Println("Branch Name(After): ", res.branch) 
+}
+```
+
+**输出：**
+
+```
+Author's name:  Sona
+Branch Name(Before):  CSE
+Author's name:  Sona
+Branch Name(After):  ECE
+```
+
+#### 指针参数与值参数的自动转换
+
+众所周知，在Go中，当一个函数具有值参数时，它将仅接受参数的值，如果您尝试将指针传递给值函数，则它将不接受，反之亦然。但是Go方法可以接受值和指针，无论它是使用指针还是值接收器定义的。如下例所示：
+
+示例
+
+```
+package main 
+  
+import "fmt"
+  
+// Author 结构体
+type author struct { 
+    name   string 
+    branch string 
+} 
+  
+//带有指针的方法
+//author类型的接收者
+func (a *author) show_1(abranch string) { 
+    (*a).branch = abranch 
+} 
+  
+//带有值的方法
+//作者类型的接收者 
+func (a author) show_2() { 
+    a.name = "Gourav"
+    fmt.Println("Author's name(Before) : ", a.name) 
+} 
+  
+
+func main() { 
+  
+     //初始化值
+     //作者结构体
+    res := author{ 
+        name:   "Sona", 
+        branch: "CSE", 
+    } 
+  
+    fmt.Println("Branch Name(Before): ", res.branch) 
+  
+     //调用show_1方法
+     //（指针方法）带有值
+    res.show_1("ECE") 
+    fmt.Println("Branch Name(After): ", res.branch) 
+  
+     //调用show_2方法
+     //带有指针的（值方法）
+    (&res).show_2() 
+    fmt.Println("Author's name(After): ", res.name) 
+}
+```
+
+**输出：**
+
+```
+Branch Name(Before):  CSE
+Branch Name(After):  ECE
+Author's name(Before) :  Gourav
+Author's name(After):  Sona
+```
+
+#### 同名方法
+
+在Go语言中，允许在同一包中创建两个或多个具有相同名称的方法，但是这些方法的接收者**必须具有不同的类型**。该功能在Go函数中不可用，这意味着不允许您在同一包中创建相同名称的方法，如果尝试这样做，则编译器将抛出错误。
+
+**语法：**
+
+```
+func(reciver_name_1 Type) method_name(parameter_list)(return_type){
+    // Code
+}
+
+func(reciver_name_2 Type) method_name(parameter_list)(return_type){
+    // Code
+}
+```
+
+### 接口
+
+接口（interface）是 Go 语言中的一种类型，用于定义行为的集合，它通过描述类型必须实现的方法，规定了类型的行为契约。Go 语言提供了另外一种数据类型即接口，它把所有的具有共性的方法定义在一起，任何其他类型只要实现了这些方法就是实现了这个接口。Go 的接口设计简单却功能强大，是实现多态和解耦的重要工具。接口可以让我们将不同的类型绑定到一组公共的方法上，从而实现多态和灵活的设计。interface 本质是一个指针。
+
+**隐式实现**：
+
+- Go 中没有关键字显式声明某个类型实现了某个接口。
+- 只要一个类型实现了接口要求的所有方法，该类型就自动被认为实现了该接口。
+
+**接口类型变量**：
+
+- 接口变量可以存储实现该接口的任意值。
+- 接口变量实际上包含了两个部分：
+  - **动态类型**：存储实际的值类型。
+  - **动态值**：存储具体的值。
+
+**零值接口**：
+
+- 接口的零值是 `nil`。
+- 一个未初始化的接口变量其值为 `nil`，且不包含任何动态类型或值。
+
+**空接口**：
+
+- 定义为 `interface{}`，可以表示任何类型。
+- 常用于需要存储任意类型数据的场景，如泛型容器、通用参数等。
+
+接口定义使用关键字 **interface**，其中包含方法声明。类型通过实现接口要求的所有方法来实现接口。
+
+```go
+/* 定义接口 */
+type interface_name interface {
+   method_name1 [return_type]
+   method_name2 [return_type]
+   method_name3 [return_type]
+   ...
+   method_namen [return_type]
+}
+
+/* 定义结构体 */
+type struct_name struct {
+   /* variables */
+}
+
+/* 实现接口方法 */
+func (struct_name_variable struct_name) method_name1() [return_type] {
+   /* 方法实现 */
+}
+...
+func (struct_name_variable struct_name) method_namen() [return_type] {
+   /* 方法实现*/
+}
+```
+
+**类型断言**：类型断言用于从接口类型中提取其底层值。
+
+基本语法:
+
+```
+value := iface.(Type)
+```
+
+- `iface` 是接口变量。
+- `Type` 是要断言的具体类型。
+- 如果类型不匹配，会触发 `panic`。
+
+为了避免 panic，可以使用带检查的类型断言：
+
+```
+value, ok := iface.(Type)
+```
+
+- `ok` 是一个布尔值，表示断言是否成功。
+- 如果断言失败，`value` 为零值，`ok` 为 `false`。
+
+**类型选择**：type switch 是 Go 中的语法结构，用于根据接口变量的具体类型执行不同的逻辑。
+
+```go
+package main
+
+import "fmt"
+
+func printType(val interface{}) {
+        switch v := val.(type) {
+        case int:
+                fmt.Println("Integer:", v)
+        case string:
+                fmt.Println("String:", v)
+        case float64:
+                fmt.Println("Float:", v)
+        default:
+                fmt.Println("Unknown type")
+        }
+}
+
+func main() {
+        printType(42)
+        printType("hello")
+        printType(3.14)
+        printType([]int{1, 2, 3})
+}
+```
+
+**接口组合**
+
+接口可以通过嵌套组合，实现更复杂的行为描述。
+
+```go
+package main
+
+import "fmt"
+
+type Reader interface {
+        Read() string
+}
+
+type Writer interface {
+        Write(data string)
+}
+
+type ReadWriter interface {
+        Reader
+        Writer
+}
+
+type File struct{}
+
+func (f File) Read() string {
+        return "Reading data"
+}
+
+func (f File) Write(data string) {
+        fmt.Println("Writing data:", data)
+}
+
+func main() {
+        var rw ReadWriter = File{}
+        fmt.Println(rw.Read())
+        rw.Write("Hello, Go!")
+}
+```
+
+**动态值和动态类型**
+
+接口变量实际上包含了两部分：
+
+1. **动态类型**：接口变量存储的具体类型。
+2. **动态值**：具体类型的值。
+
+动态值和动态类型示例：
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+        var i interface{} = 42
+        fmt.Printf("Dynamic type: %T, Dynamic value: %v\n", i, i)
+}
+```
+
 ### 泛型
 
 泛型是 Go 语言在 1.18 版本中引入的重要特性，它让开发者能够编写更加灵活和可重用的代码。
@@ -4126,6 +4946,7 @@ func main() {
     fmt.Println("Keys:", scores.Keys())  // 输出: Keys: [Alice Bob]
 }
 ```
+
 
 ## 未分类
 
