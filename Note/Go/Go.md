@@ -6,15 +6,15 @@
 
 ### 数据类型
 
-数据类型指定有效的[Go变量](https://www.cainiaojc.com/golang/go-variables.html)可以保存的数据类型。在Go语言中，类型分为以下四类：
+数据类型指定有效的Go变量可以保存的数据类型。在Go语言中，类型分为以下四类：
 
-**基本类型：**数字，字符串和布尔值属于此类别。
+* **基本类型：**数字，字符串和布尔值属于此类别。
 
-**聚合类型：**数组和结构属于此类别。
+* **聚合类型：**数组和结构属于此类别。
 
-**引用类型：**指针，切片，map集合，函数和Channel属于此类别。
+* **引用类型：**指针，切片，map集合，函数和Channel属于此类别。
 
-**接口类型**
+* **接口类型**
 
 #### 基本类型
 
@@ -22,73 +22,30 @@
 
 在Go语言中，数字分为*三个*子类别：
 
-- **整数：**在Go语言中，有符号和无符号整数都可以使用四种不同的大小，如下表所示。有符号的int由int表示，而无符号的整数由uint表示。
+- **整数：**在Go语言中，有符号和无符号整数都可以使用四种不同的大小，如下表所示。有符号整数使用 `int8`、`int16`、`int32`、`int64` 表示，无符号整数使用 `uint8`、`uint16`、`uint32`、`uint64` 表示。
 
-  | 数据类型    | 描述                                                         |
-  | :---------- | :----------------------------------------------------------- |
-  | **int8**    | 8位有符号整数                                                |
-  | **int16**   | 16位有符号整数                                               |
-  | **int32**   | 32位有符号整数                                               |
-  | **int64**   | 64位有符号整数                                               |
-  | **uint8**   | 8位无符号整数                                                |
-  | **uint16**  | 16位无符号整数                                               |
-  | **uint32**  | 32位无符号整数                                               |
-  | **uint64**  | 64位无符号整数                                               |
-  | **int**     | in和uint都包含相同的大小，无论是32位还是64位。               |
-  | **uint**    | in和uint都包含相同的大小，无论是32位还是64位。               |
-  | **rune**    | 它是int32的同义词，也表示Unicode代码点。                     |
-  | **byte**    | 它是int8的同义词。                                           |
-  | **uintptr** | 它是无符号整数类型。它的宽度未定义，但是可以容纳指针值的所有位。 |
+  | 数据类型    | 描述                                      |
+  | :---------- | :---------------------------------------- |
+  | **int8**    | 8位有符号整数                             |
+  | **int16**   | 16位有符号整数                            |
+  | **int32**   | 32位有符号整数                            |
+  | **int64**   | 64位有符号整数                            |
+  | **uint8**   | 8位无符号整数                             |
+  | **uint16**  | 16位无符号整数                            |
+  | **uint32**  | 32位无符号整数                            |
+  | **uint64**  | 64位无符号整数                            |
+  | **int**     | 平台相关的有符号整数，通常为32位或64位。  |
+  | **uint**    | 平台相关的无符号整数，通常为32位或64位。  |
+  | **rune**    | `int32` 的别名，表示一个 Unicode 代码点。 |
+  | **byte**    | `uint8` 的别名。                          |
+  | **uintptr** | 无符号整数类型，可容纳指针值的位模式。    |
 
-  ```
-  // 使用整数 
-  package main  
-  import "fmt"
-           
-  func main() { 
-        
-      // 使用8位无符号整型
-      var X uint8 = 225 
-      fmt.Println(X+1, X) 
-        
-      // 使用16位有符号整型
-      var Y int16 = 32767 
-      fmt.Println(Y+2, Y-2)  
-  }
-  
-  226 225
-  -32767 32765
-  ```
-
-- **浮点数：**在Go语言，浮点数被分成***2\***类如示于下表：
+- **浮点数：**在Go语言，浮点数被分成2类如示于下表：
 
   | 数据类型    | 描述               |
   | :---------- | :----------------- |
   | **float32** | 32位IEEE 754浮点数 |
   | **float64** | 64位IEEE 754浮点数 |
-
-  ```
-  // 浮点数的使用 
-  package main  
-  import "fmt"
-           
-  func main() { 
-      a := 20.45 
-      b := 34.89 
-        
-      //两个浮点数相减
-      c := b-a 
-        
-      //显示结果 
-      fmt.Printf("结果: %f", c) 
-        
-      //显示c变量的类型
-      fmt.Printf("\nc的类型是 : %T", c)   
-  }
-  
-  结果: 14.440000
-  c的类型是: float64
-  ```
 
 - **复数：**将复数分为两部分，如下表所示。float32和float64也是这些复数的一部分。内建函数从它的虚部和实部创建一个复数，内建虚部和实部函数提取这些部分。
 
@@ -97,60 +54,62 @@
   | **complex64**  | 包含float32作为实数和虚数分量的复数。 |
   | **complex128** | 包含float64作为实数和虚数分量的复数。 |
 
-  
-
-  ```
-  //复数的使用 
-  package main 
-  import "fmt"
-    
-  func main() { 
-        
-     var a complex128 = complex(6, 2) 
-     var b complex64 = complex(9, 2) 
-     fmt.Println(a) 
-     fmt.Println(b) 
-       
-     //显示类型 
-    fmt.Printf("a的类型是 %T 以及"+ "b的类型是 %T", a, b) 
-  }
-  
-  (6+2i)
-  (9+2i)
-  a的类型是 complex128 以及b的类型是 complex64
-  ```
-
-##### 布尔类型
-
-布尔数据类型仅表示true或false。布尔类型的值不会隐式或显式转换为任何其他类型。
-
-```
-//布尔值的使用
+```go
 package main
 
 import "fmt"
 
 func main() {
+    var unsignedIntegerValue uint8 = 225
+    var signedIntegerValue int16 = 32767
+    var floatValue = 20.45
+    var complexValue complex128 = complex(6, 2)
 
-    //变量
-    str1 := "cainiaojc"
-    str2 := "cainiaojc"
-    str3 := "cainiaojc"
-    result1 := str1 == str2
-    result2 := str1 == str3
+    fmt.Println(unsignedIntegerValue)
+    fmt.Println(signedIntegerValue)
+    fmt.Println(floatValue)
+    fmt.Println(complexValue)
 
-    //打印结果
-    fmt.Println(result1)
-    fmt.Println(result2)
+    fmt.Printf("%T\n", unsignedIntegerValue) // uint8
+    fmt.Printf("%T\n", signedIntegerValue)   // int16
+    fmt.Printf("%T\n", floatValue)           // float64，未显式声明时浮点常量默认推导为 float64
+    fmt.Printf("%T\n", complexValue)         // complex128
 
-    //显示result1和result2的类型
-    fmt.Printf("result1 的类型是 %T ， "+"result2的类型是 %T", result1, result2)
-
+    // **注意**
+    // 1. 不同整数类型之间不能直接混用，通常需要显式转换。
+    // 2. int 与 uint 的位宽依赖平台。
+    // 3. 数值溢出会截断到对应类型的表示范围内。
 }
+```
 
-true
-true
-result1 的类型是 bool ， result2的类型是 bool
+##### 布尔类型
+
+布尔数据类型仅表示true或false。布尔类型的值不会隐式或显式转换为任何其他类型。
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+    var booleanValue bool = true
+
+    comparisonResult := 10 > 5
+    logicalResult := true && false
+
+    fmt.Println(booleanValue)      // true
+    fmt.Println(comparisonResult)  // true
+    fmt.Println(logicalResult)     // false
+
+    fmt.Printf("%T\n", booleanValue)     // bool
+    fmt.Printf("%T\n", comparisonResult) // bool
+    fmt.Printf("%T\n", logicalResult)    // bool
+
+    // **注意**
+    // 1. bool 只有 true 和 false 两个值。
+    // 2. 比较表达式和逻辑表达式的结果都是 bool。
+    // 3. bool 不会与数值类型互相转换。
+}
 ```
 
 ##### 字符串
@@ -163,777 +122,372 @@ result1 的类型是 bool ， result2的类型是 bool
 
 在Go语言中，字符串字面量是通过两种不同的方式创建的：
 
-- **使用双引号（“”）：**在这里，字符串字面量使用双引号（“”）创建。此类字符串支持转义字符，如下表所示，但不跨越多行。这种类型的字符串文字在Golang程序中被广泛使用。
+- **使用双引号（""）：**在这里，字符串字面量使用双引号（""）创建。此类字符串支持转义字符，如下表所示，但不跨越多行。
 
-  | 转义符     | 描述                                           |
-  | :--------- | :--------------------------------------------- |
-  | **\\**     | 反斜杠（\）                                    |
-  | **\000**   | 具有给定的3位8位八进制代码点的Unicode字符      |
-  | **\’**     | 单引号（'）。仅允许在字符文字中使用            |
-  | **\”**     | 双引号（""）。仅允许在解释的字符串文字中使用   |
-  | **\a**     | ASCII铃声(BEL)                                 |
-  | **\b**     | ASCII退格键(BS)                                |
-  | **\f**     | ASCII换页(FF)                                  |
-  | **\n**     | ASCII换行符(LF)                                |
-  | **\r**     | ASCII回车(CR)                                  |
-  | **\t**     | ASCII标签(TAB)                                 |
-  | **\uhhhh** | 具有给定的4位16位十六进制代码点的Unicode字符。 |
-  |            | 具有给定的8位32位十六进制代码点的Unicode字符。 |
-  | **\v**     | ASCII垂直制表符(VT)                            |
-  | **\xhh**   | 具有给定的2位8位十六进制代码点的Unicode字符。  |
+  | 转义符         | 描述                                         |
+  | :------------- | :------------------------------------------- |
+  | **\\**         | 反斜杠（\）                                  |
+  | **\000**       | 具有给定的3位8位八进制代码点的Unicode字符    |
+  | **\'**         | 单引号（'）。仅允许在字符文字中使用          |
+  | **\"**         | 双引号（"）。仅允许在解释的字符串文字中使用  |
+  | **\a**         | ASCII铃声(BEL)                               |
+  | **\b**         | ASCII退格键(BS)                              |
+  | **\f**         | ASCII换页(FF)                                |
+  | **\n**         | ASCII换行符(LF)                              |
+  | **\r**         | ASCII回车(CR)                                |
+  | **\t**         | ASCII标签(TAB)                               |
+  | **\uhhhh**     | 具有给定的4位16位十六进制代码点的Unicode字符 |
+  | **\Uhhhhhhhh** | 具有给定的8位32位十六进制代码点的Unicode字符 |
+  | **\v**         | ASCII垂直制表符(VT)                          |
+  | **\xhh**       | 具有给定的2位8位十六进制代码点的Unicode字符  |
 
-- **使用反引号（``）：**此处，字符串文字是使用反引号（``）创建的，也称为**raw literals**(原始文本)。原始文本不支持转义字符，可以跨越多行，并且可以包含除反引号之外的任何字符。通常，它用于在正则表达式和HTML中编写多行消息。
+- 使用反引号（\`\`）：使用反引号\`\`创建的，也称为原始文本。原始文本不支持转义字符，可以跨越多行，并且可以包含除反引号之外的任何字符。
 
-  ```
-  package main
-  
-  import "fmt"
-  
-  func main() {
-  
-      //创建并初始化
-      //带有字符串文字的变量
-      //使用双引号
-      My_value_1 := "Welcome to cainiaojc"
-  
-      //添加转义字符
-      My_value_2 := "Welcome!\ncainiaojc$1quot;
-  
-      //使用反引号
-      My_value_3 := `Hello!cainiaojc$1
-  
-      //添加转义字符
-  
-      //原始文本
-      My_value_4 := `Hello!\ncainiaojc$1
-  
-      //显示
-      fmt.Println("String 1: ", My_value_1)
-      fmt.Println("String 2: ", My_value_2)
-      fmt.Println("String 3: ", My_value_3)
-      fmt.Println("String 4: ", My_value_4)
-  }
-  ```
+```go
+package main
+
+import "fmt"
+
+func main() {
+    interpretedString := "line1\nline2\tGo"
+    rawString := `line1
+line2\tGo`
+
+    fmt.Println(interpretedString)
+    fmt.Println(rawString)
+
+    // 输出示意:
+    // line1
+    // line2    Go
+    // line1
+    // line2\tGo
+}
+```
+
+###### 字符串包含与索引
+
+- **Contains：**检查给定字符串中是否存在指定子串。
+
+```go
+func Contains(str, chstr string) bool
+// str: 原始字符串
+// chstr: 要检查的子串
+// 返回值: 是否包含指定子串
+```
+
+- **ContainsAny：**检查给定字符串中是否存在字符集合中的任意 Unicode 字符。
+
+```go
+func ContainsAny(str, charstr string) bool
+// str: 原始字符串
+// charstr: 字符集合
+// 返回值: 是否包含任意匹配字符
+```
+
+- **Index：**返回指定子串第一次出现的索引值，不存在时返回 `-1`。
+
+```go
+func Index(str, sbstr string) int
+// str: 原始字符串
+// sbstr: 要查找的子串
+// 返回值: 第一次出现的字节索引，不存在时返回 -1
+```
+
+- **IndexAny：**返回字符集合中任意 Unicode 字符第一次出现的索引值，不存在时返回 `-1`。
+
+```go
+func IndexAny(str, charstr string) int
+// str: 原始字符串
+// charstr: 字符集合
+// 返回值: 第一次出现的字节索引，不存在时返回 -1
+```
+
+- **IndexByte：**返回指定字节第一次出现的索引值，不存在时返回 `-1`。
+
+```go
+func IndexByte(str string, b byte) int
+// str: 原始字符串
+// b: 要查找的字节
+// 返回值: 第一次出现的字节索引，不存在时返回 -1
+```
+
+```go
+package main
+
+import (
+    "fmt"
+    "strings"
+)
+
+func main() {
+    stringValue := "Hello, Go语言"
+
+    containsResult := strings.Contains(stringValue, "Go")
+    containsAnyResult := strings.ContainsAny(stringValue, "xyz语")
+    indexResult := strings.Index(stringValue, "Go")
+    indexAnyResult := strings.IndexAny(stringValue, "xyz语")
+    indexByteResult := strings.IndexByte(stringValue, ',')
+
+    fmt.Println(containsResult)    // true
+    fmt.Println(containsAnyResult) // true
+    fmt.Println(indexResult)       // 7
+    fmt.Println(indexAnyResult)    // 9
+    fmt.Println(indexByteResult)   // 5
+
+    // **注意**
+    // 1. Contains 判断子串。
+    // 2. ContainsAny / IndexAny 判断字符集合。
+    // 3. Index / IndexAny / IndexByte 返回的都是字节索引。
+}
+```
 
 ###### 字符串比较
 
-在Go语言中，字符串是使用UTF-8编码编码的不可变的任意字节链。您可以使用两种不同的方式来比较字符串：
+字符串可以直接使用比较运算符进行比较，也可以使用 `strings.Compare()` 按词法顺序比较。
 
-**使用比较运算符：**转到字符串支持比较运算符，即*==，！=，> =，<=，<，>*。在这里，**==**和**！=**运算符用于检查给定的字符串是否相等。和> =，<=，<，>操作符用于查找词法顺序。这些运算符的结果为布尔类型，意味着如果条件满足，则返回*true*，否则返回*false*。
+- **比较运算符：**支持 `==`、`!=`、`>`、`>=`、`<`、`<=`，结果为 `bool`。
+- **Compare：**比较两个字符串，返回 `-1`、`0` 或 `1`。
 
-**使用Compare()方法：**您还可以使用字符串包提供的内置函数Compare()比较两个字符串。在比较两个字符串后，此函数返回整数值。返回值为：
-
-- 如果*str1 == str2*，则返回0 。
-- 如果*str1> str2*，返回1 。
-- 如果*str1 <str2，*返回-1 。
-
-**语法：**
-
-```
+```go
 func Compare(str1, str2 string) int
+// str1: 第一个字符串
+// str2: 第二个字符串
+// 返回值:
+// -1: str1 < str2
+//  0: str1 == str2
+//  1: str1 > str2
 ```
 
-```
-//字符串使用compare()函数
-package main 
-  
-import ( 
+```go
+package main
+
+import (
     "fmt"
     "strings"
-) 
-  
-func main() { 
-  
-          //创建和初始化
-        //使用速记声明
-    myslice := []string{"Geeks", "Geeks", 
-                    "gfg", "GFG", "for"} 
-      
-    fmt.Println("Slice: ", myslice) 
-  
-    //使用比较运算符
-    result1 := "GFG" > "Geeks"
-    fmt.Println("Result 1: ", result1) 
-  
-    result2 := "GFG" < "Geeks"
-    fmt.Println("Result 2: ", result2) 
-  
-    result3 := "Geeks" >= "for"
-    fmt.Println("Result 3: ", result3) 
-  
-    result4 := "Geeks" <= "for"
-    fmt.Println("Result 4: ", result4) 
-  
-    result5 := "Geeks" == "Geeks"
-    fmt.Println("Result 5: ", result5) 
-  
-    result6 := "Geeks" != "for"
-    fmt.Println("Result 6: ", result6) 
-    
-    //比较字符串使用比较函数
-    fmt.Println(strings.Compare("gfg", "Geeks")) 
-      
-    fmt.Println(strings.Compare("cainiaojc", "cainiaojc")) 
-      
-    fmt.Println(strings.Compare("Geeks", " GFG")) 
-      
-    fmt.Println(strings.Compare("GeeKS", "GeeKs")) 
+)
 
+func main() {
+    leftString := "Go"
+    rightString := "Lang"
+
+    equalResult := leftString == rightString
+    greaterResult := leftString > rightString
+    compareResult := strings.Compare(leftString, rightString)
+
+    fmt.Println(equalResult)   // false
+    fmt.Println(greaterResult) // false
+    fmt.Println(compareResult) // -1
 }
-
-
-Slice:  [Geeks Geeks gfg GFG for]
-Result 1:  false
-Result 2:  true
-Result 3:  false
-Result 4:  true
-Result 5:  true
-Result 6:  true
-
-1
-0
-1
--1
 ```
 
-###### 字符串连接
+###### 字符串函数
 
-在Go语言中，字符串是使用UTF-8编码编码的不可变的任意字节链。在Go字符串中，将两个或多个字符串添加到新的单个字符串中的过程称为串联。连接Go语言中两个或多个字符串的最简单方法是使用运算符（+）。也称为串联运算符。
+- **Join：**将字符串切片中存在的所有元素连接为单个字符串。
 
-**使用bytes.Buffer：**您还可以通过使用bytes.Buffer和WriteString()方法来连接字符串的字节来创建字符串。 它在字节包下定义。 它可以防止生成不必要的字符串对象，这意味着它不会从两个或多个字符串中生成新的字符串（如+运算符）。
-
-**使用Sprintf：**在Go语言中，您还可以使用*Sprintf()*方法连接字符串。
-
-**使用+ =运算符或字符串附加：**在Go字符串中，允许您使用*+ =运算符连接*字符串。该运算符将新的或给定的字符串添加到指定字符串的末尾。
-
-**使用Join()函数：**此函数将字符串切片中存在的所有元素连接为单个字符串。此函数在字符串包中可用。
-
-**语法：**
-
-```
+```go
 func Join(str []string, sep string) string
+// str: 待连接的字符串切片
+// sep: 元素之间插入的分隔符
+// 返回值: 连接后的字符串
 ```
 
-在这里，*str*是可以用来连接元素的字符串，sep是放置在最终字符串中元素之间的分隔符。
+- **Trim：**修剪字符串两侧属于指定字符集合的字符。
 
-```
-package main
-
-import (
-	"bytes"
-	"fmt"
-	"strings"
-)
-
-func main() {
-	// 原始字符串
-	str1 := "Hello"
-	str2 := "Go"
-	str3 := "Lang"
-
-	// 1. 使用 + 运算符
-	result1 := str1 + " " + str2 + " " + str3
-	fmt.Println("1. 使用 + 运算符:", result1)
-
-	// 2. 使用 bytes.Buffer
-	var buffer bytes.Buffer
-	buffer.WriteString(str1)
-	buffer.WriteString(" ")
-	buffer.WriteString(str2)
-	buffer.WriteString(" ")
-	buffer.WriteString(str3)
-	result2 := buffer.String()
-	fmt.Println("2. 使用 bytes.Buffer:", result2)
-
-	// 3. 使用 fmt.Sprintf
-	result3 := fmt.Sprintf("%s %s %s", str1, str2, str3)
-	fmt.Println("3. 使用 fmt.Sprintf:", result3)
-
-	// 4. 使用 += 运算符
-	result4 := str1
-	result4 += " "
-	result4 += str2
-	result4 += " "
-	result4 += str3
-	fmt.Println("4. 使用 += 运算符:", result4)
-
-	// 5. 使用 strings.Join
-	parts := []string{str1, str2, str3}
-	result5 := strings.Join(parts, " ")
-	fmt.Println("5. 使用 strings.Join:", result5)
-}
-
-```
-
-###### 字符串修剪
-
-**Trim：**此函数用于修剪此函数中指定的所有前导和后缀Unicode代码点的字符串。
-
-**语法：**
-
-```
+```go
 func Trim(str string, cutstr string) string
+// str: 当前字符串
+// cutstr: 两侧要修剪的字符集合
+// 返回值: 修剪后的字符串
 ```
 
-在这里，*str*表示当前字符串，而*cutstr*表示要在给定字符串中修剪的元素。
+- **TrimLeft：**修剪字符串左侧属于指定字符集合的字符。
 
-**TrimLeft：**此函数用于修剪字符串的左侧（在函数中指定）Unicode代码点。
-
-**语法：**
-
-```
+```go
 func TrimLeft(str string, cutstr string) string
+// str: 当前字符串
+// cutstr: 左侧要修剪的字符集合
+// 返回值: 修剪后的字符串
 ```
 
-在这里，*str*表示当前字符串，而*cutstr*表示要在给定字符串中修剪的左侧元素。
+- **TrimRight：**修剪字符串右侧属于指定字符集合的字符。
 
-**TrimRight：**此函数用于修剪字符串的右侧（在函数中指定）Unicode代码点。
-
-**语法：**
-
-```
+```go
 func TrimRight(str string, cutstr string) string
+// str: 当前字符串
+// cutstr: 右侧要修剪的字符集合
+// 返回值: 修剪后的字符串
 ```
 
-在这里，*str*表示当前字符串，而*cutstr*表示要在给定字符串中修剪的右侧元素。
+- **TrimSpace：**修剪字符串两侧空白字符。
 
-**TrimSpace：**此函数用于修剪指定字符串中的所有前导和尾随空白（空格）。
-
-**语法：**
-
-```
+```go
 func TrimSpace(str string) string
+// str: 当前字符串
+// 返回值: 去除两侧空白后的字符串
 ```
 
-**TrimSuffix：**此方法用于修剪给定字符串中的尾随后缀字符串。如果给定的字符串不包含指定的后缀字符串，则此函数将返回原始字符串，而不进行任何更改。
+- **TrimPrefix：**删除固定前缀，未匹配时返回原字符串。
 
-**语法：**
-
-```
-func TrimSuffix(str, suffstr string) string
-```
-
-在这里，*str*表示原始字符串，*suffstr*表示后缀字符串。
-
-**TrimPrefix：**此方法用于从给定字符串中修剪前导前缀字符串。如果给定的字符串不包含指定的前缀字符串，则此函数将返回原始字符串，而不进行任何更改。
-
-**语法：**
-
-```
-func TrimPrefix(str, suffstr string) string
+```go
+func TrimPrefix(str, prefix string) string
+// str: 原始字符串
+// prefix: 要删除的前缀
+// 返回值: 删除前缀后的字符串
 ```
 
-在这里，*str*表示原始字符串，*suffstr*表示前缀字符串。
+- **TrimSuffix：**删除固定后缀，未匹配时返回原字符串。
 
-```
-package main
-
-import (
-	"fmt"
-	"strings"
-)
-
-func main() {
-	// 1. Trim：修剪两侧指定字符集合中的字符
-	str1 := "!!@@Hello Go@@!!"
-	result1 := strings.Trim(str1, "!@")
-	fmt.Println("1. Trim:")
-	fmt.Println("原字符串:", str1)
-	fmt.Println("结果   :", result1)
-	fmt.Println()
-
-	// 2. TrimLeft：只修剪左侧指定字符集合中的字符
-	str2 := "###Welcome###"
-	result2 := strings.TrimLeft(str2, "#")
-	fmt.Println("2. TrimLeft:")
-	fmt.Println("原字符串:", str2)
-	fmt.Println("结果   :", result2)
-	fmt.Println()
-
-	// 3. TrimRight：只修剪右侧指定字符集合中的字符
-	str3 := "***Golang***"
-	result3 := strings.TrimRight(str3, "*")
-	fmt.Println("3. TrimRight:")
-	fmt.Println("原字符串:", str3)
-	fmt.Println("结果   :", result3)
-	fmt.Println()
-
-	// 4. TrimSpace：修剪两侧空白字符
-	str4 := "   Hello World   \n"
-	result4 := strings.TrimSpace(str4)
-	fmt.Println("4. TrimSpace:")
-	fmt.Printf("原字符串: %q\n", str4)
-	fmt.Printf("结果   : %q\n", result4)
-	fmt.Println()
-
-	// 5. TrimSuffix：去掉指定后缀
-	str5 := "main.go"
-	result5 := strings.TrimSuffix(str5, ".go")
-	fmt.Println("5. TrimSuffix:")
-	fmt.Println("原字符串:", str5)
-	fmt.Println("结果   :", result5)
-	fmt.Println()
-
-	// 6. TrimPrefix：去掉指定前缀
-	str6 := "prefix_filename"
-	result6 := strings.TrimPrefix(str6, "prefix_")
-	fmt.Println("6. TrimPrefix:")
-	fmt.Println("原字符串:", str6)
-	fmt.Println("结果   :", result6)
-}
-
-1. Trim:
-原字符串: !!@@Hello Go@@!!
-结果   : Hello Go
-
-2. TrimLeft:
-原字符串: ###Welcome###
-结果   : Welcome###
-
-3. TrimRight:
-原字符串: ***Golang***
-结果   : ***Golang
-
-4. TrimSpace:
-原字符串: "   Hello World   \n"
-结果   : "Hello World"
-
-5. TrimSuffix:
-原字符串: main.go
-结果   : main
-
-6. TrimPrefix:
-原字符串: prefix_filename
-结果   : filename
-
+```go
+func TrimSuffix(str, suffix string) string
+// str: 原始字符串
+// suffix: 要删除的后缀
+// 返回值: 删除后缀后的字符串
 ```
 
+- **Split：**按分隔符拆分字符串，不保留分隔符。
 
-
-###### 字符串分割
-
-**Split：**此函数将字符串拆分为由给定分隔符分隔的所有子字符串，并返回包含这些子字符串的切片。
-
-**语法：**
-
-```
+```go
 func Split(str, sep string) []string
+// str: 原始字符串
+// sep: 分隔符
+// 返回值: 拆分后的字符串切片
 ```
 
-在这里，str是字符串，sep是分隔符。 如果str不包含给定的sep且sep为非空，则它将返回长度为1的切片，其中仅包含str。 或者，如果sep为空，则它将在每个UTF-8序列之后拆分。 或者，如果str和sep均为空，则它将返回一个空切片。
+- **SplitAfter：**按分隔符拆分字符串，保留分隔符。
 
-**SplitAfter：**此函数在给定分隔符的每个实例之后将字符串拆分为所有子字符串，并返回包含这些子字符串的切片。
-
-**语法：**
-
-```
+```go
 func SplitAfter(str, sep string) []string
+// str: 原始字符串
+// sep: 分隔符
+// 返回值: 拆分后的字符串切片，分隔符保留在子串末尾
 ```
 
-在这里，str是字符串，sep是分隔符。 如果str不包含给定的sep且sep为非空，则它将返回长度为1的切片，其中仅包含str。 或者，如果sep为空，则它将在每个UTF-8序列之后拆分。 或者，如果str和sep均为空，则它将返回一个空切片。
+- **SplitAfterN：**按分隔符拆分字符串，并限制返回结果数量。
 
-**SplitAfterN：**此函数在给定分隔符的每个实例之后将字符串拆分为所有子字符串，并返回包含这些子字符串的切片。
-
-**语法：**
-
-```
+```go
 func SplitAfterN(str, sep string, m int) []string
+// str: 原始字符串
+// sep: 分隔符
+// m: 返回结果数量限制
+// 返回值: 拆分后的字符串切片
+// m > 0: 最多返回 m 个结果
+// m == 0: 返回 nil
+// m < 0: 返回全部结果
 ```
 
-在这里，*str*是字符串，*sep*是分隔符，m用于查找要返回的子字符串数。在这里，如果**m> 0**，那么它最多返回*m*个子字符串，并且最后一个字符串子字符串不会拆分。如果**m == 0**，则它将返回nil。如果**m <0**，则它将返回所有子字符串。
-
-```
+```go
 package main
 
 import (
-	"fmt"
-	"strings"
+    "bytes"
+    "fmt"
+    "strings"
 )
 
 func main() {
-	str := "Go,Java,Python,C++"
+    sourceString := "  prefix_value.go  "
+    partSlice := []string{"Go", "Lang"}
 
-	// 1. Split：按分隔符拆分，分隔符不会保留在结果中
-	result1 := strings.Split(str, ",")
-	fmt.Println("1. Split:")
-	fmt.Println("原字符串:", str)
-	fmt.Println("结果   :", result1)
-	fmt.Println()
+    joinResult := strings.Join(partSlice, "-")
 
-	// 2. SplitAfter：按分隔符拆分，分隔符会保留在每个子串末尾
-	result2 := strings.SplitAfter(str, ",")
-	fmt.Println("2. SplitAfter:")
-	fmt.Println("原字符串:", str)
-	fmt.Println("结果   :", result2)
-	fmt.Println()
+    plusResult := "Go" + "-" + "Lang"
+    formatResult := fmt.Sprintf("%s-%s", "Go", "Lang")
 
-	// 3. SplitAfterN：按分隔符拆分，限制返回的子串数量
-	result3 := strings.SplitAfterN(str, ",", 2)
-	fmt.Println("3. SplitAfterN (m = 2):")
-	fmt.Println("原字符串:", str)
-	fmt.Println("结果   :", result3)
-	fmt.Println()
+    var buffer bytes.Buffer
+    buffer.WriteString("Go")
+    buffer.WriteString("-")
+    buffer.WriteString("Lang")
+    bufferResult := buffer.String()
 
-	// 4. SplitAfterN：m < 0，返回所有子串
-	result4 := strings.SplitAfterN(str, ",", -1)
-	fmt.Println("4. SplitAfterN (m = -1):")
-	fmt.Println("原字符串:", str)
-	fmt.Println("结果   :", result4)
-	fmt.Println()
+    trimResult := strings.Trim(sourceString, " ")
+    trimLeftResult := strings.TrimLeft("###value", "#")
+    trimRightResult := strings.TrimRight("value***", "*")
+    trimSpaceResult := strings.TrimSpace(sourceString)
+    trimPrefixResult := strings.TrimPrefix(trimSpaceResult, "prefix_")
+    trimSuffixResult := strings.TrimSuffix(trimPrefixResult, ".go")
 
-	// 5. SplitAfterN：m == 0，返回 nil
-	result5 := strings.SplitAfterN(str, ",", 0)
-	fmt.Println("5. SplitAfterN (m = 0):")
-	fmt.Println("原字符串:", str)
-	fmt.Println("结果   :", result5)
-	fmt.Println()
+    splitResult := strings.Split("Go,Java,Python", ",")
+    splitAfterResult := strings.SplitAfter("Go,Java,Python", ",")
+    splitAfterNResult := strings.SplitAfterN("Go,Java,Python", ",", 2)
 
-	// 6. 特殊情况：字符串中不包含分隔符
-	str2 := "Golang"
-	result6 := strings.Split(str2, ",")
-	fmt.Println("6. Split（字符串中不包含分隔符）:")
-	fmt.Println("原字符串:", str2)
-	fmt.Println("结果   :", result6)
-	fmt.Println()
+    fmt.Println(joinResult)         // Go-Lang
+    fmt.Println(plusResult)         // Go-Lang
+    fmt.Println(formatResult)       // Go-Lang
+    fmt.Println(bufferResult)       // Go-Lang
 
-	// 7. 特殊情况：分隔符为空
-	str3 := "Go"
-	result7 := strings.Split(str3, "")
-	fmt.Println("7. Split（分隔符为空）:")
-	fmt.Println("原字符串:", str3)
-	fmt.Println("结果   :", result7)
+    fmt.Printf("%q\n", trimResult)       // "prefix_value.go"
+    fmt.Printf("%q\n", trimLeftResult)   // "value"
+    fmt.Printf("%q\n", trimRightResult)  // "value"
+    fmt.Printf("%q\n", trimSpaceResult)  // "prefix_value.go"
+    fmt.Printf("%q\n", trimPrefixResult) // "value.go"
+    fmt.Printf("%q\n", trimSuffixResult) // "value"
+
+    fmt.Println(splitResult)       // [Go Java Python]
+    fmt.Println(splitAfterResult)  // [Go, Java, Python]
+    fmt.Println(splitAfterNResult) // [Go, Java,Python]
+
+    // **注意**
+    // 1. Trim / TrimLeft / TrimRight 修剪的是字符集合，不是固定子串。
+    // 2. TrimPrefix / TrimSuffix 处理固定前后缀。
+    // 3. Split 不保留分隔符；SplitAfter 保留分隔符。
 }
-
-1. Split:
-原字符串: Go,Java,Python,C++
-结果   : [Go Java Python C++]
-
-2. SplitAfter:
-原字符串: Go,Java,Python,C++
-结果   : [Go, Java, Python, C++]
-
-3. SplitAfterN (m = 2):
-原字符串: Go,Java,Python,C++
-结果   : [Go, Java,Python,C++]
-
-4. SplitAfterN (m = -1):
-原字符串: Go,Java,Python,C++
-结果   : [Go, Java, Python, C++]
-
-5. SplitAfterN (m = 0):
-原字符串: Go,Java,Python,C++
-结果   : []
-
-6. Split（字符串中不包含分隔符）:
-原字符串: Golang
-结果   : [Golang]
-
-7. Split（分隔符为空）:
-原字符串: Go
-结果   : [G o]
-
 ```
-
-###### 字符串包含
-
-**Contains：**此函数用于检查给定字符串中是否存在给定字符。如果字符存在于给定的字符串中，则它将返回true，否则返回false。
-
-**语法：**
-
-```
-func Contains(str, chstr string) bool
-```
-
-在这里，*str*是原始字符串，而*chstr*是您要检查的字符串。
-
-**ContainsAny：**此函数用于检查给定字符串(str)中是否存在 charstr 中的任何Unicode字符。如果给定字符串(str)中有 charstr 中的任何Unicode字符，则此方法返回true，否则返回false。
-
-**语法：**
-
-```
-func ContainsAny(str, charstr string) bool
-```
-
-在这里，*str* 是原始字符串，*charstr* 是chars中的Unicode字符。
-
-```
-package main
-
-import (
-	"fmt"
-	"strings"
-)
-
-func main() {
-	str := "Hello Golang"
-
-	// 1. Contains：检查字符串中是否包含指定子串
-	result1 := strings.Contains(str, "Go")
-	fmt.Println("1. Contains:")
-	fmt.Println("原字符串:", str)
-	fmt.Println("是否包含 \"Go\":", result1)
-	fmt.Println()
-
-	// 2. Contains：检查不存在的子串
-	result2 := strings.Contains(str, "Java")
-	fmt.Println("2. Contains:")
-	fmt.Println("原字符串:", str)
-	fmt.Println("是否包含 \"Java\":", result2)
-	fmt.Println()
-
-	// 3. ContainsAny：检查字符串中是否包含给定字符集合中的任意字符
-	result3 := strings.ContainsAny(str, "xyzG")
-	fmt.Println("3. ContainsAny:")
-	fmt.Println("原字符串:", str)
-	fmt.Println("是否包含 \"xyzG\" 中任意字符:", result3)
-	fmt.Println()
-
-	// 4. ContainsAny：检查不存在的字符
-	result4 := strings.ContainsAny(str, "xyz")
-	fmt.Println("4. ContainsAny:")
-	fmt.Println("原字符串:", str)
-	fmt.Println("是否包含 \"xyz\" 中任意字符:", result4)
-	fmt.Println()
-
-	// 5. ContainsAny：支持 Unicode 字符
-	str2 := "你好，Go语言"
-	result5 := strings.ContainsAny(str2, "界语")
-	fmt.Println("5. ContainsAny（Unicode）:")
-	fmt.Println("原字符串:", str2)
-	fmt.Println("是否包含 \"界语\" 中任意字符:", result5)
-}
-
-1. Contains:
-原字符串: Hello Golang
-是否包含 "Go": true
-
-2. Contains:
-原字符串: Hello Golang
-是否包含 "Java": false
-
-3. ContainsAny:
-原字符串: Hello Golang
-是否包含 "xyzG" 中任意字符: true
-
-4. ContainsAny:
-原字符串: Hello Golang
-是否包含 "xyz" 中任意字符: false
-
-5. ContainsAny（Unicode）:
-原字符串: 你好，Go语言
-是否包含 "界语" 中任意字符: true
-
-```
-
-###### 字符串包含
-
-**Index：**此函数用于从原始字符串中查找给定字符串的第一个实例的索引值。如果给定的字符串在原始字符串中不存在，则此方法将返回-1。
-
-**语法：**
-
-```
-func Index(str, sbstr string) int
-```
-
-在这里，*str*是原始字符串，*sbstr*是我们要查找索引值的字符串。
-
-**IndexAny：**此方法从原始字符串中的chars返回任何Unicode码的第一个实例的索引值。如果原始字符中没有来自chars的Unicode代码点，则此方法将返回-1。
-
-**语法：**
-
-```
-func IndexAny(str, charstr string) int
-```
-
-在这里，*str*是原始字符串，*charstr*是chars的Unicode代码点，我们想要查找索引值。
-
-**IndexByte：**此函数返回原始字符串中给定字节的第一个实例的索引。如果给定的字节在原始字符串中不存在，则此方法将返回-1。
-
-**语法：**
-
-```
-func IndexByte(str string, b byte) int
-```
-
-在这里，*str*是原始字符串，*b*是一个字节，我们要查找其索引值。
 
 ###### 关于字符串的要点
 
-- **字符串是不可变的：**在Go语言中，一旦创建了字符串，则字符串是不可变的，无法更改字符串的值。换句话说，字符串是只读的。如果尝试更改，则编译器将引发错误。
+- **字符串是不可变的：**在Go语言中，一旦创建了字符串，则字符串是不可变的，无法更改字符串的值。
 
-  ```
-  //字符串是不可变的
-  package main 
-    
-  import "fmt"
-    
-  func main() { 
-    
-          //创建和初始化字符串
-          //使用简写声明
-      mystr := "Welcome to cainiaojc"
-    
-      fmt.Println("String:", mystr) 
-    
-      /* 果你试图改变字符串的值，编译器将抛出一个错误,例如, 
-       cannot assign to mystr[1] 
-         mystr[1]= 'G' 
-         fmt.Println("String:", mystr) 
-      */
-    
-  }
-  
-  String: Welcome to cainiaojc
-  ```
+- **如何遍历字符串：**可以使用 `for range` 循环按 `rune` 遍历字符串。
 
-- **如何遍历字符串：**您可以使用for range循环遍历字符串。此循环可以在Unicode代码点上迭代一个字符串。
+```go
+for index, chr := range str {
+    // index: 当前 rune 的起始字节索引
+    // chr: 当前 rune
+}
+```
 
-  **语法：**
+- **如何访问字符串的单个字节：**可以使用下标按字节访问字符串内容。
 
-  ```
-  for index, chr:= range str{
-       // 语句..
-  }
-  ```
+- **如何从切片创建字符串：**允许从 `[]byte` 或 `[]rune` 创建字符串。
 
-  在这里，索引是存储UTF-8编码代码点的第一个字节的变量，而*chr是*存储给定字符串的字符的变量，str是字符串。
+- **如何查找字符串的长度：**`len()` 返回字节数，`utf8.RuneCountInString()` 返回 `rune` 数。
 
-  ```
-  //遍历字符串
-  //使用for范围循环
-  package main
-  
-  import "fmt"
-  
-  func main() {
-  
-      //字符串作为for循环中的范围
-      for index, s := range "cainiaojc" {
-  
-          fmt.Printf("%c 索引值是 %d\n", s, index)
-      }
-  }
-  
-  n 索引值是 0
-  h 索引值是 1
-  o 索引值是 2
-  o 索引值是 3
-  o 索引值是 4
-  ```
+```go
+package main
 
-- **如何访问字符串的单个字节？**：字符串是一个字节，因此，我们可以访问给定字符串的每个字节。
+import (
+    "fmt"
+    "unicode/utf8"
+)
 
-  示例
+func main() {
+    stringValue := "Go语言"
 
-  ```
-  //访问字符串的字节
-  package main
-  
-  import "fmt"
-  
-  func main() {
-  
-      //创建和初始化一个字符串
-      str := "Welcome to cainiaojc"
-  
-      //访问给定字符串的字节
-      for c := 0; c < len(str); c++ {
-  
-          fmt.Printf("\n字符 = %c 字节 = %v", str[c], str[c])
-      }
-  }
-  
-  
-  字符 = W 字节 = 87
-  字符 = e 字节 = 101
-  字符 = l 字节 = 108
-  字符 = c 字节 = 99
-  字符 = o 字节 = 111
-  字符 = m 字节 = 109
-  字符 = e 字节 = 101
-  字符 =   字节 = 32
-  字符 = t 字节 = 116
-  字符 = o 字节 = 111
-  字符 =   字节 = 32
-  字符 = n 字节 = 110
-  字符 = h 字节 = 104
-  字符 = o 字节 = 111
-  字符 = o 字节 = 111
-  字符 = o 字节 = 111
-  ```
+    fmt.Println(len(stringValue))                     // 8，字节数
+    fmt.Println(utf8.RuneCountInString(stringValue)) // 4，rune 数
 
-- **如何从切片创建字符串？：**在Go语言中，允许您从字节切片创建字符串。
+    for index, runeValue := range stringValue {
+        fmt.Printf("%d %c\n", index, runeValue)
+    }
 
-  示例
+    for index := 0; index < len(stringValue); index++ {
+        fmt.Printf("%d %v\n", index, stringValue[index])
+    }
 
-  ```
-  //从切片创建一个字符串 
-  package main 
-    
-  import "fmt"
-    
-  func main() { 
-    
-      //创建和初始化一个字节片
-      myslice1 := []byte{0x47, 0x65, 0x65, 0x6b, 0x73} 
-    
-      //从切片创建字符串
-      mystring1 := string(myslice1) 
-    
-      //显示字符串
-      fmt.Println("String 1: ", mystring1) 
-    
-      //创建和初始化一个符文切片 
-      myslice2 := []rune{0x0047, 0x0065, 0x0065, 0x006b, 0x0073} 
-    
-      //从切片创建字符串
-      mystring2 := string(myslice2) 
-    
-      //显示字符串
-      fmt.Println("String 2: ", mystring2) 
-  }
-  
-  String 1:  Geeks
-  String 2:  Geeks
-  ```
+    byteSlice := []byte{0x47, 0x6f}
+    runeSlice := []rune{0x8bed, 0x8a00}
 
-- **如何查找字符串的长度？：**在Golang字符串中，可以使用两个函数（一个是**len()**，另一个是**RuneCountInString()）**来找到字符串的长度。UTF-8包提供了RuneCountInString()函数，该函数返回字符串中存在的符文总数。*len()*函数返回字符串的字节数。
+    fmt.Println(string(byteSlice)) // Go
+    fmt.Println(string(runeSlice)) // 语言
 
-  示例
+    // **注意**
+    // 1. stringValue[index] 取得的是字节，不一定是完整字符。
+    // 2. for range 按 rune 遍历，适合处理 Unicode 文本。
+    // 3. 字符串不可修改，修改通常需要转为 []byte 或 []rune。
+}
+```
 
-  ```
-  //查找字符串的长度
-  package main
-  
-  import (
-      "fmt"
-      "unicode/utf8"
-  )
-  
-  func main() {
-  
-      //创建和初始化字符串
-      //使用简写声明
-      mystr := "Welcome to cainiaojc ??????"
-  
-      //查找字符串的长度
-      //使用len()函数
-      length1 := len(mystr)
-  
-      //使用RuneCountInString()函数
-      length2 := utf8.RuneCountInString(mystr)
-  
-      //显示字符串的长度
-      fmt.Println("string:", mystr)
-      fmt.Println("Length 1:", length1)
-      fmt.Println("Length 2:", length2)
-  
-  }
-  
-  string: Welcome to cainiaojc ??????
-  Length 1: 31
-  Length 2: 31
-  ```
+#### 
 
 #### 聚合类型
 
