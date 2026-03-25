@@ -3504,7 +3504,7 @@ func main() {
 
 函数如果使用参数，这些参数可以看作函数的形参。形参就像定义在函数体内部的局部变量。调用函数时，参数传递方式通常分为值传递和通过指针达到“引用传递”的效果。
 
-**值传递**：调用函数时会把实参复制一份传入函数，因此在函数内部修改形参，不会影响原变量。默认情况下，Go 使用值传递。
+**值传递**：调用函数时会把实参复制一份传入函数，因此在函数内部修改形参，不会影响原变量。**默认情况下，Go 使用值传递。这里一定一定需要注意，所有类型除非你主动使用&来传递地址，否则均是按值传递，即使是引用类型的切片，传递时也是传递副本而非本身。** 
 
 ```go
 func swapValue(leftValue, rightValue int) int {
@@ -3973,2624 +3973,2436 @@ func main() {
 
 ### 错误处理
 
-Go没有像Java中的try / catch这样的异常机制，我们不能在Go中抛出异常。Go使用另一种机制，称为*延迟恐慌和恢复机制。Go通过返回一个错误对象来处理函数和方法的简单错误。错误对象可能是唯一或最后一个返回值。如果函数中没有错误，则错误对象为nil。
+在 Go 中，严格来说并没有传统意义上的“异常系统”，也没有 `try-catch-finally` 这样的语法。Go 更强调通过返回值来显式处理错误，因此错误通常是可见、可传递、可检查的，而不是隐藏在控制流之外。
 
-无论是否收到错误，我们都应始终在调用语句中检查错误。我们永远不要忽略错误，它可能导致程序崩溃。
+从严重程度上看，Go 中的异常情况通常可以分为三类：`error`、`panic`、`fatal`。其中，`error` 属于正常流程中的错误，通常不会立刻导致程序崩溃；`panic` 表示非常严重的问题，程序应当在完成必要善后后退出，或在边界处被恢复；`fatal` 则表示极其致命的问题，程序应立即终止，通常不会执行任何清理逻辑。
 
-Go语言检测和报告错误情况的方法是
+Go 创始人并不希望开发者在普通逻辑里到处嵌套 `try-catch`，因此大多数情况下，错误会作为函数返回值返回。下面这个例子就很典型：
 
-- 可能导致错误的函数将返回两个变量：一个值和一个错误代码，如果成功，则为nil；如果错误条件，则为== nil。
-- 在函数调用之后检查错误。如果发生错误（ if error != nil），则停止执行实际功能（或必要时整个程序）。
+```go
+package main
 
-**Go 的错误处理主要围绕以下机制展开：**
+import (
+    "fmt"
+    "os"
+)
 
-1. **`error` 接口**：标准的错误表示。
-2. **显式返回值**：通过函数的返回值返回错误。
-3. **自定义错误**：可以通过标准库或自定义的方式创建错误。
-4. **`panic` 和 `recover`**：处理不可恢复的严重错误。
-
-#### **Error 接口**
-
-Go 标准库定义了一个 error 接口，表示一个错误的抽象。
-
-error 类型是一个接口类型，这是它的定义：
-
+func main() {
+    if file, err := os.Open("README.txt"); err != nil {
+        fmt.Println(err)
+        return
+    } else {
+        fmt.Println(file.Name())
+    }
+}
 ```
+
+这段代码的意图很直接：尝试打开文件，如果失败则输出错误并返回；如果错误为 `nil`，则表示打开成功，继续处理后续逻辑。
+
+当然，这种写法的代价也很明显：一旦函数调用较多，代码里就会频繁出现 `if err != nil` 这样的判断。正因如此，外界对 Go 的错误处理一直有很多讨论。它的优点和缺点都很明显。
+
+优点在于心智负担小：有错误就处理，不处理就返回；同时可读性通常较强，因为处理方式很统一，大多数情况下容易看懂控制流；此外也相对容易调试，因为错误沿调用链逐层返回，通常能较清楚地追溯来源。缺点则在于默认没有堆栈信息，`if err != nil` 容易导致重复代码较多，自定义错误通常通过 `var` 声明而不是常量，也容易出现变量遮蔽问题。
+
+#### error
+
+`error` 属于正常流程错误。它的出现是可以被接受的，大多数情况下应该显式处理；当然也可以忽略，但严重程度通常不足以立刻终止整个程序。
+
+`error` 本身是一个预定义接口，定义如下：
+
+```go
 type error interface {
     Error() string
 }
 ```
 
-- **实现 `error` 接口**：任何实现了 `Error()` 方法的类型都可以作为错误。
-- `Error()` 方法返回一个描述错误的字符串。
+也就是说，只要某个类型实现了 `Error() string` 方法，它就可以作为错误类型使用。
 
-我们可以在编码中通过实现 error 接口类型来生成错误信息。
+error 在历史上也有过重要改进。自 Go 1.13 起，标准库引入了链式错误机制，并提供了更完善的错误检查函数，这也是当前 Go 错误处理的重要基础。
 
-```
-func Sqrt(f float64) (float64, error) {
-    if f < 0 {
-        return 0, errors.New("math: square root of negative number")
-    }
-    // 实现
-}
-```
+##### 创建
 
-在下面的例子中，我们在调用 Sqrt 的时候传递的一个负数，然后就得到了 non-nil 的 error 对象，将此对象与 nil 比较，结果为 true，所以 fmt.Println(fmt 包在处理 error 时会调用 Error 方法)被调用，以输出错误，请看下面调用的示例代码：
+创建一个 `error` 最常见的方式有两种。第一种是使用 `errors.New` 创建一个简单错误；第二种是使用 `fmt.Errorf` 创建一个支持格式化的错误。
 
-```
-result, err:= Sqrt(-1)
-
-if err != nil {
-   fmt.Println(err)
-}
-```
-
-Go 中，错误通常作为函数的返回值返回，开发者需要显式检查并处理。
-
-**自定义错误**
-
-通过定义自定义类型，可以扩展 error 接口。`fmt` 包提供了对错误的格式化输出支持：
-
-- `%v`：默认格式。
-- `%+v`：如果支持，显示详细的错误信息。
-- `%s`：作为字符串输出。
-
-```
+```go
 package main
 
 import (
+    "errors"
     "fmt"
 )
 
-// 定义一个 DivideError 结构
+func sumPositive(leftValue, rightValue int) (int, error) {
+    if leftValue <= 0 || rightValue <= 0 {
+        return -1, errors.New("必须是正整数")
+    }
+    return leftValue + rightValue, nil
+}
+
+func main() {
+    simpleErr := errors.New("这是一个错误")
+    formatErr := fmt.Errorf("这是 %d 个格式化参数的错误", 1)
+
+    fmt.Println(simpleErr)
+    fmt.Println(formatErr)
+
+    resultValue, err := sumPositive(1, 2)
+    fmt.Println(resultValue, err) // 3 <nil>
+
+    resultValue, err = sumPositive(-1, 2)
+    fmt.Println(resultValue, err) // -1 必须是正整数
+}
+```
+
+大多数情况下，为了更好的可维护性，一般不会在很多位置临时散落创建错误，而是会把常用错误定义成包级变量。标准库中也有大量这种写法：
+
+```go
+var (
+    ErrInvalid    = errors.New("invalid argument")
+    ErrPermission = errors.New("permission denied")
+    ErrExist      = errors.New("file already exists")
+    ErrNotExist   = errors.New("file does not exist")
+)
+```
+
+##### 自定义错误
+
+通过实现 `Error()` 方法，可以很容易地自定义错误类型。标准库 `errors.New` 的底层其实就是一个非常简单的错误类型实现，只不过它的表达能力有限。实际项目中，很多库和标准库本身都会定义自己的错误类型，以便携带更多上下文信息。
+
+```go
+package main
+
+import "fmt"
+
 type DivideError struct {
     dividee int
     divider int
 }
 
-// 实现 `error` 接口
 func (de *DivideError) Error() string {
-    strFormat := `
-    Cannot proceed, the divider is zero.
-    dividee: %d
-    divider: 0
-`
-    return fmt.Sprintf(strFormat, de.dividee)
+    return fmt.Sprintf("cannot divide %d by %d", de.dividee, de.divider)
 }
 
-// 定义 `int` 类型除法运算的函数
-func Divide(varDividee int, varDivider int) (result int, errorMsg string) {
-    if varDivider == 0 {
-            dData := DivideError{
-                    dividee: varDividee,
-                    divider: varDivider,
-            }
-            errorMsg = dData.Error()
-            return
-    } else {
-            return varDividee / varDivider, ""
-    }
-
-}
-
-func main() {
-
-    // 正常情况
-    if result, errorMsg := Divide(100, 10); errorMsg == "" {
-            fmt.Println("100/10 = ", result)
-    }
-    // 当除数为零的时候会返回错误信息
-    if _, errorMsg := Divide(100, 0); errorMsg != "" {
-            fmt.Println("errorMsg is: ", errorMsg)
-    }
-
-}
-```
-
-**使用 errors.Is 和 errors.As**
-
-从 Go 1.13 开始，`errors` 包引入了 `errors.Is` 和 `errors.As` 用于处理错误链：
-
-* **`errors.Is`**:检查某个错误是否是特定错误或由该错误包装而成。
-
-```
-package main
-
-import (
-        "errors"
-        "fmt"
-)
-
-var ErrNotFound = errors.New("not found")
-
-func findItem(id int) error {
-        return fmt.Errorf("database error: %w", ErrNotFound)
-}
-
-func main() {
-        err := findItem(1)
-        if errors.Is(err, ErrNotFound) {
-                fmt.Println("Item not found")
-        } else {
-                fmt.Println("Other error:", err)
+func divide(dividee int, divider int) (int, error) {
+    if divider == 0 {
+        return 0, &DivideError{
+            dividee: dividee,
+            divider: divider,
         }
+    }
+    return dividee / divider, nil
+}
+
+func main() {
+    resultValue, err := divide(100, 10)
+    fmt.Println(resultValue, err) // 10 <nil>
+
+    _, err = divide(100, 0)
+    if err != nil {
+        fmt.Println(err)
+    }
 }
 ```
 
-* **errors.As**:将错误转换为特定类型以便进一步处理。
+##### 传递与包装
 
+在很多情况下，当前函数拿到了一个错误，但它本身不负责最终处理，于是会把这个错误继续返回给上层调用者。这个过程就是错误的传递。
+
+错误在传递过程中可能会被一层层包装。为了支持这种场景，Go 1.13 引入了标准的链式错误机制。一个包装错误通常除了实现 `Error()` 外，还会通过 `Unwrap()` 暴露它内部引用的原始错误。虽然这个类型本身不需要手写，实际开发中更常见的做法是通过 `fmt.Errorf` 和 `%w` 来包装错误：
+
+```go
+err := errors.New("这是一个原始错误")
+wrapErr := fmt.Errorf("包装后的错误: %w", err)
 ```
+
+这里必须使用 `%w`，并且参数只能是一个有效的 `error`。
+
+##### 处理
+
+错误处理中的最后一步是检查和判断错误。标准库 `errors` 包提供了几个很重要的函数。
+
+`errors.Unwrap()` 用于解包错误链，返回当前错误包装的下一层错误。如果一个错误没有实现 `Unwrap() error`，那么 `errors.Unwrap(err)` 会返回 `nil`。
+
+```go
 package main
 
 import (
-        "errors"
-        "fmt"
+    "errors"
+    "fmt"
 )
 
-type MyError struct {
-        Code int
-        Msg  string
-}
-
-func (e *MyError) Error() string {
-        return fmt.Sprintf("Code: %d, Msg: %s", e.Code, e.Msg)
-}
-
-func getError() error {
-        return &MyError{Code: 404, Msg: "Not Found"}
-}
-
 func main() {
-        err := getError()
-        var myErr *MyError
-        if errors.As(err, &myErr) {
-                fmt.Printf("Custom error - Code: %d, Msg: %s\n", myErr.Code, myErr.Msg)
-        }
+    originalErr := errors.New("original")
+    wrappedErr := fmt.Errorf("wrapped: %w", originalErr)
+
+    fmt.Println(errors.Unwrap(wrappedErr)) // original
 }
 ```
 
-#### Panic 与 Recover
+`errors.Is()` 用于判断错误链中是否包含某个指定错误。因此在判断错误时，不应该优先使用 `==`，而应该优先考虑 `errors.Is()`。
 
-panic 与 recover 是 Go 的两个内置函数，这两个内置函数用于处理 Go 运行时的错误，panic 用于主动抛出错误，recover 用来捕获 panic 抛出的错误。
-
-- 引发`panic`有两种情况，一是程序主动调用，二是程序产生运行时错误，由运行时检测并退出。发生`panic`后，程序会从调用`panic`的函数位置或发生`panic`的地方立即返回，逐层向上执行函数的`defer`语句，然后逐层打印函数调用堆栈，直到被`recover`捕获或运行到最外层函数。`panic`不但可以在函数正常流程中抛出，在`defer`逻辑里也可以再次调用`panic`或抛出`panic`。`defer`里面的`panic`能够被后续执行的`defer`捕获。
-- `recover`用来捕获`panic`，阻止`panic`继续向上传递。`recover()`和`defer`一起使用，但是`defer`只有在后面的函数体内直接被掉用才能捕获`panic`来终止异常，否则返回`nil`，异常继续向外传递。
-
-##### panic
-
-Panic是一种我们用来处理错误情况的机制。紧急情况可用于中止函数执行。当一个函数调用panic时，它的执行停止，并且控制流程到相关的延迟函数。
-
-这个函数的调用者也会被终止，调用者的延迟函数也会被执行(如果有的话)。这个过程一直持续到程序结束。现在报告错误情况。
-
-这种终止序列称为panic，可以由内置函数recover控制。
-
-```
+```go
 package main
 
-import "os"
-
-func main() {
-	panic("Error Situation")
-	_, err := os.Open("/tmp/file")
-	if err != nil {
-		panic(err)
-	}
-}
-```
-
-输出：
-
-```
-panic: Error Situation
-
-goroutine 1 [running]:
-main.main()
-/Users/pro/GoglandProjects/Panic/panic example1.go:6 +0x39
-```
-
-##### recover
-
-恢复用于从紧急情况或错误情况中重新获得对程序的控制。它停止终止序列并恢复正常执行。从延迟函数中调用。它检索通过panic调用传递的错误值。通常，它返回**nil**，没有其他效果。
-
-```
-package main
 import (
-   "fmt"
+    "errors"
+    "fmt"
 )
+
+var originalErr = errors.New("this is an error")
+
+func wrapLevel1() error {
+    return fmt.Errorf("wrap level 1: %w", wrapLevel2())
+}
+
+func wrapLevel2() error {
+    return originalErr
+}
+
 func main() {
-   fmt.Println(SaveDivide(10, 0))
-   fmt.Println(SaveDivide(10, 10))
-}
-func SaveDivide(num1, num2 int) int {
-   defer func() {
-      fmt.Println(recover())
-   }()
-   quotient := num1 / num2
-   return quotient
+    err := wrapLevel1()
+
+    if errors.Is(err, originalErr) {
+        fmt.Println("original")
+    }
 }
 ```
 
-输出：
+`errors.As()` 用于在错误链中查找第一个类型匹配的错误，并把它赋值给目标变量。它适合用于把 `error` 转换为某个具体错误类型，以便读取更详细的信息。
 
+```go
+package main
+
+import (
+    "errors"
+    "fmt"
+    "time"
+)
+
+type TimeError struct {
+    Msg  string
+    Time time.Time
+}
+
+func (e *TimeError) Error() string {
+    return e.Msg
+}
+
+func newTimeError(msg string) error {
+    return &TimeError{
+        Msg:  msg,
+        Time: time.Now(),
+    }
+}
+
+func wrapLevel1() error {
+    return fmt.Errorf("wrap level 1: %w", wrapLevel2())
+}
+
+func wrapLevel2() error {
+    return newTimeError("original error")
+}
+
+func main() {
+    var timeErr *TimeError
+    err := wrapLevel1()
+
+    if errors.As(err, &timeErr) {
+        fmt.Println("original", timeErr.Time)
+    }
+}
 ```
-runtime error: integer divide by zero
-0
-<nil>
+
+需要注意的是：`target` 必须是“指向目标类型变量的指针”。如果具体错误本身是 `*TimeError`，那么传给 `errors.As` 的就应是 `&timeErr`。
+
+##### 堆栈信息
+
+标准库 `errors` 本身并不会自动提供堆栈信息。在一些需要定位错误来源的场景里，很多项目会使用第三方包进行增强，常见选择之一是 `github.com/pkg/errors`。
+
+```go
+package main
+
+import (
+    "fmt"
+
+    "github.com/pkg/errors"
+)
+
+func do() error {
+    return errors.New("error")
+}
+
+func main() {
+    if err := do(); err != nil {
+        fmt.Printf("%+v", err)
+    }
+}
+```
+
+通过格式化输出，可以看到更详细的调用位置信息。对于大型项目来说，这类增强错误信息在排查问题时会更方便。
+
+#### panic 与 recover
+
+`panic` 中文通常译为“恐慌”，表示十分严重的程序问题。它属于运行时异常的表达形式，通常意味着程序当前状态已经不适合继续正常执行。为了避免造成更严重的后果，程序会停止当前正常流程，并开始执行退出前的善后逻辑。
+
+例如，向一个 `nil map` 写入值就会触发 `panic`：
+
+```go
+package main
+
+func main() {
+    var dictionary map[string]int
+    dictionary["a"] = 'a'
+}
+```
+
+```go
+panic: assignment to entry in nil map
+```
+
+需要特别注意的是：当程序中存在多个 goroutine 时，只要任意一个 goroutine 发生 `panic` 且没有被恢复，整个程序最终都会崩溃。
+
+##### 创建
+
+显式创建 `panic` 很简单，使用内置函数 `panic` 即可：
+
+```go
+func panic(v any)
+```
+
+`panic` 接收一个 `any` 类型参数，这个值会在崩溃输出时一并打印出来。
+
+```go
+package main
+
+func main() {
+    initDataBase("", 0)
+}
+
+func initDataBase(host string, port int) {
+    if len(host) == 0 || port == 0 {
+        panic("非法的数据库连接参数")
+    }
+}
+```
+
+当初始化数据库连接失败时，程序就不应继续启动，因为失去关键依赖后继续运行没有意义。这类情况通常可以视为 `panic` 场景。
+
+##### 善后
+
+程序因为 `panic` 退出之前，会执行已经注册的 `defer` 语句。并且这种善后工作不仅会发生在当前函数中，还会沿调用链逐层向上执行。如果 `panic` 发生在下层函数中，上层函数的 `defer` 也会继续执行：
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+    defer fmt.Println("A")
+    defer fmt.Println("B")
+    fmt.Println("C")
+    dangerOperation()
+}
+
+func dangerOperation() {
+    defer fmt.Println(1)
+    defer fmt.Println(2)
+    panic("panic")
+}
+```
+
+```go
+C
+2
 1
+B
+A
+panic: panic
 ```
 
-#### Fatal
+如果 `defer` 中又发生了新的 `panic`，那么会形成新的 `panic` 叠加；后续正常逻辑不会继续执行。总的来说，当发生 `panic` 时，会立即退出所在函数，并执行当前函数的 `defer`；随后逐层上抛，上层函数也会执行自己的善后逻辑，直到程序停止运行或被 `recover` 捕获。
 
-`fatal`是一种极其严重的问题，当发生`fatal`时，程序需要立刻停止运行，不会执行任何善后工作，通常情况下是调用`os`包下的`Exit`函数退出程序，如下所示
+##### 恢复
 
-```
+当发生 `panic` 时，可以使用内置函数 `recover()` 进行恢复，从而阻止程序继续崩溃。`recover()` 必须在 `defer` 中直接调用，才能生效。
+
+```go
+package main
+
+import "fmt"
+
 func main() {
-  dangerOp("")
+    dangerOperation()
+    fmt.Println("程序正常退出")
 }
 
-func dangerOp(str string) {
-  if len(str) == 0 {
-    fmt.Println("fatal")
-    os.Exit(1)
-  }
-  fmt.Println("正常逻辑")
+func dangerOperation() {
+    defer func() {
+        if err := recover(); err != nil {
+            fmt.Println(err)
+            fmt.Println("panic恢复")
+        }
+    }()
+
+    panic("发生panic")
 }
 ```
 
-输出
-
+```go
+发生panic
+panic恢复
+程序正常退出
 ```
+
+调用者完全不知道 `dangerOperation()` 内部发生过 `panic`，程序在恢复后仍然可以继续向下执行。
+
+不过，`recover()` 有几个很容易踩坑的地方。它必须在 `defer` 中直接使用；即使多次使用，也只有真正命中的那个 `recover()` 能恢复本次 `panic`；在 `defer` 中再嵌套闭包去调用 `recover()`，通常无法恢复外层函数的 `panic`；`panic(nil)` 虽然也可以被恢复，但恢复时拿不到有效错误值，因此不推荐这样写。
+
+例如，下面这种“在 defer 中再套一层闭包”的写法就无法恢复外层 `panic`：
+
+```go
+package main
+
+func main() {
+    dangerOperation()
+}
+
+func dangerOperation() {
+    defer func() {
+        func() {
+            recover()
+        }()
+    }()
+
+    panic("发生panic")
+}
+```
+
+而 `panic(nil)` 也应该避免：
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+    dangerOperation()
+    fmt.Println("程序正常退出")
+}
+
+func dangerOperation() {
+    defer func() {
+        if err := recover(); err != nil {
+            fmt.Println(err)
+            fmt.Println("panic恢复")
+        }
+    }()
+
+    panic(nil)
+}
+```
+
+```go
+程序正常退出
+```
+
+可以看出，`panic` 确实被恢复了，但恢复时没有任何错误信息。
+
+还需要注意 goroutine 场景：如果子 goroutine 发生 `panic`，它不会自动触发父 goroutine 的 `defer` 善后逻辑；如果直到子 goroutine 退出都没有恢复该 `panic`，程序会直接停止运行。
+
+#### fatal
+
+`fatal` 是一种极其严重的问题。当发生 `fatal` 时，程序需要立刻停止运行，并且通常不会执行任何善后工作。最典型的实现方式就是调用 `os.Exit()` 直接退出程序。
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
+func main() {
+    dangerOperation("")
+}
+
+func dangerOperation(stringValue string) {
+    if len(stringValue) == 0 {
+        fmt.Println("fatal")
+        os.Exit(1)
+    }
+    fmt.Println("正常逻辑")
+}
+```
+
+```go
 fatal
 ```
 
-`fatal`级别的问题一般很少会显式的去触发，大多数情况都是被动触发。
+与 `panic` 不同，`fatal` 通常不会给程序留下恢复机会，也不会执行后续 `defer`。因此它更适合用于那些已经没有继续运行意义的致命状态。大多数情况下，`fatal` 并不是业务逻辑里主动设计的常规控制流，而是极端失败场景下的最后手段。
 
+### 文件 I/O
 
+Go 语言中文件处理常用的标准库主要有三个：`os` 负责和操作系统文件系统交互，`io` 提供读写 IO 的抽象接口，`fs` 提供文件系统抽象层。这一部分不按教程式展开，而按“文件”和“文件夹”两部分整理常见操作。
 
-### 文件与IO
+#### 文件
 
-Go 语言提供文件处理的标准库大致以下几个：
+1. 打开文件：`os.Open` 以只读方式打开文件；它本质上是对 `OpenFile` 的简单封装。
 
-- `os`库，负责 OS 文件系统交互的具体实现
-- `io`库，读写 IO 的抽象层
-- `fs`库，文件系统的抽象层
+```go
+file, err := os.Open(filePath)
+// filePath: 文件路径
+// file: 打开的文件对象
+// err: 打开失败时返回错误
 
-本文会讲解如何通过 Go 语言来进行基本的文件处理。
-
-#### [打开](https://golang.halfiisland.com/essential/senior/100.io.html#打开)
-
-常见的两种打开文件的方式是使用`os`包提供的两个函数，`Open`函数返回值一个文件指针和一个错误，
-
-
-
-```
 func Open(name string) (*File, error)
 ```
 
-后者`OpenFile`能够提供更加细粒度的控制，函数`Open`就是对`OpenFile`函数的一个简单封装。
+2. 按指定模式打开或创建文件：`os.OpenFile` 能控制打开模式和权限。
 
+```go
+file, err := os.OpenFile(filePath, flag, perm)
+// filePath: 文件路径
+// flag: 打开模式
+// perm: 文件权限
+// file: 打开的文件对象
+// err: 操作失败时返回错误
 
-
-```
 func OpenFile(name string, flag int, perm FileMode) (*File, error)
 ```
 
-先来介绍第一种使用方法，直接提供对应的文件名即可，代码如下
+常见打开模式：必须在 `O_RDONLY`、`O_WRONLY`、`O_RDWR` 中指定一种，其余标志用于控制行为。
 
-
-
+```go
+os.O_RDONLY  // 只读
+os.O_WRONLY  // 只写
+os.O_RDWR    // 读写
+os.O_APPEND  // 追加写入
+os.O_CREATE  // 文件不存在则创建
+os.O_EXCL    // 配合 O_CREATE，要求文件必须不存在
+os.O_SYNC    // 同步 IO
+os.O_TRUNC   // 打开时清空可写文件
 ```
-func main() {
-   file, err := os.Open("README.txt")
-   fmt.Println(file, err)
+
+常见权限位：最常见的是 Unix 风格权限位，如 `0644`、`0666`、`0755`。
+
+```go
+0644 // 所有者可读写，其他人只读
+0666 // 所有人可读写
+0755 // 所有者可读写执行，其他人可读执行
+os.ModePerm // 0o777，权限位掩码
+```
+
+3. 判断文件是否存在或访问异常：打开失败后可结合 `os.IsNotExist` 判断。
+
+```go
+if os.IsNotExist(err) {
+    // 文件不存在
+} else if err != nil {
+    // 文件访问异常
 }
 ```
 
-文件的查找路径默认为项目`go.mod`文件所在的路径，由于项目下并没有文件`README.txt`，所以自然会返回一个错误。
+4. 获取文件信息：若只想获取文件信息而不读取内容，可使用 `os.Stat`。
 
+```go
+info, err := os.Stat(filePath)
+// filePath: 文件路径
+// info: 文件信息对象
+// err: 获取失败时返回错误
 
-
-```
-<nil> open README.txt: The system cannot find the file specified.
-```
-
-因为 IO 错误的类型有很多，所以需要手动的去判断文件是否存在，同样的`os`包也为此提供了方便函数，修改后的代码如下
-
-
-
-```
-func main() {
-  file, err := os.Open("README.txt")
-  if os.IsNotExist(err) {
-    fmt.Println("文件不存在")
-  } else if err != nil {
-    fmt.Println("文件访问异常")
-  } else {
-    fmt.Println("文件读取成功", file)
-  }
-}
+func Stat(name string) (FileInfo, error)
 ```
 
-再次运行输出如下
+5. 读取文件内容：可以使用 `(*os.File).Read`、`os.ReadFile` 或 `io.ReadAll`。
 
+```go
+n, err := file.Read(buffer)
+// file: 已打开文件
+// buffer: 目标字节切片
+// n: 实际读取字节数
+// err: 读取失败或读到末尾时返回错误
 
-
-```
-文件不存在
-```
-
-事实上第一种函数读取的文件仅仅只是只读的，无法被修改
-
-
-
-```
-func Open(name string) (*File, error) {
-  return OpenFile(name, O_RDONLY, 0)
-}
-```
-
-通过`OpenFile`函数可以控制更多细节，例如修改文件描述符和文件权限，关于文件描述符，`os`包下提供了以下常量以供使用。
-
-
-
-```
-const (
-   // 只读，只写，读写 三种必须指定一个
-   O_RDONLY int = syscall.O_RDONLY // 以只读的模式打开文件
-   O_WRONLY int = syscall.O_WRONLY // 以只写的模式打开文件
-   O_RDWR   int = syscall.O_RDWR   // 以读写的模式打开文件
-   // 剩余的值用于控制行为
-   O_APPEND int = syscall.O_APPEND // 当写入文件时，将数据添加到文件末尾
-   O_CREATE int = syscall.O_CREAT  // 如果文件不存在则创建文件
-   O_EXCL   int = syscall.O_EXCL   // 与O_CREATE一起使用, 文件必须不存在
-   O_SYNC   int = syscall.O_SYNC   // 以同步IO的方式打开文件
-   O_TRUNC  int = syscall.O_TRUNC  // 当打开的时候截断可写的文件
-)
-```
-
-关于文件权限的则提供了以下常量。
-
-
-
-```
-const (
-   ModeDir        = fs.ModeDir        // d: 目录
-   ModeAppend     = fs.ModeAppend     // a: 只能添加
-   ModeExclusive  = fs.ModeExclusive  // l: 专用
-   ModeTemporary  = fs.ModeTemporary  // T: 临时文件
-   ModeSymlink    = fs.ModeSymlink    // L: 符号链接
-   ModeDevice     = fs.ModeDevice     // D: 设备文件
-   ModeNamedPipe  = fs.ModeNamedPipe  // p: 具名管道 (FIFO)
-   ModeSocket     = fs.ModeSocket     // S: Unix 域套接字
-   ModeSetuid     = fs.ModeSetuid     // u: setuid
-   ModeSetgid     = fs.ModeSetgid     // g: setgid
-   ModeCharDevice = fs.ModeCharDevice // c: Unix 字符设备, 前提是设置了 ModeDevice
-   ModeSticky     = fs.ModeSticky     // t: 黏滞位
-   ModeIrregular  = fs.ModeIrregular  // ?: 非常规文件
-
-   // 类型位的掩码. 对于常规文件而言，什么都不会设置.
-   ModeType = fs.ModeType
-
-   ModePerm = fs.ModePerm // Unix 权限位, 0o777
-)
-```
-
-下面是一个以读写模式打开一个文件的代码例子，权限为`0666`，表示为所有人都可以对该文件进行读写，且不存在时会自动创建。
-
-
-
-```
-func main() {
-  file, err := os.OpenFile("README.txt", os.O_RDWR|os.O_CREATE, 0666)
-  if os.IsNotExist(err) {
-    fmt.Println("文件不存在")
-  } else if err != nil {
-    fmt.Println("文件访问异常")
-  } else {
-    fmt.Println("文件打开成功", file.Name())
-    file.Close()
-  }
-}
-```
-
-输出如下
-
-
-
-```
-文件打开成功 README.txt
-```
-
-倘若只是想获取该文件的一些信息，并不想读取该文件，可以使用`os.Stat()`函数进行操作，代码示例如下
-
-
-
-```
-func main() {
-  fileInfo, err := os.Stat("README.txt")
-  if err != nil {
-    fmt.Println(err)
-  } else {
-    fmt.Println(fmt.Sprintf("%+v", fileInfo))
-  }
-}
-```
-
-输出如下
-
-
-
-```
-&{name:README.txt FileAttributes:32 CreationTime:{LowDateTime:3603459389 HighDateTime:31016791} LastAccessTime:{LowDateTime:3603459389 HighDateTime:31016791} LastWriteTime:{LowDateTime:3603459389 HighDateTime:31016791} FileSizeHigh
-:0 FileSizeLow:0 Reserved0:0 filetype:0 Mutex:{state:0 sema:0} path:README.txt vol:0 idxhi:0 idxlo:0 appendNameToPath:false}
-```
-
-注意
-
-打开一个文件后永远要记得关闭该文件，通常关闭操作会放在`defer`语句里
-
-
-
-```
-defer file.Close()
-```
-
-#### [读取](https://golang.halfiisland.com/essential/senior/100.io.html#读取)
-
-当成功的打开文件后，便可以进行读取操作了，关于读取文件的操作，`*os.File`类型提供了以下几个公开的方法
-
-```
-// 将文件读进传入的字节切片
 func (f *File) Read(b []byte) (n int, err error)
-
-// 相较于第一种可以从指定偏移量读取
-func (f *File) ReadAt(b []byte, off int64) (n int, err error)
 ```
 
-大多数情况第一种使用的较多。针对于第一种方法，需要自行编写逻辑来进行读取时切片的动态扩容，代码如下
+```go
+data, err := os.ReadFile(filePath)
+// filePath: 文件路径
+// data: 文件内容字节切片
+// err: 读取失败时返回错误
 
-
-
-```
-func ReadFile(file *os.File) ([]byte, error) {
-  buffer := make([]byte, 0, 512)
-  for {
-    // 当容量不足时
-    if len(buffer) == cap(buffer) {
-      // 扩容
-      buffer = append(buffer, 0)[:len(buffer)]
-    }
-    // 继续读取文件
-    offset, err := file.Read(buffer[len(buffer):cap(buffer)])
-    // 将已写入的数据归入切片
-    buffer = buffer[:len(buffer)+offset]
-    // 发生错误时
-    if err != nil {
-      if errors.Is(err, io.EOF) {
-        err = nil
-      }
-      return buffer, err
-    }
-  }
-}
-```
-
-剩余逻辑如下
-
-
-
-```
-func main() {
-   file, err := os.OpenFile("README.txt", os.O_RDWR|os.O_CREATE, 0666)
-   if err != nil {
-      fmt.Println("文件访问异常")
-   } else {
-      fmt.Println("文件打开成功", file.Name())
-      bytes, err := ReadFile(file)
-      if err != nil {
-         fmt.Println("文件读取异常", err)
-      } else {
-         fmt.Println(string(bytes))
-      }
-      file.Close()
-   }
-}
-```
-
-输出为
-
-
-
-```
-文件打开成功 README.txt
-hello world!
-```
-
-除此之外，还可以使用两个方便函数来进行文件读取，分别是`os`包下的`ReadFile`函数，以及`io`包下的`ReadAll`函数。对于`os.ReadFile`而言，只需要提供文件路径即可，而对于`io.ReadAll`而言，则需要提供一个`io.Reader`类型的实现，
-
-**os.ReadFile**
-
-
-
-```
 func ReadFile(name string) ([]byte, error)
 ```
 
-使用例子如下
+```go
+data, err := io.ReadAll(reader)
+// reader: 实现 io.Reader 的对象
+// data: 读取到的全部内容
+// err: 读取失败时返回错误
 
-
-
-```
-func main() {
-  bytes, err := os.ReadFile("README.txt")
-  if err != nil {
-    fmt.Println(err)
-  } else {
-    fmt.Println(string(bytes))
-  }
-}
-```
-
-输出如下
-
-
-
-```
-hello world!
-```
-
-**io.ReadAll**
-
-
-
-```
 func ReadAll(r Reader) ([]byte, error)
 ```
 
-使用例子如下
+6. 写入文件内容：可以使用 `(*os.File).Write`、`(*os.File).WriteString`、`os.WriteFile`、`io.WriteString`。
 
+```go
+n, err := file.Write(data)
+// file: 已打开文件
+// data: 要写入的字节切片
+// n: 实际写入字节数
+// err: 写入失败时返回错误
 
-
-```
-func main() {
-
-   file, err := os.OpenFile("README.txt", os.O_RDWR|os.O_CREATE, 0666)
-   if err != nil {
-      fmt.Println("文件访问异常")
-   } else {
-      fmt.Println("文件打开成功", file.Name())
-      bytes, err := io.ReadAll(file)
-      if err != nil {
-         fmt.Println(err)
-      } else {
-         fmt.Println(string(bytes))
-      }
-      file.Close()
-   }
-}
-```
-
-
-
-```
-文件打开成功 README.txt
-hello world!
-```
-
-#### [写入](https://golang.halfiisland.com/essential/senior/100.io.html#写入)
-
-`os.File`结构体提供了以下几种方法以供写入数据
-
-
-
-```
-// 写入字节切片
 func (f *File) Write(b []byte) (n int, err error)
+```
 
-// 写入字符串
+```go
+n, err := file.WriteString(text)
+// file: 已打开文件
+// text: 要写入的字符串
+// n: 实际写入字节数
+// err: 写入失败时返回错误
+
 func (f *File) WriteString(s string) (n int, err error)
-
-// 从指定位置开始写，当以os.O_APPEND模式打开时，会返回错误
-func (f *File) WriteAt(b []byte, off int64) (n int, err error)
 ```
 
-如果想要对一个文件写入数据，则必须以`O_WRONLY`或`O_RDWR`的模式打开，否则无法成功写入文件。下面是一个以`os.O_RDWR|os.O_CREATE|os.O_APPEND|os.O_TRUNC`模式打开文件，且权限为`0666`向指定写入数据的例子
+```go
+err := os.WriteFile(filePath, data, perm)
+// filePath: 文件路径
+// data: 要写入的字节切片
+// perm: 文件权限
+// err: 写入失败时返回错误
 
-
-
-```
-func main() {
-  file, err := os.OpenFile("README.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND|os.O_TRUNC, 0666)
-  if err != nil {
-    fmt.Println("文件访问异常")
-  } else {
-    fmt.Println("文件打开成功", file.Name())
-    for i := 0; i < 5; i++ {
-      offset, err := file.WriteString("hello world!\n")
-      if err != nil {
-        fmt.Println(offset, err)
-      }
-    }
-    fmt.Println(file.Close())
-  }
-}
-```
-
-由于是以`os.O_APPEND`模式打开的文件，所以在写入文件时会将数据添加到文件尾部，执行完毕后文件内容如下
-
-
-
-```
-hello world!
-hello world!
-hello world!
-hello world!
-hello world!
-```
-
-向文件写入字节切片也是类似的操作，就不再赘述。对于写入文件的操作标准库同样提供了方便函数，分别是`os.WriteFile`与`io.WriteString`
-
-**os.WriteFile**
-
-
-
-```
 func WriteFile(name string, data []byte, perm FileMode) error
 ```
 
-使用例子如下
+```go
+n, err := io.WriteString(writer, text)
+// writer: 实现 io.Writer 的对象
+// text: 要写入的字符串
+// n: 实际写入字节数
+// err: 写入失败时返回错误
 
-
-
-```
-func main() {
-  err := os.WriteFile("README.txt", []byte("hello world!\n"), 0666)
-  if err != nil {
-    fmt.Println(err)
-  }
-}
-```
-
-此时文件内容如下
-
-
-
-```
-hello world!
-```
-
-**io.WriteString**
-
-
-
-```
 func WriteString(w Writer, s string) (n int, err error)
 ```
 
-使用例子如下
+7. 创建文件：`os.Create` 本质上也是对 `OpenFile` 的封装，等价于以 `O_RDWR|O_CREATE|O_TRUNC` 模式打开。
 
+```go
+file, err := os.Create(filePath)
+// filePath: 文件路径
+// file: 创建后的文件对象
+// err: 创建失败时返回错误
 
-
-```
-func main() {
-   file, err := os.OpenFile("README.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND|os.O_TRUNC, 0666)
-   if err != nil {
-      fmt.Println("文件访问异常")
-   } else {
-      fmt.Println("文件打开成功", file.Name())
-      for i := 0; i < 5; i++ {
-         offset, err := io.WriteString(file, "hello world!\n")
-         if err != nil {
-            fmt.Println(offset, err)
-         }
-      }
-      fmt.Println(file.Close())
-   }
-}
+func Create(name string) (*File, error)
 ```
 
+8. 复制文件：可以使用“读出再写入”的方式，也可以用 `io.Copy` 边读边写；后者更常用。
 
+```go
+written, err := io.Copy(dst, src)
+// dst: 目标 Writer
+// src: 源 Reader
+// written: 实际复制字节数
+// err: 复制失败时返回错误
 
-```
-hello world!
-hello world!
-hello world!
-hello world!
-hello world!
-```
-
-函数`os.Create`函数用于创建文件，本质上也是对`OpenFile`的封装。
-
-
-
-```
-func Create(name string) (*File, error) {
-   return OpenFile(name, O_RDWR|O_CREATE|O_TRUNC, 0666)
-}
-```
-
-注意
-
-在创建一个文件时，如果其父目录不存在，将创建失败并会返回错误。
-
-#### [复制](https://golang.halfiisland.com/essential/senior/100.io.html#复制)
-
-对于复制文件而言，需要同时打开两个文件，第一种方法是将原文件中的数据读取出来，然后写入目标文件中，代码示例如下
-
-
-
-```
-func main() {
-    // 从原文件中读取数据
-  data, err := os.ReadFile("README.txt")
-  if err != nil {
-    fmt.Println(err)
-    return
-  }
-    // 写入目标文件
-  err = os.WriteFile("README(1).txt", data, 0666)
-  if err != nil {
-    fmt.Println(err)
-  } else {
-    fmt.Println("复制成功")
-  }
-}
-```
-
-***os.File.ReadFrom**
-
-另一种方法是使用`os.File`提供的方法`ReadFrom`，打开文件时，一个只读，一个只写。
-
-
-
-```
-func (f *File) ReadFrom(r io.Reader) (n int64, err error)
-```
-
-使用示例如下
-
-
-
-```
-func main() {
-  // 以只读的方式打开原文件
-  origin, err := os.OpenFile("README.txt", os.O_RDONLY, 0666)
-  if err != nil {
-    fmt.Println(err)
-    return
-  }
-  defer origin.Close()
-  // 以只写的方式打开副本文件
-  target, err := os.OpenFile("README(1).txt", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-  if err != nil {
-    fmt.Println(err)
-    return
-  }
-  defer target.Close()
-  // 从原文件中读取数据，然后写入副本文件
-  offset, err := target.ReadFrom(origin)
-  if err != nil {
-    fmt.Println(err)
-    return
-  }
-  fmt.Println("文件复制成功", offset)
-}
-```
-
-这种复制方式需要先将源文件的全部内容读取到内存中，再写入目标文件，文件特别大的时候不建议这么做。
-
-**io.Copy**
-
-另一种方法就是使用`io.Copy`函数，它则是一边读一边写，先将内容读到缓冲区中，再写入到目标文件中，缓冲区默认大小为 32KB。
-
-
-
-```
 func Copy(dst Writer, src Reader) (written int64, err error)
 ```
 
-使用示例如下
+9. 重命名或移动文件：使用 `os.Rename`。
 
+```go
+err := os.Rename(oldPath, newPath)
+// oldPath: 原路径
+// newPath: 新路径
+// err: 操作失败时返回错误
 
-
-```
-func main() {
-  // 以只读的方式打开原文件
-  origin, err := os.OpenFile("README.txt", os.O_RDONLY, 0666)
-  if err != nil {
-    fmt.Println(err)
-    return
-  }
-  defer origin.Close()
-  // 以只写的方式打开副本文件
-  target, err := os.OpenFile("README(1).txt", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-  if err != nil {
-    fmt.Println(err)
-    return
-  }
-  defer target.Close()
-  // 复制
-  written, err := io.Copy(target, origin)
-  if err != nil {
-    fmt.Println(err)
-  } else {
-    fmt.Println(written)
-  }
-}
-```
-
-你也可以使用`io.CopyBuffer`来指定缓冲区大小。
-
-#### [重命名](https://golang.halfiisland.com/essential/senior/100.io.html#重命名)
-
-重命名也可以理解为移动文件，会用到`os`包下的`Rename`函数。
-
-```
 func Rename(oldpath, newpath string) error
 ```
 
-示例如下
+10. 删除文件：删除单个文件使用 `os.Remove`。
 
-```
-func main() {
-  err := os.Rename("README.txt", "readme.txt")
-  if err != nil {
-    fmt.Println(err)
-  } else {
-    fmt.Println("重命名成功")
-  }
-}
-```
+```go
+err := os.Remove(filePath)
+// filePath: 文件路径
+// err: 删除失败时返回错误
 
-该函数对于文件夹也是同样的效果。
-
-#### [删除](https://golang.halfiisland.com/essential/senior/100.io.html#删除)
-
-删除操作相较于其他操作要简单的多，只会用到`os`包下的两个函数
-
-
-
-```
-// 删除单个文件或者空目录，当目录不为空时会返回错误
 func Remove(name string) error
-
-// 删除指定目录的所有文件和目录包括子目录与子文件
-func RemoveAll(path string) error
 ```
 
-使用起来十分的简单，下面是删除目录的例子
+11. 刷新到磁盘：调用 `file.Sync()` 将缓存写入磁盘。
 
+```go
+err := file.Sync()
+// file: 已打开文件
+// err: 刷盘失败时返回错误
 
-
+func (f *File) Sync() error
 ```
+
+12. 关闭文件：打开文件后通常应在第一时间写 `defer file.Close()`。
+
+```go
+defer file.Close()
+// file: 已打开的文件对象
+// 返回结果: 在当前函数结束前关闭文件
+```
+
+**示例**：打开或创建文件、判断错误、写入、追加、读取、查看信息、复制、重命名、刷盘并删除。
+
+```go
+package main
+
+import (
+    "fmt"
+    "io"
+    "os"
+)
+
 func main() {
-  // 删除当前目录下所有的文件与子目录
-  err := os.RemoveAll(".")
-  if err != nil {
-    fmt.Println(err)
-  }else {
-    fmt.Println("删除成功")
-  }
+    filePath := "README.txt"
+    copyPath := "README_copy.txt"
+    renamedPath := "README_done.txt"
+
+    file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+    if os.IsNotExist(err) {
+        fmt.Println("文件不存在")
+        return
+    } else if err != nil {
+        fmt.Println("文件访问异常")
+        return
+    }
+    defer file.Close()
+
+    _, err = file.WriteString("hello world!
+")
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+
+    _, err = io.WriteString(file, "go file io
+")
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+
+    err = file.Sync()
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+
+    data, err := os.ReadFile(filePath)
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    fmt.Println(string(data))
+
+    info, err := os.Stat(filePath)
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    fmt.Println(info.Name(), info.Size())
+
+    sourceFile, err := os.Open(filePath)
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    defer sourceFile.Close()
+
+    targetFile, err := os.OpenFile(copyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    defer targetFile.Close()
+
+    _, err = io.Copy(targetFile, sourceFile)
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+
+    err = os.Rename(filePath, renamedPath)
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+
+    err = os.Remove(copyPath)
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+
+    err = os.Remove(renamedPath)
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
 }
 ```
 
-下面是删除单个文件的例子
+#### 文件夹
 
+1. 读取文件夹内容：可以直接使用 `os.ReadDir`，也可以先打开目录再调用 `(*os.File).ReadDir`。
 
+```go
+entries, err := os.ReadDir(dirPath)
+// dirPath: 文件夹路径
+// entries: 目录项列表
+// err: 读取失败时返回错误
 
-```
-func main() {
-  // 删除当前目录下所有的文件与子目录
-  err := os.Remove("README.txt")
-  if err != nil {
-    fmt.Println(err)
-  } else {
-    fmt.Println("删除成功")
-  }
-}
-```
-
-#### [刷新](https://golang.halfiisland.com/essential/senior/100.io.html#刷新)
-
-`os.Sync`这一个函数封装了底层的系统调用`Fsync`，用于将操作系统中缓存的 IO 写入落实到磁盘上
-
-
-
-```
-func main() {
-  create, err := os.Create("test.txt")
-  if err != nil {
-    panic(err)
-  }
-  defer create.Close()
-
-  _, err = create.Write([]byte("hello"))
-  if err != nil {
-    panic(err)
-  }
-
-    // 刷盘
-  if err := create.Sync();err != nil {
-    return
-  }
-}
-```
-
-#### [文件夹](https://golang.halfiisland.com/essential/senior/100.io.html#文件夹)
-
-文件夹的许多操作都与文件操作类似
-
-##### [读取](https://golang.halfiisland.com/essential/senior/100.io.html#读取-1)
-
-对于文件夹而言，打开方式有两种，
-
-**os.ReadDir**
-
-第一种方式是使用`os.ReadDir`函数
-
-
-
-```
 func ReadDir(name string) ([]DirEntry, error)
 ```
 
+```go
+entries, err := dir.ReadDir(n)
+// dir: 已打开目录
+// n: 读取数量，n < 0 时表示读取全部
+// entries: 目录项列表
+// err: 读取失败时返回错误
 
-
-```
-func main() {
-   // 当前目录
-   dir, err := os.ReadDir(".")
-   if err != nil {
-      fmt.Println(err)
-   } else {
-      for _, entry := range dir {
-         fmt.Println(entry.Name())
-      }
-   }
-}
-```
-
-***os.File.ReadDir**
-
-第二种方式是使用`*os.File.ReadDir`函数，`os.ReadDir`本质上也只是对`*os.File.ReadDir`的一层简单封装。
-
-
-
-```
-// n < 0时，则读取文件夹下所有的内容
 func (f *File) ReadDir(n int) ([]DirEntry, error)
 ```
 
+2. 创建单个文件夹：使用 `os.Mkdir`。
 
+```go
+err := os.Mkdir(dirPath, perm)
+// dirPath: 文件夹路径
+// perm: 权限，如 0755
+// err: 创建失败时返回错误
 
-```
-func main() {
-   // 当前目录
-   dir, err := os.Open(".")
-   if err != nil {
-      fmt.Println(err)
-   }
-   defer dir.Close()
-   dirs, err := dir.ReadDir(-1)
-   if err != nil {
-      fmt.Println(err)
-   } else {
-      for _, entry := range dirs {
-         fmt.Println(entry.Name())
-      }
-   }
-}
-```
-
-##### [创建](https://golang.halfiisland.com/essential/senior/100.io.html#创建)
-
-创建文件夹操作会用到`os`包下的两个函数
-
-
-
-```
-// 用指定的权限创建指定名称的目录
 func Mkdir(name string, perm FileMode) error
+```
 
-// 相较于前者该函数会创建一切必要的父目录
+3. 递归创建文件夹：使用 `os.MkdirAll`，会自动创建必要的父目录。
+
+```go
+err := os.MkdirAll(dirPath, perm)
+// dirPath: 文件夹路径
+// perm: 权限，如 0755
+// err: 创建失败时返回错误
+
 func MkdirAll(path string, perm FileMode) error
 ```
 
-示例如下
+4. 获取文件夹信息：使用 `os.Stat` 判断路径是否存在、是否为目录。
 
-
-
+```go
+info, err := os.Stat(dirPath)
+// dirPath: 文件夹路径
+// info: 路径信息对象
+// err: 获取失败时返回错误
 ```
+
+5. 删除空文件夹：使用 `os.Remove`。
+
+```go
+err := os.Remove(dirPath)
+// dirPath: 文件夹路径
+// err: 删除失败时返回错误
+```
+
+6. 递归删除文件夹：使用 `os.RemoveAll`，会删除目录及其全部内容。
+
+```go
+err := os.RemoveAll(dirPath)
+// dirPath: 文件夹路径
+// err: 删除失败时返回错误
+
+func RemoveAll(path string) error
+```
+
+7. 复制文件夹：标准库没有直接提供单个函数，通常使用 `filepath.Walk` 或 `filepath.WalkDir` 递归遍历目录，再结合 `os.MkdirAll` 和 `io.Copy` 完成复制。
+
+```go
+err := filepath.Walk(srcPath, walkFunc)
+// srcPath: 源目录路径
+// walkFunc: 遍历回调函数
+// err: 遍历或复制失败时返回错误
+```
+
+**示例**：创建目录、读取目录内容、判断目录信息、在目录中创建文件、再次读取目录并递归删除目录。
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
 func main() {
-  err := os.Mkdir("src", 0666)
-  if err != nil {
-    fmt.Println(err)
-  } else {
-    fmt.Println("创建成功")
-  }
+    dirPath := "demo_dir/sub_dir"
+    filePath := "demo_dir/sub_dir/demo.txt"
+
+    err := os.MkdirAll(dirPath, 0755)
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+
+    file, err := os.Create(filePath)
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    file.Close()
+
+    entries, err := os.ReadDir("demo_dir")
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+
+    for _, entry := range entries {
+        fmt.Println(entry.Name(), entry.IsDir())
+    }
+
+    info, err := os.Stat("demo_dir")
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    fmt.Println(info.Name(), info.IsDir())
+
+    dir, err := os.Open("demo_dir")
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    defer dir.Close()
+
+    subEntries, err := dir.ReadDir(-1)
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+
+    for _, entry := range subEntries {
+        fmt.Println(entry.Name(), entry.IsDir())
+    }
+
+    err = os.RemoveAll("demo_dir")
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
 }
 ```
 
-##### [复制](https://golang.halfiisland.com/essential/senior/100.io.html#复制-1)
 
-我们可以自己写函数递归遍历整个文件夹，不过`filepath`标准库已经提供了类似功能的函数，所以可以直接使用，一个简单的文件夹复制的代码示例如下。
 
-```
-func CopyDir(src, dst string) error {
-    // 检查源文件夹的状态
-  _, err := os.Stat(src)
-  if err != nil {
-    return err
-  }
 
-  return filepath.Walk(src, func(path string, info fs.FileInfo, err error) error {
-    if err != nil {
-      return err
-    }
 
-        // 计算相对路径
-    rel, err := filepath.Rel(src, path)
-    if err != nil {
-      return err
-    }
 
-        // 拼接目标路径
-    destpath := filepath.Join(dst, rel)
-
-        // 创建文件夹
-    var dirpath string
-    var mode os.FileMode = 0755
-    if info.IsDir() {
-      dirpath = destpath
-      mode = info.Mode()
-    } else if info.Mode().IsRegular() {
-      dirpath = filepath.Dir(destpath)
-    }
-
-    if err := os.MkdirAll(dirpath, mode); err != nil {
-      return err
-    }
-
-        // 创建文件
-    if info.Mode().IsRegular() {
-      srcfile, err := os.Open(path)
-      if err != nil {
-        return err
-      }
-            // 一定要记得关闭文件
-      defer srcfile.Close()
-      destfile, err := os.OpenFile(destpath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, info.Mode())
-      if err != nil {
-        return err
-      }
-      defer destfile.Close()
-
-            // 复制文件内容
-      if _, err := io.Copy(destfile, srcfile); err != nil {
-        return err
-      }
-      return nil
-    }
-
-    return nil
-  })
-}
-```
-
-`filepath.Walk`会递归遍历整个文件夹，在过程中，遇到文件夹就创建文件夹，遇到文件就创建新文件并复制，代码相比复制文件有点多但算不上复杂。
 
 ## 类型系统与抽象设计
 
 ### 结构体
 
-Golang中的结构(struct)是一种用户定义的类型，允许将可能不同类型的项分组/组合成单个类型。任何现实世界中拥有一组属性/字段的实体都可以表示为结构。这个概念通常与面向对象编程中的类进行比较。它可以被称为不支持继承但支持组合的轻量级类。
+Golang 中的结构体（`struct`）是一种用户定义的类型，允许将多个可能不同类型的字段组合成一个整体。任何现实世界中具有一组属性的实体，都可以用结构体表示。这个概念通常会与面向对象语言中的类进行类比，但 Go 的结构体本身不支持继承，更强调组合。
 
-例如，一个地址具有name,street,city,state,Pincode。如下所示，将这三个属性组合为一个结构*Address*是有意义的。
+例如，一个地址通常具有 `name`、`street`、`city`、`state`、`pincode` 等属性，把这些字段组合成一个结构体就很自然。
 
-**声明结构：**
+#### 定义与初始化
 
-```
- type Address struct {
-      name string 
-      street string
-      city string
-      state string
-      Pincode int
+结构体定义的基本格式如下：
+
+```go
+type StructName struct {
+    fieldName Type
 }
 ```
 
-在上面，***type***关键字引入了一个新类型。其后是类型的名称（*Address*）和关键字*struct，*以说明我们正在定义结构。该结构包含花括号内各个字段的列表。每个字段都有一个名称和类型。
+相同类型的字段也可以合并书写：
 
-**注意：**我们还可以通过组合相同类型的各个字段来使它们紧凑，如下例所示：
-
-```
+```go
 type Address struct {
     name, street, city, state string
-    Pincode int
+    pincode                   int
 }
 ```
 
-**定义结构：**声明结构的语法：
-
-```
-var a Address
-```
-
-上面的代码创建一个*Address类型*的变量，默认情况下将其设置为零。对于结构，零表示所有字段均设置为其对应的零值。因此，字段name,street,city,state都设置为“”，而Pincode设置为0。
-
-您还可以*使用结构字面量来初始化结构类型的变量，*如下所示：
-
-```
-var a = Address{"Akshay", "PremNagar", "Dehradun", "Uttarakhand", 252636}
-```
-
-**注意：**
-
-始终以在结构中声明它们的顺序传递字段值。同样，您不能仅使用上述语法初始化字段的子集。
-
-Go还支持*名称：value*语法，用于初始化结构（使用此语法时字段的顺序无关紧要）。而且，这仅允许您初始化字段的子集。所有未初始化的字段均设置为其相应的零值。
-
-*例如：*
-
-```
-var a = Address{"Akshay", "PremNagar", "Dehradun", "Uttarakhand", 252636}
-```
-
-要访问*结构的*各个字段，您必须使用点*（.）*运算符。Golang中的指针是一个变量，用于存储另一个变量的内存地址。您还可以创建一个指向结构的指针。
+结构体变量可以先声明，再使用零值初始化：
 
 ```go
-// 指向结构体的指针
-package main 
-  
-import "fmt"
-  
-// 定义一个结构
-type Employee struct { 
-    firstName, lastName string 
-    age, salary int
-} 
-  
-func main() { 
-  
-        //传递struct变量的地址
-        // emp8是指向Employee结构的指针
-    emp8 := &Employee{"Sam", "Anderson", 55, 6000} 
-  
-        //（* emp8）.firstName是要访问的语法
-        // emp8结构的firstName字段
-    fmt.Println("First Name:", (*emp8).firstName) 
-    fmt.Println("Age:", (*emp8).age) 
-}
+var structValue StructName
+// structValue: 结构体变量
+// 返回结果: 所有字段都使用各自类型的零值初始化
 ```
 
-Golang中的结构或struct是用户定义的类型，它允许我们在一个单元中创建一组不同类型的元素。任何具有一组属性或字段的真实实体都可以表示为结构。这个概念通常与面向对象编程中的类进行比较。它可以被称为轻量级类，不支持继承，但支持组合。
-
-在Go语言中，可以通过**==运算符**或**DeeplyEqual()方法**比较两个结构相同的类型并包含相同的字段值的结构。如果结构彼此相等（就其字段值而言），则运算符和方法均返回true；否则，返回false。并且，如果比较的变量属于不同的结构，则编译器将给出错误。让我们借助示例来讨论这个概念：
-
-**注意：** DeeplyEqual()方法在“ reflect”包下定义。
+也可以直接使用结构体字面量初始化：
 
 ```go
-package main
-
-import (
-	"fmt"
-	"reflect"
-)
-
-type Person struct {
-	Name string
-	Age  int
-}
-
-type Student struct {
-	Name   string
-	Scores []int
-}
-
-func main() {
-	// ----------------------------
-	// 1. 结构体字段都可比较：可以用 ==
-	// ----------------------------
-	p1 := Person{Name: "Tom", Age: 20}
-	p2 := Person{Name: "Tom", Age: 20}
-	p3 := Person{Name: "Jack", Age: 20}
-
-	fmt.Println("p1 == p2:", p1 == p2)
-	fmt.Println("p1 == p3:", p1 == p3)
-
-	fmt.Println("DeepEqual(p1, p2):", reflect.DeepEqual(p1, p2))
-	fmt.Println("DeepEqual(p1, p3):", reflect.DeepEqual(p1, p3))
-
-	fmt.Println()
-
-	// ----------------------------
-	// 2. 结构体含有 slice：不能用 ==
-	// ----------------------------
-	s1 := Student{Name: "Alice", Scores: []int{90, 80, 70}}
-	s2 := Student{Name: "Alice", Scores: []int{90, 80, 70}}
-	s3 := Student{Name: "Alice", Scores: []int{90, 80}}
-
-	// 下面这句不能写，会报错：
-	// fmt.Println(s1 == s2)
-
-	fmt.Println("DeepEqual(s1, s2):", reflect.DeepEqual(s1, s2))
-	fmt.Println("DeepEqual(s1, s3):", reflect.DeepEqual(s1, s3))
-}
-
-p1 == p2: true
-p1 == p3: false
-DeepEqual(p1, p2): true
-DeepEqual(p1, p3): false
-
-DeepEqual(s1, s2): true
-DeepEqual(s1, s3): false
-
+structValue := StructName{fieldValue1, fieldValue2, fieldValue3}
+// 返回结果: 按字段声明顺序初始化结构体
 ```
 
-#### 结构体嵌套
+还可以使用 `fieldName: fieldValue` 的形式按名称初始化字段。使用这种写法时，字段顺序无关紧要，也允许只初始化部分字段，其余字段会保留零值。
 
-[结构](https://www.cainiaojc.com/golang/go-structures.html)在Golang中是一个用户定义的类型，它允许我们在一个单元中创建一组不同类型的元素。任何具有一组属性或字段的真实实体都可以表示为结构。Go语言允许嵌套结构。一个结构是另一个结构的字段，称为嵌套结构。换句话说，另一个结构中的结构称为嵌套结构。
-
-**语法：**
-
-```
-type struct_name_1 struct{
-  // Fields
-} 
-type struct_name_2 struct{
-  variable_name  struct_name_1
-
+```go
+structValue := StructName{
+    fieldName1: fieldValue1,
+    fieldName2: fieldValue2,
 }
+// 返回结果: 按字段名初始化结构体
+```
+
+访问结构体字段使用点运算符 `.`。如果持有的是结构体指针，也同样可以直接通过点运算符访问字段，Go 会自动完成解引用。
+
+```go
+structValue.fieldName = fieldValue
+resultValue := structValue.fieldName
+```
+
+```go
+structPointer := &StructName{
+    fieldName1: fieldValue1,
+    fieldName2: fieldValue2,
+}
+resultValue := structPointer.fieldName
+```
+
+**示例**：声明结构体、使用顺序字面量和命名字面量初始化、通过结构体值和结构体指针访问字段。
+
+```go
+type Address struct {
+    name, street, city, state string
+    pincode                   int
+}
+
+type Employee struct {
+    firstName string
+    lastName  string
+    age       int
+    salary    int
+}
+
+var defaultAddress Address
+
+orderedAddress := Address{
+    fieldValue1,
+    fieldValue2,
+    fieldValue3,
+    fieldValue4,
+    fieldValue5,
+}
+
+namedAddress := Address{
+    name:    fieldValue1,
+    city:    fieldValue2,
+    pincode: fieldValue3,
+}
+
+employeePointer := &Employee{
+    firstName: fieldValue1,
+    lastName:  fieldValue2,
+    age:       fieldValue3,
+    salary:    fieldValue4,
+}
+
+defaultAddress.name = fieldValue1
+resultValue1 := orderedAddress.city
+resultValue2 := namedAddress.pincode
+resultValue3 := employeePointer.firstName
+resultValue4 := (*employeePointer).age
+```
+
+#### 比较
+
+在 Go 中，两个相同类型的结构体如果所有字段都可比较，就可以直接使用 `==` 比较。若结构体中包含切片、映射、函数等不可比较字段，则不能直接使用 `==`，此时通常需要借助 `reflect.DeepEqual()`。
+
+```go
+leftStruct == rightStruct
+// leftStruct: 左侧结构体值
+// rightStruct: 右侧结构体值
+// 返回结果: 所有字段都可比较且值相等时返回 true
+```
+
+```go
+reflect.DeepEqual(leftValue, rightValue)
+// leftValue: 左侧值
+// rightValue: 右侧值
+// 返回结果: 深度比较结果
+```
+
+**示例**：比较可比较结构体，以及包含不可比较字段的结构体。
+
+```go
+type ComparableStruct struct {
+    fieldName1 Type1
+    fieldName2 Type2
+}
+
+type NonComparableStruct struct {
+    fieldName1 Type1
+    fieldName2 []ElementType
+}
+
+comparableValue1 := ComparableStruct{
+    fieldName1: fieldValue1,
+    fieldName2: fieldValue2,
+}
+comparableValue2 := ComparableStruct{
+    fieldName1: fieldValue1,
+    fieldName2: fieldValue2,
+}
+comparableValue3 := ComparableStruct{
+    fieldName1: anotherFieldValue1,
+    fieldName2: fieldValue2,
+}
+
+resultValue1 := comparableValue1 == comparableValue2
+resultValue2 := comparableValue1 == comparableValue3
+resultValue3 := reflect.DeepEqual(comparableValue1, comparableValue2)
+
+nonComparableValue1 := NonComparableStruct{
+    fieldName1: fieldValue1,
+    fieldName2: []ElementType{elementValue1, elementValue2},
+}
+nonComparableValue2 := NonComparableStruct{
+    fieldName1: fieldValue1,
+    fieldName2: []ElementType{elementValue1, elementValue2},
+}
+
+// nonComparableValue1 == nonComparableValue2 // 非法：字段不可比较
+resultValue4 := reflect.DeepEqual(nonComparableValue1, nonComparableValue2)
+```
+
+#### 嵌套
+
+Go 允许一个结构体作为另一个结构体的字段，这种形式通常称为结构体嵌套。换句话说，一个结构体可以把另一个结构体作为自己的字段来组织数据。
+
+```go
+type InnerStruct struct {
+    fieldName Type
+}
+
+type OuterStruct struct {
+    innerField InnerStruct
+}
+```
+
+嵌套结构体通常用于表达更清晰的数据层级关系。
+
+**示例**：将一个结构体作为另一个结构体的字段。
+
+```go
+type Address struct {
+    city    string
+    pincode int
+}
+
+type User struct {
+    name    string
+    address Address
+}
+
+userValue := User{
+    name: fieldValue1,
+    address: Address{
+        city:    fieldValue2,
+        pincode: fieldValue3,
+    },
+}
+
+resultValue1 := userValue.name
+resultValue2 := userValue.address.city
+resultValue3 := userValue.address.pincode
 ```
 
 #### 匿名结构
 
 ##### 匿名结构体
 
-在Go语言中，允许您创建匿名结构。匿名结构是不包含名称的结构。当您要创建一次性可用结构时，它很有用。您可以使用以下语法创建匿名结构：
+Go 支持匿名结构体。匿名结构体没有独立的类型名，适合只使用一次的临时结构。
 
-```
-variable_name := struct{
-// fields
-}{// Field_values}
+```go
+structValue := struct {
+    fieldName1 Type1
+    fieldName2 Type2
+}{
+    fieldName1: fieldValue1,
+    fieldName2: fieldValue2,
+}
 ```
 
 ##### 匿名字段
 
-在Go结构中，允许创建匿名字段。匿名字段是那些不包含任何名称的字段，你只需要提到字段的类型，然后Go就会自动使用该类型作为字段的名称。您可以使用以下语法创建结构的匿名字段:
+此外，结构体还支持匿名字段。匿名字段只写类型，不写字段名，Go 会自动把类型名作为字段名。匿名字段常用于组合。需要注意，同一个结构体中不能出现两个同类型匿名字段。
 
-```
-type struct_name struct{
-    int
-    bool
-    float64
+```go
+type StructName struct {
+    Type1
+    Type2
 }
 ```
 
-**重要事项：**
+匿名字段也可以和普通命名字段一起使用。
 
-- 在结构中，不允许创建两个或多个相同类型的字段，如下所示：
+```go
+type StructName struct {
+    fieldName Type1
+    Type2
+}
+```
 
-  ```
-  type student struct{
-  int
-  int
-  }
-  ```
+**示例**：匿名结构体与匿名字段。
 
-  如果尝试这样做，则编译器将抛出错误。
+```go
+type AnonymousFieldStruct struct {
+    int
+    string
+    float64
+}
 
-- 允许将匿名字段与命名字段组合，如下所示：
+anonymousStructValue := struct {
+    fieldName1 Type1
+    fieldName2 Type2
+}{
+    fieldName1: fieldValue1,
+    fieldName2: fieldValue2,
+}
 
-  ```
-  type student struct{
-   name int
-   price int
-   string
-  }
-  ```
+anonymousFieldValue := AnonymousFieldStruct{
+    fieldValue1,
+    fieldValue2,
+    fieldValue3,
+}
 
-- 让我们借助一个示例来讨论匿名字段概念：
-
-- 示例
-
-  ```
-  package main 
-    
-  import "fmt"
-    
-  //创建一个结构匿名字段 
-  type student struct { 
-      int
-      string 
-      float64 
-  } 
-    
-  // Main function 
-  func main() { 
-    
-      // 将值分配给匿名,学生结构的字段
-      value := student{123, "Bud", 8900.23} 
-    
-      fmt.Println("入学人数 : ", value.int) 
-      fmt.Println("学生姓名 : ", value.string) 
-      fmt.Println("套餐价格 : ", value.float64) 
-  }
-  ```
+resultValue1 := anonymousStructValue.fieldName1
+resultValue2 := anonymousStructValue.fieldName2
+resultValue3 := anonymousFieldValue.int
+resultValue4 := anonymousFieldValue.string
+resultValue5 := anonymousFieldValue.float64
+```
 
 #### 函数字段
 
-Golang中的结构或struct是用户定义的类型，它允许我们在一个单元中创建一组不同类型的元素。任何具有一组属性或字段的真实实体都可以表示为结构。我们知道在Go语言中函数也是用户定义的类型，所以你可以在Go结构中创建一个函数字段。您还可以使用匿名函数在Go结构中创建一个函数字段，如示例2所示。
+在 Go 中，函数本身也是一种类型，因此结构体字段也可以是函数类型。这样可以把“数据”和“某个可替换的行为”放在同一个结构体里。
 
-**语法：**
+```go
+type FunctionType func(parameterList) returnType
 
-```
-type function_name func()
-type strcut_name struct{
-  var_name  function_name
+type StructName struct {
+    fieldName FunctionType
 }
 ```
 
-让我们借助示例来讨论这个概念：
+也可以直接把匿名函数赋给结构体中的函数字段。
 
-示例
-
-```
-//作为Go结构中的字段
-package main 
-  
-import "fmt"
-  
-// Finalsalary函数类型
-type Finalsalary func(int, int) int
-  
-//创建结构
-type Author struct { 
-    name      string 
-    language  string 
-    Marticles int
-    Pay       int
-  
-    //函数作为字段
-    salary Finalsalary 
-} 
-  
-func main() { 
-  
-    // 初始化字段结构
-    result := Author{ 
-        name:      "Sonia", 
-        language:  "Java", 
-        Marticles: 120, 
-        Pay:       500, 
-        salary: func(Ma int, pay int) int { 
-            return Ma * pay 
-        }, 
-    } 
-  
-    fmt.Println("作者姓名: ", result.name) 
-    fmt.Println("语言: ", result.language) 
-    fmt.Println("五月份发表的文章总数: ", result.Marticles) 
-    fmt.Println("每篇报酬: ", result.Pay) 
-    fmt.Println("总工资: ", result.salary(result.Marticles, result.Pay)) 
+```go
+structValue := StructName{
+    fieldName: func(parameterName Type) ReturnType {
+        statement
+        return returnValue
+    },
 }
 ```
 
-**输出：**
+**示例**：定义函数字段并通过结构体字段调用该函数。
 
-```
-作者姓名:  Sonia
-语言:  Java
-五月份发表的文章总数:  120
-每篇报酬:  500
-总工资:  60000
+```go
+type FunctionType func(parameterName1 Type1, parameterName2 Type2) ReturnType
+
+type StructName struct {
+    fieldName1    Type1
+    fieldName2    Type2
+    functionField FunctionType
+}
+
+structValue := StructName{
+    fieldName1: fieldValue1,
+    fieldName2: fieldValue2,
+    functionField: func(parameterName1 Type1, parameterName2 Type2) ReturnType {
+        statement
+        return returnValue
+    },
+}
+
+resultValue := structValue.functionField(argumentValue1, argumentValue2)
 ```
 
 ### 方法
 
-Go语言支持方法。Go方法与Go函数相似，但有一点不同，就是方法中包含一个接收者参数。在接收者参数的帮助下，该方法可以访问接收者的属性。在这里，接收方可以是结构类型或非结构类型。在代码中创建方法时，接收者和接收者类型必须出现在同一个包中。而且不允许创建一个方法，其中的接收者类型已经在另一个包中定义，包括像int、string等内建类型。如果您尝试这样做，那么编译器将抛出错误。
+Go 语言支持方法。Go 方法与 Go 函数相似，但有一个重要区别：方法包含接收者参数。借助接收者，方法可以访问接收者对应的属性或行为。接收者既可以是结构类型，也可以是非结构类型。需要注意的是，方法和接收者类型必须定义在同一个包中，因此不能直接给 `int`、`string` 等内建类型添加方法。
 
-**语法：**
+方法的基本格式如下：
 
-```
-func(reciver_name Type) method_name(parameter_list)(return_type){
-    // Code
+```go
+func (receiverName ReceiverType) methodName(parameterList) returnType {
+    statement
 }
 ```
-
-在此，可以在方法内访问接收器。
 
 #### 结构类型接收器的方法
 
-在Go语言中，允许您定义其接收者为结构类型的方法。可以在方法内部访问此接收器，如以下示例所示：
+当接收者是结构体类型时，方法通常用于访问结构体字段，或围绕结构体组织相关行为。
 
-示例
+```go
+type StructName struct {
+    fieldName1 Type1
+    fieldName2 Type2
+    fieldName3 Type3
+}
 
-```
-package main 
-  
-import "fmt"
-  
-//Author 结构体
-type author struct { 
-    name      string 
-    branch    string 
-    particles int
-    salary    int
-} 
-  
-//接收者的方法 
-func (a author) show() { 
-  
-    fmt.Println("Author's Name: ", a.name) 
-    fmt.Println("Branch Name: ", a.branch) 
-    fmt.Println("Published articles: ", a.particles) 
-    fmt.Println("Salary: ", a.salary) 
-} 
-  
-func main() { 
-  
-    //初始化值
-    //Author结构体
-    res := author{ 
-        name:      "Sona", 
-        branch:    "CSE", 
-        particles: 203, 
-        salary:    34000, 
-    } 
-  
-    //调用方法
-    res.show() 
+func (receiverValue StructName) methodName() {
+    statement
+    resultValue1 := receiverValue.fieldName1
+    resultValue2 := receiverValue.fieldName2
+    resultValue3 := receiverValue.fieldName3
 }
 ```
 
-**输出：**
+上面这种写法中，方法接收的是结构体值，因此方法内部拿到的是接收者的一个副本。适合读取数据、格式化输出、做不修改原值的计算。
 
-```
-Author's Name:  Sona
-Branch Name:  CSE
-Published articles:  203
-Salary:  34000
+```go
+type Author struct {
+    name         string
+    branch       string
+    articleCount int
+    salary       int
+}
+
+func (authorValue Author) show() {
+    outputName := authorValue.name
+    outputBranch := authorValue.branch
+    outputArticleCount := authorValue.articleCount
+    outputSalary := authorValue.salary
+
+    _, _, _, _ = outputName, outputBranch, outputArticleCount, outputSalary
+    // 输出:
+    // Author's Name: fieldValue1
+    // Branch Name: fieldValue2
+    // Published articles: fieldValue3
+    // Salary: fieldValue4
+}
+
+authorValue := Author{
+    name:         fieldValue1,
+    branch:       fieldValue2,
+    articleCount: fieldValue3,
+    salary:       fieldValue4,
+}
+
+authorValue.show()
 ```
 
 #### 非结构类型接收器的方法
 
-在Go语言中，只要类型和方法定义存在于同一包中，就可以使用非结构类型接收器创建方法。如果它们存在于int，string等不同的包中，则编译器将抛出错误，因为它们是在不同的包中定义的。
+在 Go 中，只要类型定义和方法定义位于同一包中，就可以为非结构类型定义方法。常见做法是先基于某个基础类型定义一个新的自定义类型，再为它添加方法。也正因为如此，不能直接给 `int`、`string` 这些内建类型本身定义方法。
 
-示例
+```go
+type DefinedType BaseType
 
-```
-package main 
-  
-import "fmt"
-  
-//类型定义
-type data int
-
-//定义一个方法
-//非结构类型的接收器 
-func (d1 data) multiply(d2 data) data { 
-    return d1 * d2 
-} 
-  
-/* 
-//如果您尝试运行此代码，
-
-//然后编译器将抛出错误 
-func(d1 int)multiply(d2 int)int{ 
-return d1 * d2 
-} 
-*/
-  
-func main() { 
-    value1 := data(23) 
-    value2 := data(20) 
-    res := value1.multiply(value2) 
-    fmt.Println("最终结果: ", res) 
+func (receiverValue DefinedType) methodName(parameterName DefinedType) ReturnType {
+    statement
+    return returnValue
 }
 ```
 
-**输出：**
+```go
+type Data int
 
+func (leftValue Data) multiply(rightValue Data) Data {
+    return leftValue * rightValue
+}
+
+// 非法写法:
+// func (leftValue int) multiply(rightValue int) int {
+//     return leftValue * rightValue
+// }
+
+value1 := Data(expression1)
+value2 := Data(expression2)
+resultValue := value1.multiply(value2)
+// 输出:
+// resultValue = expressionResult
 ```
-最终结果:  460
-```
 
-#### 带指针接收器的Go方法
+#### 指针接收器的方法
 
-在Go语言中，允许您使用**指针**接收器创建方法。在指针接收器的帮助下，如果方法中所做的更改将反映在调用方中，这对于值接收器是不可能的。
+在 Go 中，方法也可以使用指针接收器。指针接收器最重要的特点是：方法内部对接收者所做的修改，会直接作用到原对象上。这一点是值接收器做不到的。
 
-**语法：**
-
-```
-func (p *Type) method_name(...Type) Type {
-    // Code
+```go
+func (receiverPointer *ReceiverType) methodName(parameterList) returnType {
+    statement
 }
 ```
 
-示例
-
-```
-package main 
-  
-import "fmt"
-  
-// Author 结构体
-type author struct { 
-    name      string 
-    branch    string 
-    particles int
-} 
-  
-//方法，使用author类型的接收者
-func (a *author) show(abranch string) { 
-    (*a).branch = abranch 
-} 
-  
-// Main function 
-func main() { 
-  
-    //初始化author结构体
-    res := author{ 
-        name:   "Sona", 
-        branch: "CSE", 
-    } 
-  
-    fmt.Println("Author's name: ", res.name) 
-    fmt.Println("Branch Name(Before): ", res.branch) 
-  
-    //创建一个指针
-    p := &res 
-  
-    //调用show方法
-    p.show("ECE") 
-    fmt.Println("Author's name: ", res.name) 
-    fmt.Println("Branch Name(After): ", res.branch) 
+```go
+type StructName struct {
+    fieldName1 Type1
+    fieldName2 Type2
 }
-```
 
-**输出：**
-
-```
-Author's name:  Sona
-Branch Name(Before):  CSE
-Author's name:  Sona
-Branch Name(After):  ECE
-```
-
-#### 指针参数与值参数的自动转换
-
-众所周知，在Go中，当一个函数具有值参数时，它将仅接受参数的值，如果您尝试将指针传递给值函数，则它将不接受，反之亦然。但是Go方法可以接受值和指针，无论它是使用指针还是值接收器定义的。如下例所示：
-
-示例
-
-```
-package main 
-  
-import "fmt"
-  
-// Author 结构体
-type author struct { 
-    name   string 
-    branch string 
-} 
-  
-//带有指针的方法
-//author类型的接收者
-func (a *author) show_1(abranch string) { 
-    (*a).branch = abranch 
-} 
-  
-//带有值的方法
-//作者类型的接收者 
-func (a author) show_2() { 
-    a.name = "Gourav"
-    fmt.Println("Author's name(Before) : ", a.name) 
-} 
-  
-
-func main() { 
-  
-     //初始化值
-     //作者结构体
-    res := author{ 
-        name:   "Sona", 
-        branch: "CSE", 
-    } 
-  
-    fmt.Println("Branch Name(Before): ", res.branch) 
-  
-     //调用show_1方法
-     //（指针方法）带有值
-    res.show_1("ECE") 
-    fmt.Println("Branch Name(After): ", res.branch) 
-  
-     //调用show_2方法
-     //带有指针的（值方法）
-    (&res).show_2() 
-    fmt.Println("Author's name(After): ", res.name) 
+func (receiverPointer *StructName) methodName(parameterName Type) {
+    receiverPointer.fieldName2 = parameterName
 }
+
+structValue := StructName{
+    fieldName1: fieldValue1,
+    fieldName2: fieldValue2,
+}
+
+structPointer := &structValue
+structPointer.methodName(argumentValue)
+
+// 调用前:
+// fieldName2 = fieldValue2
+// 调用后:
+// fieldName2 = argumentValue
 ```
 
-**输出：**
+#### 值接收器与指针接收器的自动转换
 
-```
-Branch Name(Before):  CSE
-Branch Name(After):  ECE
-Author's name(Before) :  Gourav
-Author's name(After):  Sona
+众所周知，在 Go 中，普通函数如果参数类型是值，就不能直接传入指针；如果参数类型是指针，也不能直接传入值。但方法调用在这点上更灵活：Go 会在满足条件时自动完成值和指针之间的转换。
+
+也就是说：
+
+- 值变量可以调用指针接收器方法
+- 指针变量也可以调用值接收器方法
+
+不过它们的语义仍然不同：  值接收器拿到的是副本，修改不会影响原值；指针接收器拿到的是原对象地址，修改会反映到原值上。
+
+```go
+type StructName struct {
+    fieldName1 Type1
+    fieldName2 Type2
+}
+
+func (receiverPointer *StructName) pointerMethod(parameterName Type2) {
+    receiverPointer.fieldName2 = parameterName
+}
+
+func (receiverValue StructName) valueMethod() {
+    receiverValue.fieldName1 = anotherFieldValue
+    temporaryValue := receiverValue.fieldName1
+    _ = temporaryValue
+    // 输出:
+    // fieldName1 在方法内部已修改
+}
+
+structValue := StructName{
+    fieldName1: fieldValue1,
+    fieldName2: fieldValue2,
+}
+
+structValue.pointerMethod(argumentValue)
+(&structValue).valueMethod()
+
+// 调用前:
+// fieldName2 = fieldValue2
+// 调用后:
+// fieldName2 = argumentValue
+// fieldName1 在原对象中保持不变
 ```
 
 #### 同名方法
 
-在Go语言中，允许在同一包中创建两个或多个具有相同名称的方法，但是这些方法的接收者**必须具有不同的类型**。该功能在Go函数中不可用，这意味着不允许您在同一包中创建相同名称的方法，如果尝试这样做，则编译器将抛出错误。
+在 Go 语言中，允许在同一包中创建两个或多个同名方法，但它们的接收者必须是不同类型。这个特性对函数不成立，也就是说，普通函数不能仅通过参数不同就在同一包中重名。
 
-**语法：**
+```go
+func (receiverValue1 ReceiverType1) methodName(parameterList) returnType {
+    statement
+}
 
+func (receiverValue2 ReceiverType2) methodName(parameterList) returnType {
+    statement
+}
 ```
-func(reciver_name_1 Type) method_name(parameter_list)(return_type){
-    // Code
+
+```go
+type StructType1 struct{}
+type StructType2 struct{}
+
+func (receiverValue StructType1) show() {
+    statement
 }
 
-func(reciver_name_2 Type) method_name(parameter_list)(return_type){
-    // Code
+func (receiverValue StructType2) show() {
+    statement
 }
+
+value1 := StructType1{}
+value2 := StructType2{}
+
+value1.show()
+value2.show()
 ```
 
 ### 接口
 
-Go语言接口不同于其他语言。在Go语言中，该接口是一种自定义类型，用于指定一组一个或多个方法签名，并且该接口是抽象的，因此不允许您创建该接口的实例。但是您可以创建接口类型的变量，并且可以为该变量分配具有接口所需方法的具体类型值。换句话说，接口既是方法的集合，也是自定义类型。
+Go 语言中的接口不同于很多传统面向对象语言中的接口。接口在 Go 中是一种自定义类型，用于描述一组方法签名。接口本身是抽象的，不能直接创建实例，但可以声明接口类型变量，并把实现了该接口全部方法的具体类型值赋给它。换句话说，接口既是一组方法的约定，也是一种类型。
 
 #### 接口创建
 
-在Go语言中，您可以使用以下语法创建接口：
+接口的基本格式如下：
 
-```
-type interface_name interface{
-
-    //方法签名
+```go
+type InterfaceName interface {
+    methodName1(parameterList) returnType
+    methodName2(parameterList) returnType
 }
 ```
 
-**例如：**
+接口中只写方法签名，不写方法实现。一个接口中可以声明一个或多个方法签名，也可以不声明任何方法。
 
-```
-//创建一个接口
-type myinterface interface{
-    // 方法
-    fun1() int
-    fun2() float64
+```go
+type InterfaceName interface {
+    methodName1() ReturnType1
+    methodName2() ReturnType2
 }
 ```
 
-此处，接口名称包含在type和interface关键字之间，方法签名包含在花括号之间。
+当接口中一个方法都没有时，这种接口通常称为空接口。空接口可以接收任意类型的值，因此它常用于需要接收不同类型参数的场景。旧写法常见为 `interface{}`，在较新的代码中也常见 `any`。
+
+```go
+var emptyInterfaceValue interface{}
+var anyValue any
+
+emptyInterfaceValue = expression1
+anyValue = expression2
+```
 
 #### 接口实现
 
-在Go语言中，为了实现接口，必须实现接口中声明的所有方法。go语言接口是隐式实现的。与其他语言一样，它不包含实现接口的任何特定关键字。如下例所示:
+一个具体类型若想实现某个接口，就必须实现接口中声明的全部方法。Go 的接口实现是隐式的，不需要专门写 `implements` 之类的关键字。
 
-![img](https://www.cainiaojc.com/run/images/Untitled-Diagram47.jpg)
-
-示例
-
-```
-// Golang程序说明如何
-//实现接口
-package main
-
-import "fmt"
-
-//创建一个接口
-type tank interface {
-
-    // 方法
-    Tarea() float64
-    Volume() float64
+```go
+type InterfaceName interface {
+    methodName1() ReturnType1
+    methodName2() ReturnType2
 }
 
-type myvalue struct {
+type StructName struct {
+    fieldName1 Type1
+    fieldName2 Type2
+}
+
+func (receiverValue StructName) methodName1() ReturnType1 {
+    statement
+    return returnValue1
+}
+
+func (receiverValue StructName) methodName2() ReturnType2 {
+    statement
+    return returnValue2
+}
+
+var interfaceValue InterfaceName
+interfaceValue = StructName{
+    fieldName1: fieldValue1,
+    fieldName2: fieldValue2,
+}
+```
+
+**示例**：定义接口、由结构体实现接口、再通过接口变量调用方法。
+
+```go
+type Tank interface {
+    area() float64
+    volume() float64
+}
+
+type Cylinder struct {
     radius float64
     height float64
 }
 
-//实现方法
-//桶的（Tank）接口
-func (m myvalue) Tarea() float64 {
-
-    return 2*m.radius*m.height + 2*3.14*m.radius*m.radius
+func (receiverValue Cylinder) area() float64 {
+    expression := 2*receiverValue.radius*receiverValue.height + 2*3.14*receiverValue.radius*receiverValue.radius
+    return expression
 }
 
-func (m myvalue) Volume() float64 {
-
-    return 3.14 * m.radius * m.radius * m.height
+func (receiverValue Cylinder) volume() float64 {
+    expression := 3.14 * receiverValue.radius * receiverValue.radius * receiverValue.height
+    return expression
 }
 
-func main() {
-
-    // 访问使用桶的接口
-    var t tank
-    t = myvalue{10, 14}
-    fmt.Println("桶的面积 :", t.Tarea())
-    fmt.Println("桶的容量:", t.Volume())
+var tankValue Tank
+tankValue = Cylinder{
+    radius: fieldValue1,
+    height: fieldValue2,
 }
+
+resultValue1 := tankValue.area()
+resultValue2 := tankValue.volume()
+
+// 输出:
+// resultValue1 = expressionResult1
+// resultValue2 = expressionResult2
 ```
-
-**输出：**
-
-```
-桶的面积 : 908
-桶的容量: 4396
-```
-
-**注意事项**
-
-- 接口的零值为nil。
-
-- 当接口包含零个方法时，此类接口称为空接口。因此，所有类型都实现空接口。
-
-  **语法：**
-
-  ```
-  interface{}
-  ```
-
-- **接口类型：**该接口有两种类型，一种是静态的，另一种是动态的。静态类型是接口本身，例如下面示例中的tank。但是接口没有静态值，所以它总是指向动态值。
-  接口类型的变量，其中包含实现接口的类型的值，因此该类型的值称为动态值，而该类型是动态类型。又称具体值和具体类型。
-
-  ```
-  //说明Go程序的概念
-  //动态值和类型
-  package main
-  
-  import "fmt"
-  
-  //创建接口
-  type tank interface {
-  
-      // 方法
-      Tarea() float64
-      Volume() float64
-  }
-  
-  func main() {
-  
-      var t tank
-      fmt.Println("tank interface值为: ", t)
-      fmt.Printf("tank 的类型是: %T ", t)
-  }
-  ```
-
-  **输出：**
-
-  ```
-  tank interface值为:  <nil>
-  tank 的类型是: <nil>
-  ```
-
-  在上面的示例中，有一个名为tank的接口。在此示例中，*fmt.Println("tank interface值为: ", t)* 语句返回该接口的动态值，而 fmt.Printf("tank 的类型是: %T ", t) 语句返回该接口的动态类型，即nil，因为这里的接口不知道谁在实现它。
-
-- **类型断言：**在Go语言中，类型断言是应用于接口值的操作。换句话说，类型断言是提取接口值的过程。
-
-  **语法：**
-
-  ```
-  a.(T)
-  ```
-
-  在这里，a是接口的值或表达式，T是也称为类型断言的类型。类型断言用于检查其操作数的动态类型是否匹配已断言的类型。如果T是具体类型，则类型断言检查a的给定动态类型是否等于T，这里，如果检查成功进行，则类型断言返回a的动态值。否则，如果检查失败，则操作将出现panic异常。如果T是接口类型，则类型断言检查满足T的给定动态类型，这里，如果检查成功进行，则不提取动态值。
-
-  示例
-
-  ```
-  //类型断言 
-  package main 
-    
-  import "fmt"
-    
-  func myfun(a interface{}) { 
-    
-      //提取a的值
-      val := a.(string) 
-      fmt.Println("值为: ", val) 
-  } 
-  func main() { 
-    
-      var val interface { 
-      } = "cainiaojc"
-        
-      myfun(val) 
-  }
-  ```
-
-  **输出：**
-
-  ```
-  值为:  cainiaojc
-  ```
-
-  在上面的示例中，如果将*val：= a。（string）*语句更改为*val：= a。（int）*，则程序会抛出panic异常。因此，为了避免此问题，我们使用以下语法：
-
-  ```
-  value, ok := a.(T)
-  ```
-
-  在这里，如果a的类型等于T，则该值包含a的动态值，并且ok将设置为true。并且如果a的类型不等于T，则ok设置为false并且value包含零值，并且程序不会抛出panic异常。如下面的程序所示：
-
-  示例
-
-  ```
-  package main
-  
-  import "fmt"
-  
-  func myfun(a interface{}) {
-      value, ok := a.(float64)
-      fmt.Println(value, ok)
-  }
-  func main() {
-  
-      var a1 interface {
-      } = 98.09
-  
-      myfun(a1)
-  
-      var a2 interface {
-      } = "cainiaojc"
-  
-      myfun(a2)
-  }
-  ```
-
-  **输出：**
-
-  ```
-  98.09 true
-  0 false
-  ```
-
-- **类型判断：**在Go接口中，类型判断用于将接口的具体类型与case语句中提供的多种类型进行比较。它与类型声明类似，只是有一个区别，即大小写指定类型，而不是值。您还可以将类型与接口类型进行比较。如下例所示：
-
-  示例
-
-  ```
-  package main
-  
-  import "fmt"
-  
-  func myfun(a interface{}) {
-  
-      //使用类型判断
-      switch a.(type) {
-  
-      case int:
-          fmt.Println("类型: int，值:", a.(int))
-      case string:
-          fmt.Println("\n类型: string，值: ", a.(string))
-      case float64:
-          fmt.Println("\n类型: float64，值: ", a.(float64))
-      default:
-          fmt.Println("\n类型未找到")
-      }
-  }
-  ```
-
-  **输出：**
-
-  ```
-  类型: string，值:  cainiaojc
-  
-  类型: float64，值:  67.9
-  
-  类型未找到
-  ```
-
-- **接口的使用：**当您想要在其中传递不同类型的参数的方法或函数中时，可以使用接口，就像Println()函数一样。或者，当多种类型实现同一接口时，也可以使用接口。
 
 #### 多接口实现
 
-在Go语言中，接口是方法签名的集合，它也是一种类型，意味着您可以创建接口类型的变量。在Go语言中，您可以借助给定的语法在程序中创建多个接口：
+一个具体类型可以同时实现多个接口。只要它实现了某个接口要求的全部方法，就可以赋值给该接口类型变量。因此，同一个结构体往往可以在不同接口语义下被复用。
 
+```go
+type InterfaceName1 interface {
+    methodName1()
+}
+
+type InterfaceName2 interface {
+    methodName2()
+}
+
+type StructName struct {
+    fieldName Type
+}
+
+func (receiverValue StructName) methodName1() {
+    statement
+}
+
+func (receiverValue StructName) methodName2() {
+    statement
+}
+
+var interfaceValue1 InterfaceName1 = StructName{}
+var interfaceValue2 InterfaceName2 = StructName{}
 ```
-type interface_name interface{
 
-//方法签名
+接口也支持嵌套。一个接口可以把其他接口直接写进自己的定义中，也可以把那些方法重新展开写一遍。两种写法表达的效果是一样的：最终接口的方法集是这些方法的并集。
 
+```go
+type InterfaceName1 interface {
+    methodName1()
+}
+
+type InterfaceName2 interface {
+    methodName2()
+}
+
+type FinalInterfaceName interface {
+    InterfaceName1
+    InterfaceName2
+    methodName3()
 }
 ```
 
-**注意：**在Go语言中，不允许在两个或多个接口中创建相同的名称方法。如果尝试这样做，则您的程序将崩溃。让我们借助示例来讨论多个接口。
+**示例**：同一个结构体实现多个接口，并实现嵌套后的最终接口。
 
-示例
-
-```
-//多个接口的概念
-package main
-
-import "fmt"
-
-// 接口 1
+```go
 type AuthorDetails interface {
     details()
 }
 
-// 接口 2
-type AuthorArticles interface {
-    articles()
-}
-
-// 结构体
-type author struct {
-    a_name    string
-    branch    string
-    college   string
-    year      int
-    salary    int
-    particles int
-    tarticles int
-}
-
-//实现接口方法1
-func (a author) details() {
-
-    fmt.Printf("作者: %s", a.a_name)
-    fmt.Printf("\n部分: %s 通过日期: %d", a.branch, a.year)
-    fmt.Printf("\n学校名称: %s", a.college)
-    fmt.Printf("\n薪水: %d", a.salary)
-    fmt.Printf("\n出版文章数: %d", a.particles)
-
-}
-
-// 实现接口方法 2
-func (a author) articles() {
-
-    pendingarticles := a.tarticles - a.particles
-    fmt.Printf("\n待定文章: %d", pendingarticles)
-}
-
-// Main value
-func main() {
-
-    //结构体赋值
-    values := author{
-        a_name:    "Mickey",
-        branch:    "Computer science",
-        college:   "XYZ",
-        year:      2012,
-        salary:    50000,
-        particles: 209,
-        tarticles: 309,
-    }
-
-    // 访问使用接口1的方法
-    var i1 AuthorDetails = values
-    i1.details()
-
-    //访问使用接口2的方法
-    var i2 AuthorArticles = values
-    i2.articles()
-
-}
-```
-
-**输出：**
-
-```
-作者: Mickey
-部分: Computer science 通过日期: 2012
-学校名称: XYZ
-薪水: 50000
-出版文章数: 209
-待定文章: 100
-```
-
-**用法解释：**如上例所示，我们有两个带有方法的接口，即details()和Articles()。在这里，details()方法提供了作者的基本详细信息，而articles()方法提供了作者的待定文章。
-
-![img](https://www.cainiaojc.com/run/images/Untitled-Diagram48.jpg)
-
-还有一个名为作者(Author)的结构，其中包含一些变量集，其值在接口中使用。在主要方法中，我们在作者结构中分配存在的变量的值，以便它们将在接口中使用并创建接口类型变量以访问*AuthorDetails*和*AuthorArticles*接口的方法。
-
-#### 接口嵌套
-
-在Go语言中，接口是方法签名的集合，它也是一种类型，意味着您可以创建接口类型的变量。众所周知，Go语言不支持继承，但是Go接口完全支持嵌套。在嵌套过程中，一个接口可以嵌套其他接口，或者一个接口可以在其中嵌套其他接口的方法签名，两者的结果与示例1和2中所示的相同。您可以在单个接口中嵌套任意数量的接口。而且，如果对接口的方法进行了任何更改，则在将一个接口嵌套其他接口时，该接口也将反映在嵌套式接口中，如示例3所示。
-
-**语法：**
-
-```
-type interface_name1 interface {
-
-    Method1()
-}
-
-type interface_name2 interface {
-
-    Method2()
-}
-
-type finalinterface_name interface {
-
-    interface_name1
-    interface_name2
-}
-
-或
-
-type interface_name1 interface {
-
-    Method1()
-}
-
-type interface_name2 interface {
-
-    Method2()
-}
-
-type finalinterface_name interface {
-
-    Method1()
-    Method2()
-}
-```
-
-```
-package main
-
-import "fmt"
-
-// 接口 1
-type AuthorDetails interface {
-    details()
-}
-
-// 接口 2
 type AuthorArticles interface {
     articles()
     picked()
 }
 
-// 接口 3
-//接口3嵌套了接口1和接口2，同时加入了自己的方法
 type FinalDetails interface {
-    details()
+    AuthorDetails
     AuthorArticles
-    cdeatils()
+    extraDetails()
 }
 
-// author 结构体
-type author struct {
-    a_name    string
-    branch    string
-    college   string
-    year      int
-    salary    int
-    particles int
-    tarticles int
-    cid       int
-    post      string
-    pick      int
+type Author struct {
+    fieldName1 Type1
+    fieldName2 Type2
+    fieldName3 Type3
+    fieldName4 Type4
 }
 
-// 实现接口1的方法
-func (a author) details() {
-
-    fmt.Printf("作者: %s", a.a_name)
-    fmt.Printf("\n部门: %s 通过日期: %d", a.branch, a.year)
-    fmt.Printf("\n大学名称: %s", a.college)
-    fmt.Printf("\n薪水: %d", a.salary)
-    fmt.Printf("\n发表文章数: %d", a.particles)
+func (receiverValue Author) details() {
+    statement
 }
 
-// 实现接口2的方法
-func (a author) articles() {
-
-    pendingarticles := a.tarticles - a.particles
-    fmt.Printf("\n待定文章数: %d", pendingarticles)
+func (receiverValue Author) articles() {
+    statement
 }
 
-func (a author) picked() {
-
-    fmt.Printf("\n所选文章的总数: %d", a.pick)
+func (receiverValue Author) picked() {
+    statement
 }
 
-// 实现嵌入了接口的方法
-func (a author) cdeatils() {
-
-    fmt.Printf("\n作者Id: %d", a.cid)
-    fmt.Printf("\n提交: %s", a.post)
+func (receiverValue Author) extraDetails() {
+    statement
 }
 
-func main() {
+authorValue := Author{
+    fieldName1: fieldValue1,
+    fieldName2: fieldValue2,
+    fieldName3: fieldValue3,
+    fieldName4: fieldValue4,
+}
 
-    //结构体赋值
-    values := author{
+var detailsValue AuthorDetails = authorValue
+var articlesValue AuthorArticles = authorValue
+var finalValue FinalDetails = authorValue
 
-        a_name:    "Mickey",
-        branch:    "Computer science",
-        college:   "XYZ",
-        year:      2012,
-        salary:    50000,
-        particles: 209,
-        tarticles: 309,
-        cid:       3087,
-        post:      "Technical content writer",
-        pick:      58,
-    }
+detailsValue.details()
+articlesValue.articles()
+finalValue.details()
+finalValue.articles()
+finalValue.picked()
+finalValue.extraDetails()
 
-    // 使用 FinalDetails 接口访问接口1，2的方法
-    var f FinalDetails = values
-    f.details()
-    f.articles()
-    f.picked()
-    f.cdeatils()
+// 输出:
+// authorValue 可以分别作为不同接口类型使用
+// finalValue 可以访问嵌套接口的方法和当前接口新增的方法
+```
+
+#### 接口值
+
+接口值可以理解为“动态类型 + 动态值”的组合。接口本身是静态类型，而接口变量中真正保存的是某个具体类型的具体值。若一个接口变量没有保存任何具体值，那么它的零值就是 `nil`。
+
+```go
+var interfaceValue InterfaceName
+// interfaceValue: 接口变量
+// 零值: nil
+```
+
+接口值内部可以近似理解为一个 `(dynamicType, dynamicValue)` 的组合。  
+其中：
+
+- `dynamicType` 表示当前接口内部保存的具体类型
+- `dynamicValue` 表示当前接口内部保存的具体值
+
+当接口变量没有绑定任何具体值时，这两个部分都可以看作是 `nil`。一旦把某个具体值赋给接口变量，接口的静态类型不会变，但它内部保存的动态类型和动态值会发生变化。
+
+```go
+var interfaceValue InterfaceName
+interfaceValue = concreteValue
+// interfaceValue: 静态类型仍然是 InterfaceName
+// dynamicType: concreteType
+// dynamicValue: concreteValue
+```
+
+空接口同样遵循这个规则，只不过由于空接口没有方法约束，因此几乎所有类型都可以赋值给它。
+
+```go
+var emptyInterfaceValue interface{}
+var anyValue any
+
+emptyInterfaceValue = expression1
+emptyInterfaceValue = expression2
+anyValue = expression3
+```
+
+在比较接口值时，比较的是它们内部保存的具体类型和值，而不是只比较表面上的接口变量名。也就是说：
+
+- 先比较动态类型是否一致
+- 再比较动态值是否相等
+
+```go
+leftValue == rightValue
+// leftValue: 左侧接口值
+// rightValue: 右侧接口值
+// 返回结果: 动态类型相同且动态值相等时返回 true
+```
+
+如果接口内部保存的是不可比较类型，例如切片、映射等，那么直接比较会触发 `panic`。
+
+```go
+var leftValue interface{}
+var rightValue interface{}
+
+leftValue = expression1
+rightValue = expression2
+
+resultValue := leftValue == rightValue
+// 当底层具体类型不可比较时，该操作会 panic
+```
+
+接口值还有一个很容易混淆的点：  
+“接口值为 `nil`” 和 “接口里装着一个底层为 `nil` 的具体值” 不是一回事。前者表示接口本身没有动态类型和动态值；后者表示接口已经有动态类型，只是它内部保存的具体值是 `nil`。
+
+```go
+var interfaceValue1 interface{}
+var pointerValue *TargetType = nil
+var interfaceValue2 interface{} = pointerValue
+
+resultValue1 := interfaceValue1 == nil
+resultValue2 := interfaceValue2 == nil
+
+// 输出:
+// resultValue1 = true
+// resultValue2 = false
+// 因为 interfaceValue2 已经保存了动态类型 *TargetType
+```
+
+对于 Go 而言，内置数据类型是否可比较，大致可以整理为下表：
+
+| 类型       | 可比较 | 依据                     |
+| ---------- | ------ | ------------------------ |
+| 数字类型   | 是     | 值是否相等               |
+| 字符串类型 | 是     | 值是否相等               |
+| 数组类型   | 是     | 数组全部元素是否相等     |
+| 切片类型   | 否     | 不可比较                 |
+| 结构体     | 是     | 字段值是否全部相等       |
+| map 类型   | 否     | 不可比较                 |
+| 通道       | 是     | 地址是否相等             |
+| 指针       | 是     | 指针存储的地址是否相等   |
+| 接口       | 是     | 底层所存储的数据是否相等 |
+
+不过这里有一个前提：  像结构体、数组、接口这类“表面上可比较”的类型，前提都是其内部实际参与比较的值本身也必须可比较。否则在比较时仍然会触发 `panic`。
+
+```go
+type StructName struct {
+    fieldName1 Type1
+    fieldName2 Type2
+}
+
+leftValue == rightValue
+// 只有当 Type1 和 Type2 都可比较时，这样的结构体才可比较
+```
+
+在 Go 中还有一个专门的预声明接口类型，用于表示“所有可比较类型”，即 `comparable`。它主要出现在泛型约束中，用来限制类型参数必须支持 `==` 和 `!=`。
+
+```go
+type comparable interface{ comparable }
+// 含义: 代表所有可比较类型
+```
+
+**示例**：接口零值、空接口、接口比较、`nil` 接口与底层 `nil`、以及比较规则。
+
+```go
+type InterfaceName interface {
+    methodName() ReturnType
+}
+
+var interfaceValue InterfaceName
+var emptyInterfaceValue interface{}
+var pointerValue *TargetType = nil
+var wrappedNilValue interface{} = pointerValue
+
+emptyInterfaceValue = expression1
+
+resultValue1 := interfaceValue == nil
+resultValue2 := wrappedNilValue == nil
+
+compareValue1 := interface{}(expression2)
+compareValue2 := interface{}(expression3)
+compareResult := compareValue1 == compareValue2
+
+// 如果底层具体值不可比较，则下面这种写法会 panic
+// panicResult := interface{}(expression4) == interface{}(expression5)
+
+// 输出:
+// resultValue1 = true
+// resultValue2 = false
+// compareResult 取决于底层具体类型和值
+// 当底层具体值不可比较时，接口比较会 panic
+```
+
+#### 接口用途
+
+接口常用于以下场景：一是希望函数或方法能够接收不同类型的参数；二是多个具体类型共享同一组行为时，希望以统一方式处理它们；三是通过接口隔离具体实现，从而降低耦合。
+
+当一个函数只关心“能做什么”，而不关心“具体是什么类型”时，接口就很适合。例如，一个函数只要参数实现了指定方法，就可以处理这个参数，而无需关心它背后到底是哪个结构体类型。
+
+```go
+type InterfaceName interface {
+    methodName()
+}
+
+func functionName(interfaceValue InterfaceName) {
+    interfaceValue.methodName()
 }
 ```
 
-**输出：**
+类型断言也是接口的常见用途之一。它用于从接口值中提取具体值。基本格式为 `value.(T)`。如果断言失败，直接使用这种写法会触发 `panic`；为了更安全，通常使用双返回值形式 `value, ok := interfaceValue.(T)`。
 
-```
-作者: Mickey
-部门: Computer science 通过日期: 2012
-大学名称: XYZ
-薪水: 50000
-发表文章数: 209
-待定文章数: 100
-所选文章的总数: 58
-作者Id: 3087
-提交: Technical content writer
+```go
+resultValue := interfaceValue.(TargetType)
+// interfaceValue: 接口值
+// TargetType: 目标类型
+// 返回结果: 断言成功时返回具体值，失败时 panic
 ```
 
+```go
+resultValue, ok := interfaceValue.(TargetType)
+// resultValue: 断言成功时得到具体值，失败时得到零值
+// ok: 断言是否成功
+```
 
+当需要一次判断多个可能的具体类型时，通常使用类型判断，也就是 `switch interfaceValue.(type)`。
+
+```go
+switch interfaceValue.(type) {
+case TargetType1:
+    statement
+case TargetType2:
+    statement
+case TargetType3:
+    statement
+default:
+    statement
+}
+```
+
+**示例**：统一处理实现同一接口的类型，并配合断言或类型判断提取具体值。
+
+```go
+type Reader interface {
+    read()
+}
+
+type Type1 struct{}
+type Type2 struct{}
+
+func (receiverValue Type1) read() {
+    statement
+}
+
+func (receiverValue Type2) read() {
+    statement
+}
+
+func process(readerValue Reader) {
+    readerValue.read()
+}
+
+var interfaceValue interface{}
+interfaceValue = expression1
+
+assertValue, ok := interfaceValue.(TargetType)
+
+switch interfaceValue.(type) {
+case TargetType:
+    statement
+default:
+    statement
+}
+
+process(Type1{})
+process(Type2{})
+
+// 输出:
+// process 可以统一处理所有实现 Reader 的类型
+// 断言和类型判断可以进一步取出接口内部的具体值
+```
 
 ### 泛型
 
-泛型是 Go 语言在 1.18 版本中引入的重要特性，它让开发者能够编写更加灵活和可重用的代码。
+泛型是 Go 语言在 1.18 版本中引入的重要特性，它让开发者能够编写更加灵活、可复用的代码。泛型的核心目标是：在不固定具体类型的前提下，先描述“这类类型都能做什么”，再基于这些约束编写统一逻辑。
 
-泛型主要通过以下两个核心概念来实现：
+泛型主要围绕两个核心概念展开：
 
-- **类型参数（Type Parameters）：**允许你在函数或类型定义中使用一个或多个类型作为参数。
-- **类型约束（Type Constraints）：**指定类型参数必须满足的条件，确保在函数内部可以安全地操作这些类型。
+- **类型参数（Type Parameters）**：允许在函数、结构体、接口等定义中引入待定类型。
+- **类型约束（Type Constraints）**：限制类型参数必须满足的条件，从而保证泛型代码中的操作是安全的。
 
-| 概念             | 作用                                                 | 示例                                                 |
-| :--------------- | :--------------------------------------------------- | :--------------------------------------------------- |
-| **类型参数**     | 在函数或类型名后声明，表示待定的类型。               | `[T any]`                                            |
-| **类型约束**     | 定义类型参数必须满足的条件（如支持的操作符或方法）。 | `int，float64，comparable，constraints.Ordered，any` |
-| **`any`**        | 约束类型参数为**任何**类型。                         | `[T any]`                                            |
-| **`comparable`** | 约束类型参数为**可比较**的类型。                     | `[K comparable]`                                     |
+| 概念         | 作用                           | 示例                          |
+| ------------ | ------------------------------ | ----------------------------- |
+| 类型参数     | 在函数名或类型名后声明待定类型 | `[T any]`                     |
+| 类型约束     | 限制类型参数必须满足的条件     | `comparable`、`int | float64` |
+| `any`        | 表示任意类型                   | `[T any]`                     |
+| `comparable` | 表示支持 `==`、`!=` 比较的类型 | `[K comparable]`              |
 
-泛型（Generics）允许我们编写不依赖特定数据类型的代码。
-
-在引入泛型之前，如果我们想要处理不同类型的数据，通常需要为每种类型编写重复的函数。
+在引入泛型之前，如果想分别处理 `int`、`string`、`float64` 等多种类型，通常需要写多份逻辑相似的代码；而泛型的意义就在于把这种重复抽象掉。
 
 #### 类型参数
 
-泛型函数和类型通过类型参数列表来声明，语法为 `[类型参数 约束]`。
+泛型函数和泛型类型都通过类型参数列表声明，类型参数写在函数名或类型名后面的方括号中。
 
-```
-// 基本语法结构
-func 函数名[T 约束](参数 T) 返回值类型 {
-    // 函数体
+```go
+func functionName[T Constraint](parameterName T) ReturnType {
+    statement
 }
 
-type 类型名[T 约束] struct {
-    // 结构体字段
+type TypeName[T Constraint] struct {
+    fieldName T
 }
 ```
 
-**类型参数命名约定**
+类型参数通常使用简短的大写字母命名，例如：
 
-- 通常使用大写字母：`T`、`K`、`V`、`E` 等
-- `T`：表示 Type（类型）
-- `K`：表示 Key（键）
-- `V`：表示 Value（值）
-- `E`：表示 Element（元素）
+- `T`：Type
+- `K`：Key
+- `V`：Value
+- `E`：Element
+
+这些命名本身不是语法要求，只是一种常见约定。
+
+```go
+func functionName[T any](parameterName T) T {
+    return parameterName
+}
+
+type Pair[K any, V any] struct {
+    key   K
+    value V
+}
+```
+
+**示例**：定义泛型函数与泛型结构体。
+
+```go
+func identity[T any](parameterValue T) T {
+    return parameterValue
+}
+
+type Pair[K any, V any] struct {
+    key   K
+    value V
+}
+
+resultValue1 := identity(expression1)
+resultValue2 := identity(expression2)
+
+pairValue := Pair[KeyType, ValueType]{
+    key:   keyValue,
+    value: valueValue,
+}
+
+// 输出:
+// resultValue1 = expression1
+// resultValue2 = expression2
+// pairValue 保存一组不同类型的键和值
+```
 
 #### 类型约束
 
-约束定义了类型参数必须满足的条件，是泛型的核心概念。
+约束定义了类型参数必须满足的条件，它是泛型的核心。只有在约束允许的前提下，泛型函数内部才能安全地执行某些操作。
 
-**内置约束**
+最常见的内置约束有两个：
 
-* **`any` 约束**:`any` 是空接口 `interface{}` 的别名，表示任何类型都可以。
+- `any`：表示任意类型，本质上是 `interface{}` 的别名
+- `comparable`：表示支持 `==` 与 `!=` 的类型
 
-* **`comparable` 约束**:`comparable` 表示类型支持 `==` 和 `!=` 操作符。
-* **联合约束(Union Constraints)**：使用 `|` 运算符组合多个类型。
-
+```go
+func functionName[T any](parameterName T) {
+    statement
+}
 ```
-func PrintAny[T any](value T) {
-    fmt.Printf("Value: %v, Type: %T\n", value, value)
+
+```go
+func functionName[T comparable](leftValue T, rightValue T) bool {
+    return leftValue == rightValue
 }
+```
 
-// 使用示例
-PrintAny(42)        // Value: 42, Type: int
-PrintAny("hello")   // Value: hello, Type: string
-PrintAny(3.14)      // Value: 3.14, Type: float64
+除了内置约束，也可以通过联合类型来定义约束，即使用 `|` 把多个类型组合在一起。这样定义出来的约束，表示类型参数只能从这些类型中取值。
 
-
-
-func FindIndex[T comparable](slice []T, target T) int {
-    for i, v := range slice {
-        if v == target {
-            return i
-        }
-    }
-    return -1
+```go
+type ConstraintName interface {
+    Type1 | Type2 | Type3
 }
+```
 
-// 使用示例
-numbers := []int{1, 2, 3, 4, 5}
-fmt.Println(FindIndex(numbers, 3))  // 输出: 2
-
-names := []string{"Alice", "Bob", "Charlie"}
-fmt.Println(FindIndex(names, "Bob"))  // 输出: 1
-
-
-// 数字类型约束
+```go
 type Number interface {
-    int | int8 | int16 | int32 | int64 | 
-    uint | uint8 | uint16 | uint32 | uint64 | 
+    int | int8 | int16 | int32 | int64 |
+    uint | uint8 | uint16 | uint32 | uint64 |
     float32 | float64
 }
+```
 
-func Add[T Number](a, b T) T {
-    return a + b
+有时约束不仅要求“底层类型属于某个集合”，还要求“实现某些方法”。这种约束可以把类型集合和方法集合组合在一起。
+
+```go
+type ConstraintName interface {
+    Type1 | Type2
+    methodName() ReturnType
+}
+```
+
+**示例**：`any`、`comparable`、联合约束与方法约束。
+
+```go
+func printValue[T any](parameterValue T) {
+    statement
 }
 
-// 使用示例
-fmt.Println(Add(10, 20))        // 输出: 30
-fmt.Println(Add(3.14, 2.71))    // 输出: 5.85
-```
+func equalValue[T comparable](leftValue T, rightValue T) bool {
+    return leftValue == rightValue
+}
 
-**自定义约束**
+type Number interface {
+    int | int64 | float32 | float64
+}
 
-* **方法约束**：定义需要特定方法的约束。
-* **复杂约束**：结合类型和方法要求。
+func add[T Number](leftValue T, rightValue T) T {
+    return leftValue + rightValue
+}
 
-```
-// 定义 Stringer 约束
 type Stringer interface {
     String() string
 }
 
-func PrintString[T Stringer](value T) {
-    fmt.Println(value.String())
+func printString[T Stringer](parameterValue T) string {
+    return parameterValue.String()
 }
 
-// 实现自定义类型
-type Person struct {
-    Name string
-    Age  int
+resultValue1 := equalValue(expression1, expression2)
+resultValue2 := add(expression3, expression4)
+resultValue3 := printString(expression5)
+
+// 输出:
+// resultValue1 = 比较结果
+// resultValue2 = 数值求和结果
+// resultValue3 = String() 返回结果
+```
+
+#### 通用接口
+
+在 Go 1.18 引入泛型之后，接口的含义可以从“方法集合”进一步理解为“类型集合”。这时接口可以分成两类：
+
+- **基本接口（Basic Interface）**：只包含方法集合
+- **通用接口（General Interface）**：除了方法，还包含类型集合
+
+也就是说，只要接口中出现了类型元素、联合类型、`~` 底层类型约束等内容，它就不再只是传统意义上的“方法接口”，而是泛型语境下的通用接口。
+
+```go
+type BasicInterface interface {
+    methodName()
+}
+```
+
+```go
+type GeneralInterface interface {
+    Type1 | Type2
+}
+```
+
+```go
+type GeneralInterface interface {
+    ~int | ~int64
+}
+```
+
+通用接口主要用于**约束类型参数**，而不是像普通接口那样拿来声明接口值变量。也就是说，这类接口更多是“泛型约束工具”，而不是“多态对象容器”。
+
+```go
+type Integer interface {
+    ~int | ~int8 | ~int16 | ~int32 | ~int64
 }
 
-func (p Person) String() string {
-    return fmt.Sprintf("%s (%d years old)", p.Name, p.Age)
+func sum[T Integer](leftValue T, rightValue T) T {
+    return leftValue + rightValue
+}
+```
+
+这里的 `~int` 表示“底层类型是 `int` 的类型”，因此不仅 `int` 本身可以满足约束，像 `type MyInt int` 这样的自定义类型也能满足。
+
+**示例**：使用通用接口约束底层类型。
+
+```go
+type Integer interface {
+    ~int | ~int32 | ~int64
 }
 
-// 使用示例
-person := Person{Name: "Alice", Age: 25}
-PrintString(person)  // 输出: Alice (25 years old)
+type MyInt int
 
-
-// 要求类型是数字且实现 String() 方法
-type NumericStringer interface {
-    Number
-    String() string
+func addInteger[T Integer](leftValue T, rightValue T) T {
+    return leftValue + rightValue
 }
+
+resultValue1 := addInteger(expression1, expression2)
+resultValue2 := addInteger(MyInt(expression3), MyInt(expression4))
+
+// 输出:
+// resultValue1 = expression1 + expression2
+// resultValue2 = MyInt(expression3 + expression4)
 ```
 
 #### 泛型类型
 
-**泛型结构体**
+泛型不仅可以用于函数，也可以用于结构体、切片包装器、映射包装器等类型定义。这样就能把“数据结构”和“适用类型”一起抽象出来。
 
+泛型结构体的基本形式如下：
+
+```go
+type TypeName[T Constraint] struct {
+    fieldName []T
+}
 ```
-// 泛型栈实现
+
+常见场景是把某种容器写成泛型结构，例如栈、队列、集合、缓存等。此时类型参数决定容器里保存什么元素，而方法逻辑本身不需要为每种元素类型重复写一遍。
+
+```go
 type Stack[T any] struct {
     elements []T
 }
 
-// 入栈
-func (s *Stack[T]) Push(value T) {
-    s.elements = append(s.elements, value)
+func (receiverPointer *Stack[T]) Push(elementValue T) {
+    receiverPointer.elements = append(receiverPointer.elements, elementValue)
 }
 
-// 出栈
-func (s *Stack[T]) Pop() (T, bool) {
-    if len(s.elements) == 0 {
-        var zero T
-        return zero, false
+func (receiverPointer *Stack[T]) Pop() (T, bool) {
+    if len(receiverPointer.elements) == 0 {
+        var zeroValue T
+        return zeroValue, false
     }
-    
-    lastIndex := len(s.elements) - 1
-    value := s.elements[lastIndex]
-    s.elements = s.elements[:lastIndex]
-    return value, true
-}
 
-// 查看栈顶元素
-func (s *Stack[T]) Peek() (T, bool) {
-    if len(s.elements) == 0 {
-        var zero T
-        return zero, false
-    }
-    return s.elements[len(s.elements)-1], true
-}
-
-// 判断栈是否为空
-func (s *Stack[T]) IsEmpty() bool {
-    return len(s.elements) == 0
-}
-
-// 使用示例
-func main() {
-    // 整数栈
-    intStack := Stack[int]{}
-    intStack.Push(1)
-    intStack.Push(2)
-    intStack.Push(3)
-    
-    fmt.Println(intStack.Pop())  // 输出: 3 true
-    
-    // 字符串栈
-    stringStack := Stack[string]{}
-    stringStack.Push("hello")
-    stringStack.Push("world")
-    
-    fmt.Println(stringStack.Pop())  // 输出: world true
+    lastIndex := len(receiverPointer.elements) - 1
+    resultValue := receiverPointer.elements[lastIndex]
+    receiverPointer.elements = receiverPointer.elements[:lastIndex]
+    return resultValue, true
 }
 ```
 
-**泛型映射（Map）**
+映射类型在泛型中也很常见，尤其是键通常会约束为 `comparable`，因为底层 `map` 的键本身就必须可比较。
 
+```go
+type MapType[K comparable, V any] struct {
+    data map[K]V
+}
 ```
-// 线程安全的泛型映射
+
+**示例**：泛型栈与泛型映射的典型形式。
+
+```go
+type Stack[T any] struct {
+    elements []T
+}
+
+func (receiverPointer *Stack[T]) Push(elementValue T) {
+    receiverPointer.elements = append(receiverPointer.elements, elementValue)
+}
+
+func (receiverPointer *Stack[T]) Pop() (T, bool) {
+    if len(receiverPointer.elements) == 0 {
+        var zeroValue T
+        return zeroValue, false
+    }
+
+    lastIndex := len(receiverPointer.elements) - 1
+    resultValue := receiverPointer.elements[lastIndex]
+    receiverPointer.elements = receiverPointer.elements[:lastIndex]
+    return resultValue, true
+}
+
 type SafeMap[K comparable, V any] struct {
     data map[K]V
-    mutex sync.RWMutex
 }
 
-// 创建新的 SafeMap
-func NewSafeMap[K comparable, V any]() *SafeMap[K, V] {
+func newSafeMap[K comparable, V any]() *SafeMap[K, V] {
     return &SafeMap[K, V]{
         data: make(map[K]V),
     }
 }
 
-// 设置键值对
-func (m *SafeMap[K, V]) Set(key K, value V) {
-    m.mutex.Lock()
-    defer m.mutex.Unlock()
-    m.data[key] = value
+func (receiverPointer *SafeMap[K, V]) Set(keyValue K, value V) {
+    receiverPointer.data[keyValue] = value
 }
 
-// 获取值
-func (m *SafeMap[K, V]) Get(key K) (V, bool) {
-    m.mutex.RLock()
-    defer m.mutex.RUnlock()
-    value, exists := m.data[key]
-    return value, exists
+func (receiverPointer *SafeMap[K, V]) Get(keyValue K) (V, bool) {
+    resultValue, ok := receiverPointer.data[keyValue]
+    return resultValue, ok
 }
 
-// 删除键
-func (m *SafeMap[K, V]) Delete(key K) {
-    m.mutex.Lock()
-    defer m.mutex.Unlock()
-    delete(m.data, key)
-}
+stackValue := Stack[ElementType]{}
+stackValue.Push(elementValue1)
+stackValue.Push(elementValue2)
+popValue, popOK := stackValue.Pop()
 
-// 获取所有键
-func (m *SafeMap[K, V]) Keys() []K {
-    m.mutex.RLock()
-    defer m.mutex.RUnlock()
-    
-    keys := make([]K, 0, len(m.data))
-    for key := range m.data {
-        keys = append(keys, key)
-    }
-    return keys
-}
+mapValue := newSafeMap[KeyType, ValueType]()
+mapValue.Set(keyValue, valueValue)
+getValue, getOK := mapValue.Get(keyValue)
 
-// 使用示例
-func main() {
-    // 创建字符串到整数的映射
-    scores := NewSafeMap[string, int]()
-    scores.Set("Alice", 95)
-    scores.Set("Bob", 87)
-    
-    if score, exists := scores.Get("Alice"); exists {
-        fmt.Printf("Alice's score: %d\n", score)  // 输出: Alice's score: 95
-    }
-    
-    fmt.Println("Keys:", scores.Keys())  // 输出: Keys: [Alice Bob]
-}
+// 输出:
+// popValue = 最近一次压入的元素
+// popOK = 是否成功弹出
+// getValue = 指定键对应的值
+// getOK = 键是否存在
 ```
+
+
 
 ## 并发与网络编程
 
 ### 并发
 
-#### [协程](https://golang.halfiisland.com/essential/senior/110.concurrency.html#协程)
+#### 协程
 
 协程（coroutine）是一种轻量级的线程，或者说是用户态的线程，不受操作系统直接调度，由 Go 语言自身的调度器进行运行时调度，因此上下文切换开销非常小，这也是为什么 Go 的并发性能很不错的原因之一。协程这一概念并非 Go 首次提出，Go 也不是第一个支持协程的语言，但 Go 是第一个能够将协程和并发支持的相当简洁和优雅的语言。
 
-在 Go 中，创建一个协程十分的简单，仅需要一个 `go` 关键字，就能够快速开启一个协程，`go` 关键字后面必须是一个函数调用。例子如下
+在 Go 中，创建一个协程十分的简单，仅需要一个 `go` 关键字，就能够快速开启一个协程，`go` 关键字后面必须是一个函数调用。
 
-提示
+1. **创建协程**：`go` 后面必须跟函数调用表达式。
 
-具有返回值的内置函数不允许跟随在 `go` 关键字后面，例如下面的错误示范
-
-
-
-```
-go make([]int,10) //  go discards result of make([]int, 10) (value of type []int)
+```go
+go functionName(argumentList)
+// functionName(argumentList): 函数调用表达式
+// 返回结果: 启动一个新的 goroutine 执行该调用
 ```
 
+2. **使用匿名函数创建协程**：适合在当前上下文中直接封装任务逻辑。
 
-
+```go
+go func(parameterList) {
+    statement
+}(argumentList)
+// parameterList: 匿名函数参数列表
+// statement: 协程中要执行的逻辑
+// 返回结果: 启动一个执行匿名函数的 goroutine
 ```
-func main() {
-  go fmt.Println("hello world!")
-  go hello()
-  go func() {
-    fmt.Println("hello world!")
-  }()
-}
 
+**注意**：具有返回值的内置函数不允许跟随在 `go` 关键字后面，例如下面的错误示范：
+
+```go
+go make([]int, 10)
+// 错误原因: go 后必须是函数调用，且返回值会被直接丢弃
+// 编译错误: go discards result of make([]int, 10) (value of type []int)
+```
+
+下面这三种开启协程的方式都是可以的：
+
+```go
 func hello() {
-  fmt.Println("hello world!")
+    fmt.Println("hello world!")
 }
+
+go fmt.Println("hello world!")
+go hello()
+go func() {
+    fmt.Println("hello world!")
+}()
 ```
 
-以上三种开启协程的方式都是可以的，但是其实这个例子执行过后在大部分情况下什么都不会输出，协程是并发执行的，系统创建协程需要时间，而在此之前，主协程早已运行结束，一旦主线程退出，其他子协程也就自然退出了。并且协程的执行顺序也是不确定的，无法预判的，例如下面的例子
+以上三种开启协程的方式都是可以的，但是其实这个例子执行过后在大部分情况下什么都不会输出，协程是并发执行的，系统创建协程需要时间，而在此之前，主协程早已运行结束，一旦主线程退出，其他子协程也就自然退出了。并且协程的执行顺序也是不确定的，无法预判的。
 
+例如下面的例子：
 
-
-```
+```go
 func main() {
-  fmt.Println("start")
-  for i := 0; i < 10; i++ {
-    go fmt.Println(i)
-  }
-  fmt.Println("end")
+    fmt.Println("start")
+
+    for indexValue := 0; indexValue < 10; indexValue++ {
+        go fmt.Println(indexValue)
+    }
+
+    fmt.Println("end")
 }
+
+// 输出可能为:
+// start
+// end
+//
+// 也可能为:
+// start
+// 0
+// 1
+// 5
+// 3
+// 4
+// 6
+// 7
+// end
 ```
 
-这是一个在循环体中开启协程的例子，永远也无法精准的预判到它到底会输出什么。可能子协程还没开始运行，主协程就已经结束了，情况如下
+这是一个在循环体中开启协程的例子，永远也无法精准地预判到它到底会输出什么。可能子协程还没开始运行，主协程就已经结束了；也可能只有一部分子协程在主协程退出前成功运行。
 
+最简单的做法就是让主协程等一会儿，需要使用到 `time` 包下的 `Sleep` 函数，可以使当前协程暂停一段时间。
 
+1. **暂停当前协程**：`time.Sleep` 只会暂停当前 goroutine。
 
-```
-start
-end
-```
-
-又或者只有一部分子协程在主协程退出前成功运行，情况如下
-
-
-
-```
-start
-0
-1
-5
-3
-4
-6
-7
-end
+```go
+time.Sleep(durationValue)
+// durationValue: 暂停时间
+// 返回结果: 当前 goroutine 暂停指定时长
 ```
 
-最简单的做法就是让主协程等一会儿，需要使用到 `time` 包下的 `Sleep` 函数，可以使当前协程暂停一段时间，例子如下
+例子如下：
 
-
-
-```
+```go
 func main() {
-  fmt.Println("start")
-  for i := 0; i < 10; i++ {
-    go fmt.Println(i)
-  }
-    // 暂停1ms
-  time.Sleep(time.Millisecond)
-  fmt.Println("end")
+    fmt.Println("start")
+
+    for indexValue := 0; indexValue < 10; indexValue++ {
+        go fmt.Println(indexValue)
+    }
+
+    time.Sleep(time.Millisecond)
+    fmt.Println("end")
 }
+
+// 输出可能为:
+// start
+// 0
+// 1
+// 5
+// 2
+// 3
+// 4
+// 6
+// 8
+// 9
+// 7
+// end
 ```
 
-再次执行输出如下，可以看到所有的数字都完整输出了，没有遗漏
+再次执行可以看到所有的数字都完整输出了，没有遗漏，但是顺序还是乱的，因此让每次循环都稍微地等一下。例子如下：
 
-
-
-```
-start
-0
-1
-5
-2
-3
-4
-6
-8
-9
-7
-end
-```
-
-但是顺序还是乱的，因此让每次循环都稍微的等一下。例子如下
-
-
-
-```
+```go
 func main() {
-   fmt.Println("start")
-   for i := 0; i < 10; i++ {
-      go fmt.Println(i)
-      time.Sleep(time.Millisecond)
-   }
-   time.Sleep(time.Millisecond)
-   fmt.Println("end")
+    fmt.Println("start")
+
+    for indexValue := 0; indexValue < 10; indexValue++ {
+        go fmt.Println(indexValue)
+        time.Sleep(time.Millisecond)
+    }
+
+    time.Sleep(time.Millisecond)
+    fmt.Println("end")
 }
+
+// 输出可能为:
+// start
+// 0
+// 1
+// 2
+// 3
+// 4
+// 5
+// 6
+// 7
+// 8
+// 9
+// end
 ```
 
-现在的输出已经是正常的顺序了
+现在的输出已经是正常的顺序了。
 
+但是上面的例子中结果输出很完美，那么并发的问题解决了吗？不，一点也没有。对于并发的程序而言，不可控的因素非常多，执行的时机、先后顺序、执行过程的耗时等等，倘若循环中子协程的工作不只是一个简单的输出数字，而是一个非常巨大复杂的任务，耗时是不确定的，那么依旧会重现之前的问题。例如下方代码：
 
-
-```
-start
-0
-1
-2
-3
-4
-5
-6
-7
-8
-9
-end
-```
-
-上面的例子中结果输出很完美，那么并发的问题解决了吗，不，一点也没有。对于并发的程序而言，不可控的因素非常多，执行的时机，先后顺序，执行过程的耗时等等，倘若循环中子协程的工作不只是一个简单的输出数字，而是一个非常巨大复杂的任务，耗时的不确定的，那么依旧会重现之前的问题。例如下方代码
-
-
-
-```
+```go
 func main() {
-   fmt.Println("start")
-   for i := 0; i < 10; i++ {
-      go hello(i)
-      time.Sleep(time.Millisecond)
-   }
-   time.Sleep(time.Millisecond)
-   fmt.Println("end")
+    fmt.Println("start")
+
+    for indexValue := 0; indexValue < 10; indexValue++ {
+        go hello(indexValue)
+        time.Sleep(time.Millisecond)
+    }
+
+    time.Sleep(time.Millisecond)
+    fmt.Println("end")
 }
 
-func hello(i int) {
-   // 模拟随机耗时
-   time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-   fmt.Println(i)
+func hello(indexValue int) {
+    time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
+    fmt.Println(indexValue)
 }
+
+// 输出可能为:
+// start
+// 0
+// 3
+// 4
+// end
 ```
 
-这段代码的输出依旧是不确定的，下面是可能的情况之一
-
-
-
-```
-start
-0
-3
-4
-end
-```
-
-因此 `time.Sleep` 并不是一种良好的解决办法，幸运的是 Go 提供了非常多的并发控制手段，常用的并发控制方法有三种：
+这段代码的输出依旧是不确定的。因此 `time.Sleep` 并不是一种良好的解决办法，幸运的是 Go 提供了非常多的并发控制手段，常用的并发控制方法有三种：
 
 - `channel`：管道
 - `WaitGroup`：信号量
 - `Context`：上下文
 
-三种方法有着不同的适用情况，`WaitGroup` 可以动态的控制一组指定数量的协程，`Context` 更适合子孙协程嵌套层级更深的情况，管道更适合协程间通信。对于较为传统的锁控制，Go 也对此提供了支持：
+三种方法有着不同的适用情况，`WaitGroup` 可以动态地控制一组指定数量的协程，`Context` 更适合子孙协程嵌套层级更深的情况，管道更适合协程间通信。对于较为传统的锁控制，Go 也对此提供了支持：
 
 - `Mutex`：互斥锁
-- `RWMutex` ：读写互斥锁
+- `RWMutex`：读写互斥锁
 
 #### [管道](https://golang.halfiisland.com/essential/senior/110.concurrency.html#管道)
 
@@ -6598,1558 +6410,1249 @@ end
 
 > Do not communicate by sharing memory; instead, share memory by communicating.
 
-即通过消息来进行内存共享，`channel` 就是为此而生，它是一种在协程间通信的解决方案，同时也可以用于并发控制，先来认识下 `channel` 的基本语法。Go 中通过关键字 `chan` 来代表管道类型，同时也必须声明管道的存储类型，来指定其存储的数据是什么类型，下面的例子是一个普通管道的模样。
+即通过消息来进行内存共享，`channel` 就是为此而生，它是一种在协程间通信的解决方案，同时也可以用于并发控制。先来认识下 `channel` 的基本语法。Go 中通过关键字 `chan` 来代表管道类型，同时也必须声明管道的存储类型，来指定其存储的数据是什么类型，下面的例子是一个普通管道的模样。
 
-
-
-```
-var ch chan int
+```go
+var channelValue chan ElementType
+// channelValue: 管道变量
+// ElementType: 管道中存储的数据类型
+// 零值: nil
 ```
 
 这是一个管道的声明语句，此时管道还未初始化，其值为 `nil`，不可以直接使用。
 
-##### [创建](https://golang.halfiisland.com/essential/senior/110.concurrency.html#创建)
+##### 管道创建
 
-在创建管道时，有且只有一种方法，那就是使用内置函数 `make`，对于管道而言，`make` 函数接收两个参数，第一个是管道的类型，第二个是可选参数为管道的缓冲大小。例子如下
+在创建管道时，有且只有一种方法，那就是使用内置函数 `make`。对于管道而言，`make` 函数接收两个参数，第一个是管道的类型，第二个是可选参数，为管道的缓冲大小。
 
+1. **创建无缓冲管道**：缓冲区大小为 0，发送与接收必须同步配对。
 
-
-```
-intCh := make(chan int)
-// 缓冲区大小为1的管道
-strCh := make(chan string, 1)
-```
-
-在使用完一个管道后一定要记得关闭该管道，使用内置函数 `close` 来关闭一个管道，该函数签名如下。
-
-
-
-```
-func close(c chan<- Type)
+```go
+make(chan ElementType)
+// ElementType: 管道元素类型
+// 返回结果: 无缓冲管道
 ```
 
-一个关闭管道的例子如下
+2. **创建有缓冲管道**：额外指定缓冲区大小。
 
-
-
-```
-func main() {
-  intCh := make(chan int)
-  // do something
-  close(intCh)
-}
+```go
+make(chan ElementType, bufferSize)
+// ElementType: 管道元素类型
+// bufferSize: 缓冲区大小
+// 返回结果: 有缓冲管道
 ```
 
-有些时候使用 `defer` 来关闭管道可能会更好。
+3. **关闭管道**：使用完一个管道后要记得关闭，通常由发送方关闭。
 
-##### [读写](https://golang.halfiisland.com/essential/senior/110.concurrency.html#读写)
+```go
+close(channelValue)
+// channelValue: 待关闭管道
+// 返回结果: 关闭该管道
+```
+
+一个关闭管道的例子如下：
+
+```go
+channelValue := make(chan ElementType)
+// do something
+close(channelValue)
+// 说明:
+// 1. 管道创建后才能使用
+// 2. nil 管道不可直接读写
+// 3. 有些时候使用 defer 关闭管道会更方便
+```
+
+##### 管道读写
 
 对于一个管道而言，Go 使用了两种很形象的操作符来表示读写操作：
 
-`ch <-`：表示对一个管道写入数据
+- `channelValue <- elementValue`：表示对一个管道写入数据
+- `<-channelValue`：表示对一个管道读取数据
 
-`<- ch`：表示对一个管道读取数据
+`<-` 很生动地表示了数据的流动方向。
 
-`<-` 很生动的表示了数据的流动方向，来看一个对 `int` 类型的管道读写的例子
+1. **发送数据**：向管道写入一个值。
 
-
-
+```go
+channelValue <- elementValue
+// channelValue: 目标管道
+// elementValue: 要发送的数据
+// 返回结果: 向管道中写入一个值
 ```
-func main() {
-    // 如果没有缓冲区则会导致死锁
-  intCh := make(chan int, 1)
-  defer close(intCh)
-    // 写入数据
-  intCh <- 114514
-    // 读取数据
-  fmt.Println(<-intCh)
+
+2. **接收数据**：从管道中读取一个值。
+
+```go
+resultValue := <-channelValue
+// resultValue: 读取到的数据
+// 返回结果: 从管道中取出一个值
+```
+
+3. **安全接收**：读取时可以取得第二个返回值，用于判断是否读取成功。
+
+```go
+resultValue, ok := <-channelValue
+// resultValue: 读取到的数据；若失败则为零值
+// ok: 是否成功读取到有效数据
+```
+
+4. **遍历读取**：通过 `for range` 可以不断从管道中读取数据。
+
+```go
+for elementValue := range channelValue {
+    statement
 }
+// elementValue: 每次从管道读取到的值
+// 说明:
+// 1. 管道 range 只有一个返回值
+// 2. 若管道未关闭，且后续没有新数据，会阻塞等待
 ```
 
-上面的例子中创建了一个缓冲区大小为 1 的 `int` 型管道，对其写入数据 `114514`，然后再读取数据并输出，最后关闭该管道。对于读取操作而言，还有第二个返回值，一个布尔类型的值，用于表示数据是否读取成功
+管道中的数据流动方式与队列一样，即先进先出（FIFO）。协程对于管道的操作是同步的，在某一个时刻，只有一个协程能够对其写入数据，同时也只有一个协程能够读取管道中的数据。
 
+**示例**：创建一个管道，发送数据、接收数据，使用双返回值读取，并通过 `for range` 消费直到关闭。
 
+```go
+channelValue := make(chan int, bufferSize)
 
-```
-ints, ok := <-intCh
-```
+channelValue <- elementValue1
+channelValue <- elementValue2
 
-管道中的数据流动方式与队列一样，即先进先出（FIFO），协程对于管道的操作是同步的，在某一个时刻，只有一个协程能够对其写入数据，同时也只有一个协程能够读取管道中的数据。
+resultValue1 := <-channelValue
+resultValue2, ok := <-channelValue
 
-##### [无缓冲](https://golang.halfiisland.com/essential/senior/110.concurrency.html#无缓冲)
-
-对于无缓冲管道而言，因为缓冲区容量为 0，所以不会临时存放任何数据。正因为无缓冲管道无法存放数据，在向管道写入数据时必须立刻有其他协程来读取数据，否则就会阻塞等待，读取数据时也是同理，这也解释了为什么下面看起来很正常的代码会发生死锁。
-
-
-
-```
-func main() {
-  // 创建无缓冲管道
-  ch := make(chan int)
-  defer close(ch)
-  // 写入数据
-  ch <- 123
-  // 读取数据
-  n := <-ch
-  fmt.Println(n)
-}
-```
-
-无缓冲管道不应该同步的使用，正确来说应该开启一个新的协程来发送数据，如下例
-
-
-
-```
-func main() {
-  // 创建无缓冲管道
-  ch := make(chan int)
-  defer close(ch)
-  go func() {
-    // 写入数据
-    ch <- 123
-  }()
-  // 读取数据
-  n := <-ch
-  fmt.Println(n)
-}
-```
-
-##### [有缓冲](https://golang.halfiisland.com/essential/senior/110.concurrency.html#有缓冲)
-
-当管道有了缓冲区，就像是一个阻塞队列一样，读取空的管道和写入已满的管道都会造成阻塞。无缓冲管道在发送数据时，必须立刻有人接收，否则就会一直阻塞。对于有缓冲管道则不必如此，对于有缓冲管道写入数据时，会先将数据放入缓冲区里，只有当缓冲区容量满了才会阻塞的等待协程来读取管道中的数据。同样的，读取有缓冲管道时，会先从缓冲区中读取数据，直到缓冲区没数据了，才会阻塞的等待协程来向管道中写入数据。因此，无缓冲管道中会造成死锁例子在这里可以顺利运行。
-
-
-
-```
-func main() {
-   // 创建有缓冲管道
-   ch := make(chan int, 1)
-   defer close(ch)
-   // 写入数据
-   ch <- 123
-   // 读取数据
-   n := <-ch
-   fmt.Println(n)
-}
-```
-
-尽管可以顺利运行，但这种同步读写的方式是非常危险的，一旦管道缓冲区空了或者满了，将会永远阻塞下去，因为没有其他协程来向管道中写入或读取数据。来看看下面的一个例子
-
-
-
-```
-func main() {
-  // 创建有缓冲管道
-  ch := make(chan int, 5)
-  // 创建两个无缓冲管道
-  chW := make(chan struct{})
-  chR := make(chan struct{})
-  defer func() {
-    close(ch)
-    close(chW)
-    close(chR)
-  }()
-  // 负责写
-  go func() {
-    for i := 0; i < 10; i++ {
-      ch <- i
-      fmt.Println("写入", i)
+go func() {
+    for indexValue := 0; indexValue < countValue; indexValue++ {
+        channelValue <- indexValue
     }
-    chW <- struct{}{}
-  }()
-  // 负责读
-  go func() {
-    for i := 0; i < 10; i++ {
-            // 每次读取数据都需要花费1毫秒
-      time.Sleep(time.Millisecond)
-      fmt.Println("读取", <-ch)
-    }
-    chR <- struct{}{}
-  }()
-  fmt.Println("写入完毕", <-chW)
-  fmt.Println("读取完毕", <-chR)
-}
-```
+    close(channelValue)
+}()
 
-这里总共创建了 3 个管道，一个有缓冲管道用于协程间通信，两个无缓冲管道用于同步父子协程的执行顺序。负责读的协程每次读取之前都会等待 1 毫秒，负责写的协程一口气做多也只能写入 5 个数据，因为管道缓冲区最大只有 5，在没有协程来读取之前，只能阻塞等待。所以该示例输出如下
-
-
-
-```
-写入 0
-写入 1
-写入 2
-写入 3
-写入 4 // 一下写了5个，缓冲区满了，等其他协程来读
-读取 0
-写入 5 // 读一个，写一个
-读取 1
-写入 6
-读取 2
-写入 7
-读取 3
-写入 8
-写入 9
-读取 4
-写入完毕 {} // 所有的数据都发送完毕，写协程执行完毕
-读取 5
-读取 6
-读取 7
-读取 8
-读取 9
-读取完毕 {} // 所有的数据都读完了，读协程执行完毕
-```
-
-可以看到负责写的协程刚开始就一口气发送了 5 个数据，缓冲区满了以后就开始阻塞等待读协程来读取，后面就是每当读协程 1 毫秒读取一个数据，缓冲区有空位了，写协程就写入一个数据，直到所有数据发送完毕，写协程执行结束，随后当读协程将缓冲区所有数据读取完毕后，读协程也执行结束，最后主协程退出。
-
-提示
-
-通过内置函数 `len` 可以访问管道缓冲区中数据的个数，通过 `cap` 可以访问管道缓冲区的大小。
-
-
-
-```
-func main() {
-   ch := make(chan int, 5)
-   ch <- 1
-   ch <- 2
-   ch <- 3
-   fmt.Println(len(ch), cap(ch))
-}
-```
-
-输出
-
-
-
-```
-3 5
-```
-
-利用管道的阻塞条件，可以很轻易的写出一个主协程等待子协程执行完毕的例子
-
-
-
-```
-func main() {
-   // 创建一个无缓冲管道
-   ch := make(chan struct{})
-   defer close(ch)
-   go func() {
-      fmt.Println(2)
-      // 写入
-      ch <- struct{}{}
-   }()
-   // 阻塞等待读取
-   <-ch
-   fmt.Println(1)
-}
-```
-
-输出
-
-
-
-```
-2
-1
-```
-
-通过有缓冲管道还可以实现一个简单的互斥锁，看下面的例子
-
-
-
-```
-var count = 0
-
-// 缓冲区大小为1的管道
-var lock = make(chan struct{}, 1)
-
-func Add() {
-    // 加锁
-  lock <- struct{}{}
-  fmt.Println("当前计数为", count, "执行加法")
-  count += 1
-    // 解锁
-  <-lock
+for elementValue := range channelValue {
+    statement
 }
 
-func Sub() {
-    // 加锁
-  lock <- struct{}{}
-  fmt.Println("当前计数为", count, "执行减法")
-  count -= 1
-    // 解锁
-  <-lock
-}
+// 输出示意:
+// resultValue1 = elementValue1
+// resultValue2 = elementValue2
+// ok = true
+// range 会持续读取，直到发送方关闭管道且数据读完后退出
 ```
 
-由于管道的缓冲区大小为 1，最多只有一个数据存放在缓冲区中。`Add` 和 `Sub` 函数在每次操作前都会尝试向管道中发送数据，由于缓冲区大小为 1，倘若有其他协程已经写入了数据，缓冲区已经满了，当前协程就必须阻塞等待，直到缓冲区空出位置来，如此一来，在某一个时刻，最多只能有一个协程对变量 `count` 进行修改，这样就实现了一个简单的互斥锁。
+##### 缓冲管道
 
-##### [注意点](https://golang.halfiisland.com/essential/senior/110.concurrency.html#注意点)
+缓冲管道可以继续分为无缓冲和有缓冲两种，它们的差别主要体现在发送和接收的阻塞条件上。
 
-下面是一些总结，以下几种情况使用不当会导致管道阻塞：
+1. **无缓冲管道**：由于缓冲区容量为 0，不会临时存放任何数据，因此发送数据时必须立刻有其他协程接收，否则就会阻塞；接收也是同理。
 
-**读写无缓冲管道**
-
-当对一个无缓冲管道直接进行同步读写操作都会导致该协程阻塞
-
-
-
-```
-func main() {
-   // 创建了一个无缓冲管道
-   intCh := make(chan int)
-   defer close(intCh)
-   // 发送数据
-   intCh <- 1
-   // 读取数据
-   ints, ok := <-intCh
-   fmt.Println(ints, ok)
-}
+```go
+channelValue := make(chan ElementType)
+// 返回结果: 无缓冲管道
 ```
 
-**读取空缓冲区的管道**
+这也解释了为什么下面看起来很正常的代码会发生死锁：
 
-当读取一个缓冲区为空的管道时，会导致该协程阻塞
+```go
+channelValue := make(chan int)
+channelValue <- elementValue
+resultValue := <-channelValue
 
-
-
-```
-func main() {
-   // 创建的有缓冲管道
-   intCh := make(chan int, 1)
-   defer close(intCh)
-   // 缓冲区为空，阻塞等待其他协程写入数据
-   ints, ok := <-intCh
-   fmt.Println(ints, ok)
-}
+// 说明:
+// 1. 这是同步地对无缓冲管道先写后读
+// 2. 发送时没有其他协程接收，因此当前协程会阻塞
+// 3. 结果是死锁
 ```
 
-**写入满缓冲区的管道**
+无缓冲管道不应该同步地使用，正确来说应该开启一个新的协程来发送数据：
 
-当管道的缓冲区已满，对其写入数据会导致该协程阻塞
+```go
+channelValue := make(chan int)
 
+go func() {
+    channelValue <- elementValue
+}()
 
+resultValue := <-channelValue
 
-```
-func main() {
-  // 创建的有缓冲管道
-  intCh := make(chan int, 1)
-  defer close(intCh)
-
-  intCh <- 1
-    // 满了，阻塞等待其他协程来读取数据
-  intCh <- 1
-}
+// 输出示意:
+// resultValue = elementValue
 ```
 
-**管道为 `nil`**
+2. **有缓冲管道**：当管道有了缓冲区，就像是一个阻塞队列一样。发送时会先将数据放入缓冲区中，只有当缓冲区满了才会阻塞；读取时会先从缓冲区中取数据，直到缓冲区为空才会阻塞。
 
-当管道为 `nil` 时，无论怎样读写都会导致当前协程阻塞
-
-
-
-```
-func main() {
-  var intCh chan int
-    // 写
-  intCh <- 1
-}
+```go
+channelValue := make(chan ElementType, bufferSize)
+// bufferSize: 缓冲区大小
+// 返回结果: 有缓冲管道
 ```
 
+因此，无缓冲管道中会造成死锁的同步读写例子，在这里可以顺利运行：
 
+```go
+channelValue := make(chan int, 1)
 
-```
-func main() {
-  var intCh chan int
-    // 读
-  fmt.Println(<-intCh)
-}
-```
+channelValue <- elementValue
+resultValue := <-channelValue
 
-关于管道阻塞的条件需要好好掌握和熟悉，大多数情况下这些问题隐藏的十分隐蔽，并不会像例子中那样直观。
-
-以下几种情况还会导致 `panic`：
-
-**关闭一个 `nil` 管道**
-
-当管道为 `nil` 时，使用 `close` 函数对其进行关闭操作会导致 panic`
-
-
-
-```
-func main() {
-  var intCh chan int
-  close(intCh)
-}
+// 输出示意:
+// resultValue = elementValue
 ```
 
-**写入已关闭的管道**
+尽管可以顺利运行，但这种同步读写的方式依旧是非常危险的，一旦管道缓冲区空了或者满了，将会永远阻塞下去，因为没有其他协程来向管道中写入或读取数据。
 
-对一个已关闭的管道写入数据会导致 `panic`
+3. **查看缓冲区状态**：通过内置函数 `len` 可以访问管道缓冲区中数据的个数，通过 `cap` 可以访问管道缓冲区的大小。
 
-
-
-```
-func main() {
-  intCh := make(chan int, 1)
-  close(intCh)
-  intCh <- 1
-}
+```go
+len(channelValue)
+cap(channelValue)
+// len(channelValue): 当前缓冲区中的元素数量
+// cap(channelValue): 管道缓冲区容量
 ```
 
-**关闭已关闭的管道**
+4. **利用阻塞进行同步**：利用无缓冲管道“发送/接收必须配对”的特点，可以实现一个简单的同步等待。
 
-在一些情况中，管道可能经过层层传递，调用者或许也不知道到底该由谁来关闭管道，如此一来，可能会发生关闭一个已经关闭了的管道，就会发生 `panic`。
+```go
+syncChannel := make(chan struct{})
 
+go func() {
+    statement
+    syncChannel <- struct{}{}
+}()
 
-
-```
-func main() {
-  ch := make(chan int, 1)
-  defer close(ch)
-  go write(ch)
-  fmt.Println(<-ch)
-}
-
-func write(ch chan<- int) {
-  // 只能对管道发送数据
-  ch <- 1
-  close(ch)
-}
+<-syncChannel
+// 说明:
+// 1. 主协程会阻塞等待子协程发出信号
+// 2. struct{} 常用于这种“只传递事件，不传递数据”的场景
 ```
 
-##### [单向管道](https://golang.halfiisland.com/essential/senior/110.concurrency.html#单向管道)
+5. **利用有缓冲管道实现简单互斥**：缓冲区大小为 1 时，可以在某些场景下起到互斥控制作用。
 
-双向管道指的是既可以写，也可以读，即可以在管道两边进行操作。单向管道指的是只读或只写的管道，即只能在管道的一边进行操作。手动创建的一个只读或只写的管道没有什么太大的意义，因为不能对管道读写就失去了其存在的作用。单向管道通常是用来限制通道的行为，一般会在函数的形参和返回值中出现，例如用于关闭通道的内置函数 `close` 的函数签名就用到了单向通道。
+```go
+var lockChannel = make(chan struct{}, 1)
 
+lockChannel <- struct{}{}
+statement
+<-lockChannel
 
-
+// 说明:
+// 1. 缓冲区大小为 1，表示同一时刻最多只能有一个占用者
+// 2. 写入可视为加锁，读取可视为解锁
 ```
+
+**阻塞场景**：
+
+*  同步读写无缓冲管道
+* 读取空缓冲区的管道
+* 写入满缓冲区的管道
+* 对 nil 管道读写
+
+**panic 场景**：
+
+* close(nilChannel)
+* 向已关闭的管道写入数据
+* 重复关闭同一个管道
+
+**提示**：关于管道阻塞的条件需要好好掌握和熟悉，大多数情况下这些问题隐藏得十分隐蔽，并不会像例子中那样直观。关于管道关闭的时机，应该尽量在向管道发送数据的那一方关闭管道，而不要在接收方关闭管道，因为大多数情况下接收方只知道接收数据，并不知道该在什么时候关闭管道。
+
+##### 单向 / 双向管道
+
+双向管道指的是既可以写，也可以读，即可以在管道两边进行操作。单向管道指的是只读或只写的管道，即只能在管道的一边进行操作。手动创建一个只读或只写的管道本身意义不大，因为不能对管道完整读写就失去了其存在的作用。单向管道通常用来限制通道的行为，一般会出现在函数的形参和返回值中。
+
+1. **双向管道**：既可读也可写。
+
+```go
+var channelValue chan ElementType
+// chan ElementType: 双向管道
+```
+
+2. **只读管道**：箭头符号 `<-` 在前。
+
+```go
+var receiveOnlyValue <-chan ElementType
+// <-chan ElementType: 只读管道
+```
+
+3. **只写管道**：箭头符号 `<-` 在后。
+
+```go
+var sendOnlyValue chan<- ElementType
+// chan<- ElementType: 只写管道
+```
+
+4. **典型内置函数中的单向管道**：例如 `close` 和 `time.After`。
+
+```go
 func close(c chan<- Type)
+// c: 只写通道参数
+// 含义: 调用者只需要拥有发送/关闭一侧的权限
 ```
 
-又或者说常用到的 `time` 包下的 `After` 函数
-
-
-
-```
+```go
 func After(d Duration) <-chan Time
+// d: 等待时间
+// 返回结果: 一个只读通道
 ```
 
-`close` 函数的形参是一个只写通道，`After` 函数的返回值是一个只读通道，所以单向通道的语法如下：
+当尝试对只读的管道写入数据时，将无法通过编译；对只写管道读取数据也是同理。双向管道可以转换为单向管道，反过来则不可以。通常情况下，将双向管道传给某个协程或函数，并且不希望它读取或发送数据，就可以用单向管道来限制另一方的行为。
 
-- 箭头符号 `<-` 在前，就是只读通道，如 `<-chan int`
-- 箭头符号 `<-` 在后，就是只写通道，如 `chan<- string`
+**示例**：使用双向管道配合只写参数和只读接收方。
 
-当尝试对只读的管道写入数据时，将会无法通过编译
-
-
-
-```
-func main() {
-  timeCh := time.After(time.Second)
-  timeCh <- time.Now()
-}
-```
-
-报错如下，意思非常明确
-
-
-
-```
-invalid operation: cannot send to receive-only channel timeCh (variable of type <-chan time.Time)
-```
-
-对只写的管道读取数据也是同理。
-
-双向管道可以转换为单向管道，反过来则不可以。通常情况下，将双向管道传给某个协程或函数并且不希望它读取/发送数据，就可以用到单向管道来限制另一方的行为。
-
-
-
-```
-func main() {
-   ch := make(chan int, 1)
-   go write(ch)
-   fmt.Println(<-ch)
+```go
+func write(sendOnlyValue chan<- int) {
+    sendOnlyValue <- elementValue
 }
 
-func write(ch chan<- int) {
-   // 只能对管道发送数据
-   ch <- 1
+channelValue := make(chan int, 1)
+go write(channelValue)
+
+resultValue := <-channelValue
+
+// 输出示意:
+// resultValue = elementValue
+// 说明:
+// 1. write 只能发送，不能读取
+// 2. 双向管道可以传给只写参数
+```
+
+**提示**`chan` 是引用类型，即便 Go 的函数参数是值传递，但其引用依旧是同一个。
+
+#### Select
+
+`select` 在 Linux 系统中，是一种 IO 多路复用的解决方案。类似地，在 Go 中，`select` 是一种管道多路复用的控制结构。什么是多路复用，简单地用一句话概括：在某一时刻，同时监测多个元素是否可用，被监测的可以是网络请求、文件 IO 等；而在 Go 中，`select` 监测的元素就是管道，且只能是管道。`select` 的语法与 `switch` 语句类似。
+
+1. **基本结构**：由多个 `case` 和一个可选的 `default` 组成，每个 `case` 只能操作一个管道，且只能进行一种操作，要么读要么写。
+
+```go
+select {
+case resultValue1 := <-channelValue1:
+    statement
+case channelValue2 <- elementValue:
+    statement
+default:
+    statement
 }
+// resultValue1 := <-channelValue1: 从管道读取
+// channelValue2 <- elementValue: 向管道写入
+// default: 所有 case 当前都不可用时执行，可省略
 ```
 
-只读管道也是一样的道理
+2. **执行规则**：当有多个 `case` 可用时，`select` 会伪随机地选择一个分支执行；如果所有 `case` 都不可用，就会执行 `default` 分支；若没有 `default`，则会阻塞等待直到至少有一个 `case` 可用。
 
-提示
-
-`chan` 是引用类型，即便 Go 的函数参数是值传递，但其引用依旧是同一个，这一点会在后续的管道原理中说明。
-
-##### [for range](https://golang.halfiisland.com/essential/senior/110.concurrency.html#for-range)
-
-通过 `for range` 语句，可以遍历读取缓冲管道中的数据，如下例
-
-
-
+```go
+select {
+case statement1:
+    statement
+case statement2:
+    statement
+default:
+    statement
+}
+// 说明:
+// 1. 多个可用 case 同时存在时，select 不保证固定顺序
+// 2. 无 default 时，select 会阻塞
+// 3. 有 default 时，可以形成非阻塞收发
 ```
-func main() {
-  ch := make(chan int, 10)
-  go func() {
-    for i := 0; i < 10; i++ {
-      ch <- i
+
+先看一个最基本的 `select` 结构：
+
+```go
+channelValueA := make(chan int)
+channelValueB := make(chan int)
+channelValueC := make(chan int)
+
+defer func() {
+    close(channelValueA)
+    close(channelValueB)
+    close(channelValueC)
+}()
+
+select {
+case resultValue, ok := <-channelValueA:
+    fmt.Println(resultValue, ok)
+case resultValue, ok := <-channelValueB:
+    fmt.Println(resultValue, ok)
+case resultValue, ok := <-channelValueC:
+    fmt.Println(resultValue, ok)
+default:
+    fmt.Println("所有管道都不可用")
+}
+
+// 输出:
+// 所有管道都不可用
+```
+
+由于上例中没有对任何管道写入数据，自然所有 `case` 都不可用，所以最终输出为 `default` 分支的执行结果。稍微修改后如下：
+
+```go
+channelValueA := make(chan int)
+channelValueB := make(chan int)
+channelValueC := make(chan int)
+
+defer func() {
+    close(channelValueA)
+    close(channelValueB)
+    close(channelValueC)
+}()
+
+go func() {
+    channelValueA <- 1
+}()
+
+select {
+case resultValue, ok := <-channelValueA:
+    fmt.Println(resultValue, ok)
+case resultValue, ok := <-channelValueB:
+    fmt.Println(resultValue, ok)
+case resultValue, ok := <-channelValueC:
+    fmt.Println(resultValue, ok)
+}
+
+// 输出:
+// 1 true
+```
+
+上例开启了一个新的协程来向管道 A 写入数据，`select` 由于没有默认分支，所以会一直阻塞等待直到有 `case` 可用。当管道 A 可用时，执行完对应分支后主协程就直接退出了。
+
+3. **持续监测**：如果想一直监测多个管道，通常会把 `select` 放进 `for` 循环中。
+
+```go
+for {
+    select {
+    case resultValue := <-channelValue1:
+        statement
+    case resultValue := <-channelValue2:
+        statement
+    case resultValue := <-channelValue3:
+        statement
     }
-  }()
-  for n := range ch {
-    fmt.Println(n)
-  }
+}
+// 说明:
+// 1. for + select 常用于持续监听多个管道
+// 2. 若没有退出条件，可能导致永久阻塞
+```
+
+例如：
+
+```go
+channelValueA := make(chan int)
+channelValueB := make(chan int)
+channelValueC := make(chan int)
+
+defer func() {
+    close(channelValueA)
+    close(channelValueB)
+    close(channelValueC)
+}()
+
+go send(channelValueA)
+go send(channelValueB)
+go send(channelValueC)
+
+for {
+    select {
+    case resultValue, ok := <-channelValueA:
+        fmt.Println("A", resultValue, ok)
+    case resultValue, ok := <-channelValueB:
+        fmt.Println("B", resultValue, ok)
+    case resultValue, ok := <-channelValueC:
+        fmt.Println("C", resultValue, ok)
+    }
 }
 ```
 
-通常来说，`for range` 遍历其他可迭代数据结构时，会有两个返回值，第一个是索引，第二个元素值，但是对于管道而言，有且仅有一个返回值，`for range` 会不断读取管道中的元素，当管道缓冲区为空或无缓冲时，就会阻塞等待，直到有其他协程向管道中写入数据才会继续读取数据。所以输出如下：
+这样确实三个管道都能用上了，但是死循环配合 `select` 会导致主协程永久阻塞，所以通常会加上额外的退出机制，例如超时、取消信号或完成信号。
 
+4. **超时控制**：`select` 常与 `time.After` 一起使用来实现超时机制。
 
-
-```
-0
-1
-2
-3
-4
-5
-6
-7
-8
-9
-fatal error: all goroutines are asleep - deadlock!
+```go
+time.After(durationValue)
+// durationValue: 超时时长
+// 返回结果: 一个只读管道，到期后会收到一个时间值
 ```
 
-可以看到上面的代码发生了死锁，因为子协程已经执行完毕了，而主协程还在阻塞等待其他协程来向管道中写入数据，所以应该管道在写入完毕后将其关闭。修改为如下代码
+把它放进 `select` 中，就可以在“等到结果”和“等到超时”之间二选一：
 
+```go
+channelValue := make(chan int)
+defer close(channelValue)
 
+go func() {
+    time.Sleep(time.Second * 2)
+    channelValue <- 1
+}()
 
+select {
+case resultValue := <-channelValue:
+    fmt.Println(resultValue)
+case <-time.After(time.Second):
+    fmt.Println("超时")
+}
+
+// 输出:
+// 超时
 ```
-func main() {
-   ch := make(chan int, 10)
-   go func() {
-      for i := 0; i < 10; i++ {
-         ch <- i
-      }
-      // 关闭管道
-      close(ch)
-   }()
-   for n := range ch {
-      fmt.Println(n)
-   }
+
+如果把 `for`、`select` 和 `time.After` 结合起来，就能实现“持续监听一段时间，超时后退出”的模式。例如：
+
+```go
+channelValueA := make(chan int)
+channelValueB := make(chan int)
+channelValueC := make(chan int)
+doneChannel := make(chan struct{})
+
+defer func() {
+    close(channelValueA)
+    close(channelValueB)
+    close(channelValueC)
+    close(doneChannel)
+}()
+
+go send(channelValueA)
+go send(channelValueB)
+go send(channelValueC)
+
+go func() {
+Loop:
+    for {
+        select {
+        case resultValue, ok := <-channelValueA:
+            fmt.Println("A", resultValue, ok)
+        case resultValue, ok := <-channelValueB:
+            fmt.Println("B", resultValue, ok)
+        case resultValue, ok := <-channelValueC:
+            fmt.Println("C", resultValue, ok)
+        case <-time.After(time.Second):
+            break Loop
+        }
+    }
+
+    doneChannel <- struct{}{}
+}()
+
+<-doneChannel
+
+// 输出示意:
+// C 0 true
+// A 0 true
+// B 0 true
+// ...
+// 超时后退出循环
+```
+
+5. **永久阻塞**：当 `select` 语句中什么都没有时，就会永久阻塞。
+
+```go
+select {}
+// 返回结果: 永久阻塞当前 goroutine
+```
+
+例如：
+
+```go
+fmt.Println("start")
+select {}
+fmt.Println("end")
+
+// 输出:
+// start
+// end 永远不会输出
+```
+
+这种情况一般是有特殊用途，否则很容易形成死锁。
+
+6. **nil 管道行为**：在 `select` 的 `case` 中对值为 `nil` 的管道进行操作时，并不会导致整个 `select` 立即阻塞，而是该 `case` 会被忽略，永远不会被执行。
+
+```go
+var nilChannel chan int
+
+select {
+case <-nilChannel:
+    statement
+case nilChannel <- elementValue:
+    statement
+case <-time.After(time.Second):
+    statement
+}
+// 说明:
+// nil 管道相关 case 永远不可用，因此会被忽略
+```
+
+例如：
+
+```go
+var nilChannel chan int
+
+select {
+case <-nilChannel:
+    fmt.Println("read")
+case nilChannel <- 1:
+    fmt.Println("write")
+case <-time.After(time.Second):
+    fmt.Println("timeout")
+}
+
+// 输出:
+// timeout
+```
+
+7. **非阻塞收发**：通过 `default` 分支配合管道，可以实现非阻塞的发送与接收。
+
+```go
+select {
+case channelValue <- elementValue:
+    statement
+default:
+    statement
+}
+// 说明:
+// 若发送不能立即完成，则走 default
+```
+
+```go
+select {
+case resultValue, ok := <-channelValue:
+    statement
+default:
+    statement
+}
+// 说明:
+// 若读取不能立即完成，则走 default
+```
+
+例如：
+
+```go
+func trySend(channelValue chan int, elementValue int) bool {
+    select {
+    case channelValue <- elementValue:
+        return true
+    default:
+        return false
+    }
+}
+
+func tryRecv(channelValue chan int) (int, bool) {
+    select {
+    case elementValue, ok := <-channelValue:
+        return elementValue, ok
+    default:
+        return 0, false
+    }
 }
 ```
 
-写完后关闭管道，上述代码便不再会发生死锁。前面提到过读取管道是有两个返回值的，`for range` 遍历管道时，当无法成功读取数据时，便会退出循环。第二个返回值指的是能否成功读取数据，而不是管道是否已经关闭，即便管道已经关闭，对于有缓冲管道而言，依旧可以读取数据，并且第二个返回值仍然为 `true`。看下面的一个例子
+同理，也可以用同样的方式非阻塞地判断一个 `context` 是否已经结束：
 
-
-
-```
-func main() {
-  ch := make(chan int, 10)
-  for i := 0; i < 5; i++ {
-    ch <- i
-  }
-    // 关闭管道
-  close(ch)
-    // 再读取数据
-  for i := 0; i < 6; i++ {
-    n, ok := <-ch
-    fmt.Println(n, ok)
-  }
+```go
+func isDone(contextValue context.Context) bool {
+    select {
+    case <-contextValue.Done():
+        return true
+    default:
+        return false
+    }
 }
 ```
-
-输出结果
-
-
-
-```
-0 true
-1 true
-2 true
-3 true
-4 true
-0 false
-```
-
-由于管道已经关闭了，即便缓冲区为空，再读取数据也不会导致当前协程阻塞，可以看到在第六次遍历的时候读取的是零值，并且 `ok` 为 `false`。
 
 提示
 
-关于管道关闭的时机，应该尽量在向管道发送数据的那一方关闭管道，而不要在接收方关闭管道，因为大多数情况下接收方只知道接收数据，并不知道该在什么时候关闭管道。
+`select` 本身不是循环，它一次只会选中一个可用分支并执行。若想持续监听多个管道，通常需要与 `for` 一起使用。`select` 也不会保证多个可用分支之间的固定顺序，因此它适合做并发控制，而不适合用来表达严格顺序。
 
-#### [WaitGroup](https://golang.halfiisland.com/essential/senior/110.concurrency.html#waitgroup)
+#### WaitGroup
 
-`sync.WaitGroup` 是 `sync` 包下提供的一个结构体，`WaitGroup` 即等待执行，使用它可以很轻易的实现等待一组协程的效果。该结构体只对外暴露三个方法。
+`sync.WaitGroup` 是 `sync` 包下提供的一个结构体，`WaitGroup` 即等待执行，使用它可以很轻易地实现等待一组协程的效果。它的核心用途是：在主协程中等待多个子协程执行完成后再继续往下执行。该结构体只对外暴露三个方法。
 
-`Add` 方法用于指明要等待的协程的数量
+1. **Add**：用于指明还要等待多少个协程或任务。
 
-```
-func (wg *WaitGroup) Add(delta int)
-```
-
-`Done` 方法表示当前协程已经执行完毕
-
-```
-func (wg *WaitGroup) Done()
+```go
+func (waitGroupPointer *WaitGroup) Add(deltaValue int)
+// waitGroupPointer: WaitGroup 指针
+// deltaValue: 计数变化量
+// 返回结果: 调整等待计数
 ```
 
-`Wait` 方法等待子协程结束，否则就阻塞
+2. **Done**：表示当前协程已经执行完毕，本质上等价于 `Add(-1)`。
 
-```
-func (wg *WaitGroup) Wait()
+```go
+func (waitGroupPointer *WaitGroup) Done()
+// waitGroupPointer: WaitGroup 指针
+// 返回结果: 当前任务完成，计数减 1
 ```
 
-`WaitGroup` 使用起来十分简单，属于开箱即用。其内部的实现是计数器+信号量，程序开始时调用 `Add` 初始化计数，每当一个协程执行完毕时调用 `Done`，计数就-1，直到减为 0，而在此期间，主协程调用 `Wait` 会一直阻塞直到全部计数减为 0，然后才会被唤醒。看一个简单的使用例子
+3. **Wait**：等待全部子协程结束，否则就阻塞。
 
+```go
+func (waitGroupPointer *WaitGroup) Wait()
+// waitGroupPointer: WaitGroup 指针
+// 返回结果: 阻塞直到计数归零
 ```
-func main() {
-  var wait sync.WaitGroup
-  // 指定子协程的数量
-  wait.Add(1)
-  go func() {
+
+`WaitGroup` 使用起来十分简单，属于开箱即用。其内部的实现可以理解为“计数器 + 唤醒机制”：程序开始时调用 `Add` 初始化计数，每当一个协程执行完毕时调用 `Done`，计数就减 1，直到减为 0，而在此期间，主协程调用 `Wait` 会一直阻塞直到全部计数减为 0，然后才会被唤醒。
+
+**示例**：等待一个子协程执行完毕。
+
+```go
+var waitGroupValue sync.WaitGroup
+
+waitGroupValue.Add(1)
+
+go func() {
     fmt.Println(1)
-    // 执行完毕
-    wait.Done()
-  }()
-  // 等待子协程
-  wait.Wait()
-  fmt.Println(2)
+    waitGroupValue.Done()
+}()
+
+waitGroupValue.Wait()
+fmt.Println(2)
+
+// 输出:
+// 1
+// 2
+```
+
+这段代码永远都是先输出 `1` 再输出 `2`，主协程会等待子协程执行完毕后再退出。
+
+针对协程介绍中最开始的例子，可以使用 `sync.WaitGroup` 替代原先的 `time.Sleep`。这样做的重点不是“让主协程等一会儿”，而是“明确等待这些子协程执行结束”。
+
+如果只是想等待一组协程全部执行完成，通常可以直接给总协程数计数，然后每个子协程结束时各自 `Done` 一次。
+
+```go
+var waitGroupValue sync.WaitGroup
+
+waitGroupValue.Add(taskCountValue)
+
+for indexValue := 0; indexValue < taskCountValue; indexValue++ {
+    currentValue := indexValue
+
+    go func() {
+        defer waitGroupValue.Done()
+        fmt.Println(currentValue)
+    }()
 }
+
+waitGroupValue.Wait()
+fmt.Println("end")
+
+// 输出示意:
+// 会等待全部 goroutine 结束后再输出 end
+// 若任务内部执行顺序不受控制，数字顺序依旧可能不固定
 ```
 
-这段代码永远都是先输出 1 再输出 2，主协程会等待子协程执行完毕后再退出。
+如果希望像原例那样在循环中把顺序也控制住，可以在每轮中额外等待当前那一个协程先执行完毕，再进入下一轮。
 
+**示例**：替代 `time.Sleep`，并让输出顺序保持可控。
 
+```go
+var totalWaitGroup sync.WaitGroup
+var currentWaitGroup sync.WaitGroup
 
-```
-1
-2
-```
+totalWaitGroup.Add(10)
 
-针对协程介绍中最开始的例子，可以做出如下修改
+fmt.Println("start")
 
+for indexValue := 0; indexValue < 10; indexValue++ {
+    currentValue := indexValue
 
+    currentWaitGroup.Add(1)
 
-```
-func main() {
-   var mainWait sync.WaitGroup
-   var wait sync.WaitGroup
-   // 计数10
-   mainWait.Add(10)
-   fmt.Println("start")
-   for i := 0; i < 10; i++ {
-      // 循环内计数1
-      wait.Add(1)
-      go func() {
-         fmt.Println(i)
-         // 两个计数-1
-         wait.Done()
-         mainWait.Done()
-      }()
-      // 等待当前循环的协程执行完毕
-      wait.Wait()
-   }
-   // 等待所有的协程执行完毕
-   mainWait.Wait()
-   fmt.Println("end")
+    go func() {
+        fmt.Println(currentValue)
+        currentWaitGroup.Done()
+        totalWaitGroup.Done()
+    }()
+
+    currentWaitGroup.Wait()
 }
+
+totalWaitGroup.Wait()
+fmt.Println("end")
+
+// 输出:
+// start
+// 0
+// 1
+// 2
+// 3
+// 4
+// 5
+// 6
+// 7
+// 8
+// 9
+// end
 ```
 
-这里使用了 `sync.WaitGroup` 替代了原先的 `time.Sleep`，协程并发执行的的顺序更加可控，不管执行多少次，输出都如下
+这里使用了 `sync.WaitGroup` 替代了原先的 `time.Sleep`，协程并发执行的顺序更加可控，不管执行多少次，输出都可以保持一致。
 
+`WaitGroup` 通常适用于可动态调整协程数量的时候，例如事先知晓协程的数量，又或者在运行过程中需要动态调整。它最常见的场景就是：主协程等待一组子协程执行完毕。
 
+需要特别注意的是：`WaitGroup` 的值不应该被复制，复制后的值也不应该继续使用。尤其是将其作为函数参数传递时，应该传递指针而不是值。倘若使用复制的值，计数完全无法作用到真正的 `WaitGroup` 上，这可能会导致主协程一直阻塞等待，程序将无法正常运行。
 
-```
-start
-0
-1
-2
-3
-4
-5
-6
-7
-8
-9
-end
-```
+1. **错误传值**：按值传递会复制 `WaitGroup`，导致 `Done` 不作用于原对象。
 
-`WaitGroup` 通常适用于可动态调整协程数量的时候，例如事先知晓协程的数量，又或者在运行过程中需要动态调整。`WaitGroup` 的值不应该被复制，复制后的值也不应该继续使用，尤其是将其作为函数参数传递时，应该传递指针而不是值。倘若使用复制的值，计数完全无法作用到真正的 `WaitGroup` 上，这可能会导致主协程一直阻塞等待，程序将无法正常运行。例如下方的代码
-
-
-
-```
-func main() {
-  var mainWait sync.WaitGroup
-  mainWait.Add(1)
-  hello(mainWait)
-  mainWait.Wait()
-  fmt.Println("end")
+```go
+func functionName(waitGroupValue sync.WaitGroup) {
+    statement
 }
-func hello(wait sync.WaitGroup) {
-  fmt.Println("hello")
-  wait.Done()
+// 错误原因:
+// waitGroupValue 是复制品
+// 在复制品上 Done 不会影响原来的 WaitGroup
+```
+
+2. **正确传指针**：应当传递 `*sync.WaitGroup`。
+
+```go
+func functionName(waitGroupPointer *sync.WaitGroup) {
+    statement
 }
+// 正确原因:
+// waitGroupPointer 指向原 WaitGroup
+// Done 会作用到真正的计数对象
 ```
 
-错误提示所有的协程都已经退出，但主协程依旧在等待，这就形成了死锁，因为 `hello` 函数内部对一个形参 `WaitGroup` 调用 `Done` 并不会作用到原来的 `mainWait` 上，所以应该使用指针来进行传递。
+**示例**：按值传递导致死锁，按指针传递才正确。
 
+```go
+func helloWrong(waitGroupValue sync.WaitGroup) {
+    fmt.Println("hello")
+    waitGroupValue.Done()
+    // 输出:
+    // hello
+    // 但不会真正减少外部 WaitGroup 的计数
+}
 
+func helloRight(waitGroupPointer *sync.WaitGroup) {
+    fmt.Println("hello")
+    waitGroupPointer.Done()
+    // 输出:
+    // hello
+    // 会正确减少外部 WaitGroup 的计数
+}
 
+var waitGroupValue sync.WaitGroup
+waitGroupValue.Add(1)
+
+go helloRight(&waitGroupValue)
+// 如果改为 go helloWrong(waitGroupValue)
+// 则主协程会一直阻塞等待，最终形成死锁
+
+waitGroupValue.Wait()
+fmt.Println("end")
+
+// 正确输出:
+// hello
+// end
+//
+// 错误写法可能导致:
+// hello
+// fatal error: all goroutines are asleep - deadlock!
 ```
-hello
-fatal error: all goroutines are asleep - deadlock!
-```
 
-提示
+**提示**当计数变为负数，或者计数数量大于实际能够完成 `Done` 的协程数量时，将会引发 `panic`。因此 `Add`、`Done`、`Wait` 三者之间的对应关系一定要保持准确。
 
-当计数变为负数，或者计数数量大于子协程数量时，将会引发 `panic`。
+#### Context
 
-#### [Context](https://golang.halfiisland.com/essential/senior/110.concurrency.html#context)
+`Context` 来自标准库 `context` 包，是 Go 提供的一种并发控制与流程管理机制。它主要用于在多个协程之间传递取消信号、超时截止时间以及请求范围内的数据，尤其适合管理父子协程、孙协程这类层级更深的并发流程。相比单纯使用管道或 `WaitGroup`，`Context` 更强调“由上向下”地统一控制一组相关任务的生命周期。
 
-`Context` 译为上下文，是 Go 提供的一种并发控制的解决方案，相比于管道和 `WaitGroup`，它可以更好的控制子孙协程以及层级更深的协程。`Context` 本身是一个接口，只要实现了该接口都可以称之为上下文例如著名 Web 框架 `Gin` 中的 `gin.Context`。`context` 标准库也提供了几个实现，分别是：
+从使用方式上看，`Context` 一般不是拿来直接“同步计数”的，而是更常用于**通知、取消、超时控制、请求链路传值**。在实际代码里，通常会把 `ctx.Done()` 返回的只读管道放进 `select` 中，通过阻塞等待它被关闭，从而得知“当前任务该结束了”。因此，`Context` 可以理解为一种面向并发流程的上下文机制：它不负责具体业务逻辑，但负责告诉各层协程“什么时候该停、为什么停、还携带了哪些上下文数据”。
+
+`Context` 译为上下文，是 Go 提供的一种并发控制的解决方案。相比于管道和 `WaitGroup`，它可以更好地控制子孙协程以及层级更深的协程。`Context` 本身是一个接口，只要实现了该接口都可以称之为上下文，例如著名 Web 框架 `Gin` 中的 `gin.Context`。`context` 标准库也提供了几个实现，分别是：
 
 - `emptyCtx`
 - `cancelCtx`
 - `timerCtx`
 - `valueCtx`
 
-##### [Context](https://golang.halfiisland.com/essential/senior/110.concurrency.html#context-1)
+##### Context 接口
 
-先来看看 `Context` 接口的定义，再去了解它的具体实现。
+先来看 `Context` 接口的定义，再去了解它的具体实现。
 
-
-
-```
+```go
 type Context interface {
-
-   Deadline() (deadline time.Time, ok bool)
-
-   Done() <-chan struct{}
-
-   Err() error
-
-   Value(key any) any
+    Deadline() (deadline time.Time, ok bool)
+    Done() <-chan struct{}
+    Err() error
+    Value(key any) any
 }
 ```
 
-**Deadline**
+1. **Deadline**：返回截止时间以及是否设置了截止时间。
 
-该方法具有两个返回值，`deadline` 是截止时间，即上下文应该取消的时间。第二个值是是否设置 `deadline`，如果没有设置则一直为 `false`。
-
-
-
-```
+```go
 Deadline() (deadline time.Time, ok bool)
+// deadline: 上下文取消的截止时间
+// ok: 是否设置了 deadline
+// 返回结果: 若未设置截止时间，则 ok 为 false
 ```
 
-**Done**
+2. **Done**：返回一个只读管道，用于通知当前上下文应当结束。
 
-其返回值是一个空结构体类型的只读管道，该管道仅仅起到通知作用，不传递任何数据。当上下文所做的工作应该取消时，该通道就会被关闭，对于一些不支持取消的上下文，可能会返回 `nil`。
-
-
-
-```
+```go
 Done() <-chan struct{}
+// 返回结果: 只读通知管道
+// 说明:
+// 1. 管道关闭表示当前上下文应当结束
+// 2. 不传递实际数据，只起通知作用
+// 3. 对于不支持取消的上下文，可能返回 nil
 ```
 
-**Err**
+3. **Err**：返回上下文结束的原因。
 
-该方法返回一个 `error`，用于表示上下关闭的原因。当 `Done` 管道没有关闭时，返回 `nil`，如果关闭过后，会返回一个 `err` 来解释为什么会关闭。
-
-
-
-```
+```go
 Err() error
+// 返回结果:
+// 1. Done 未关闭时返回 nil
+// 2. 上下文结束后返回对应错误
 ```
 
-**Value**
+4. **Value**：根据键获取上下文中携带的值。
 
-该方法返回对应的键值，如果 `key` 不存在，或者不支持该方法，就会返回 `nil`。
-
-
-
-```
+```go
 Value(key any) any
+// key: 查找键
+// 返回结果:
+// 1. 找到时返回对应值
+// 2. 不存在或不支持时返回 nil
 ```
 
-##### [emptyCtx](https://golang.halfiisland.com/essential/senior/110.concurrency.html#emptyctx)
+![](D:\Learn\Learn\Note\Go\assets\context_1.png)
 
-顾名思义，`emptyCtx` 就是空的上下文，`context` 包下所有的实现都是不对外暴露的，但是提供了对应的函数来创建上下文。`emptyCtx` 就可以通过 `context.Background` 和 `context.TODO` 来进行创建。两个函数如下
+##### emptyCtx
 
+顾名思义，`emptyCtx` 就是空的上下文。`context` 包下所有的具体实现都不对外暴露，但是提供了对应函数来创建上下文。`emptyCtx` 可以通过 `context.Background` 和 `context.TODO` 创建。
 
+1. **Background**：通常作为最顶层的根上下文。
 
-```
-var (
-  background = new(emptyCtx)
-  todo       = new(emptyCtx)
-)
-
-func Background() Context {
-  return background
-}
-
-func TODO() Context {
-  return todo
-}
+```go
+func Background() Context
+// 返回结果: 根上下文
 ```
 
-可以看到仅仅只是返回了 `emptyCtx` 指针。`emptyCtx` 的底层类型实际上是一个 `int`，之所以不使用空结构体，是因为 `emptyCtx` 的实例必须要有不同的内存地址，它没法被取消，没有 `deadline`，也不能取值，实现的方法都是返回零值。
+2. **TODO**：用于暂时不知道该传什么上下文时占位使用。
 
-
-
+```go
+func TODO() Context
+// 返回结果: 占位上下文
 ```
+
+可以看到它们本质上都是返回 `emptyCtx`。`emptyCtx` 没法被取消，没有 `deadline`，也不能取值，实现的方法基本都是返回零值。
+
+```go
 type emptyCtx int
 
 func (*emptyCtx) Deadline() (deadline time.Time, ok bool) {
-   return
+    return
 }
 
 func (*emptyCtx) Done() <-chan struct{} {
-   return nil
+    return nil
 }
 
 func (*emptyCtx) Err() error {
-   return nil
+    return nil
 }
 
 func (*emptyCtx) Value(key any) any {
-   return nil
+    return nil
 }
 ```
 
-`emptyCtx` 通常是用来当作最顶层的上下文，在创建其他三种上下文时作为父上下文传入。context 包中的各个实现关系如下图所示
+`emptyCtx` 通常是用来当作最顶层的上下文，在创建其他三种上下文时作为父上下文传入。
 
-![img](./assets/context_1.png)
+##### valueCtx
 
-##### [valueCtx](https://golang.halfiisland.com/essential/senior/110.concurrency.html#valuectx)
+`valueCtx` 的作用是携带键值对，常用于在多级协程中向下传递一些请求范围内的数据。它的实现比较简单，内部只包含一对键值对，以及一个内嵌的父上下文字段。
 
-`valueCtx` 实现比较简单，其内部只包含一对键值对，和一个内嵌的 `Context` 类型的字段。
+1. **创建带值上下文**：通过 `WithValue` 创建。
 
-
-
-```
-type valueCtx struct {
-   Context
-   key, val any
-}
-```
-
-其本身只实现了 `Value` 方法，逻辑也很简单，当前上下文找不到就去父上下文找。
-
-
-
-```
-func (c *valueCtx) Value(key any) any {
-   if c.key == key {
-      return c.val
-   }
-   return value(c.Context, key)
-}
+```go
+func WithValue(parent Context, key any, value any) Context
+// parent: 父上下文
+// key: 键
+// value: 值
+// 返回结果: 新的 valueCtx
 ```
 
-下面看一个 `valueCtx` 的简单使用案例
+2. **读取上下文值**：通过 `Value` 逐层向上查找。
 
-
-
-```
-var waitGroup sync.WaitGroup
-
-func main() {
-  waitGroup.Add(1)
-    // 传入上下文
-  go Do(context.WithValue(context.Background(), 1, 2))
-  waitGroup.Wait()
-}
-
-func Do(ctx context.Context) {
-    // 新建定时器
-  ticker := time.NewTimer(time.Second)
-  defer waitGroup.Done()
-  for {
-    select {
-    case <-ctx.Done(): // 永远也不会执行
-    case <-ticker.C:
-      fmt.Println("timeout")
-      return
-    default:
-      fmt.Println(ctx.Value(1))
-    }
-    time.Sleep(time.Millisecond * 100)
-  }
-}
+```go
+ctx.Value(key)
+// key: 查找键
+// 返回结果:
+// 1. 当前上下文命中则直接返回
+// 2. 否则继续向父上下文查找
 ```
 
-`valueCtx` 多用于在多级协程中传递一些数据，无法被取消，因此 `ctx.Done` 永远会返回 `nil`，`select` 会忽略掉 `nil` 管道。最后输出如下
+`valueCtx` 多用于在多级协程中传递一些数据，无法被取消，因此 `ctx.Done()` 往往不会触发，若父级也是不可取消上下文，则它返回的通知通道也没有实际取消效果。
 
+**示例**：在协程中读取上下文值。
 
+```go
+ctx := context.WithValue(context.Background(), keyValue, valueValue)
 
-```
-2
-2
-2
-2
-2
-2
-2
-2
-2
-2
-timeout
-```
-
-##### [cancelCtx](https://golang.halfiisland.com/essential/senior/110.concurrency.html#cancelctx)
-
-`cancelCtx` 以及 `timerCtx` 都实现了 `canceler` 接口，接口类型如下
-
-
-
-```
-type canceler interface {
-    // removeFromParent 表示是否从父上下文中删除自身
-    // err 表示取消的原因
-  cancel(removeFromParent bool, err error)
-    // Done 返回一个管道，用于通知取消的原因
-  Done() <-chan struct{}
-}
-```
-
-`cancel` 方法不对外暴露，在创建上下文时通过闭包将其包装为返回值以供外界调用，就如 `context.WithCancel` 源代码中所示
-
-
-
-```
-func WithCancel(parent Context) (ctx Context, cancel CancelFunc) {
-   if parent == nil {
-      panic("cannot create context from nil parent")
-   }
-   c := newCancelCtx(parent)
-   // 尝试将自身添加进父级的children中
-   propagateCancel(parent, &c)
-   // 返回context和一个函数
-   return &c, func() { c.cancel(true, Canceled) }
-}
-```
-
-`cancelCtx` 译为可取消的上下文，创建时，如果父级实现了 `canceler`，就会将自身添加进父级的 `children` 中，否则就一直向上查找。如果所有的父级都没有实现 `canceler`，就会启动一个协程等待父级取消，然后当父级结束时取消当前上下文。当调用 `cancelFunc` 时，`Done` 通道将会关闭，该上下文的任何子级也会随之取消，最后会将自身从父级中删除。下面是一个简单的示例：
-
-
-
-```
-var waitGroup sync.WaitGroup
-
-func main() {
-  bkg := context.Background()
-    // 返回了一个cancelCtx和cancel函数
-  cancelCtx, cancel := context.WithCancel(bkg)
-  waitGroup.Add(1)
-  go func(ctx context.Context) {
-    defer waitGroup.Done()
+go func(contextValue context.Context) {
     for {
-      select {
-      case <-ctx.Done():
-        fmt.Println(ctx.Err())
-        return
-      default:
-        fmt.Println("等待取消中...")
-      }
-      time.Sleep(time.Millisecond * 200)
+        select {
+        case <-contextValue.Done():
+            return
+        default:
+            fmt.Println(contextValue.Value(keyValue))
+        }
+        time.Sleep(time.Millisecond * 100)
     }
+}(ctx)
 
-  }(cancelCtx)
-  time.Sleep(time.Second)
-  cancel()
-  waitGroup.Wait()
+// 输出示意:
+// valueValue
+// valueValue
+// valueValue
+// ...
+// 说明:
+// 1. valueCtx 主要用于传值
+// 2. 若父级不可取消，则 Done 分支通常不会执行
+```
+
+##### cancelCtx
+
+`cancelCtx` 是可取消的上下文。它可以在外部主动调用取消函数，从而通知当前上下文以及它的子上下文全部结束。相比 `valueCtx`，它更适合做取消传播。
+
+1. **创建可取消上下文**：通过 `WithCancel` 创建。
+
+```go
+func WithCancel(parent Context) (ctx Context, cancel CancelFunc)
+// parent: 父上下文
+// ctx: 新的 cancelCtx
+// cancel: 取消函数
+// 返回结果: 一个可取消上下文和对应取消函数
+```
+
+`cancelCtx` 的核心特点是：一旦调用 `cancel()`，当前上下文的 `Done` 管道会被关闭，它的任何子级上下文也会随之取消。
+
+**示例**：手动取消一个上下文。
+
+```go
+var waitGroupValue sync.WaitGroup
+
+parentContext := context.Background()
+cancelContext, cancelFunc := context.WithCancel(parentContext)
+
+waitGroupValue.Add(1)
+
+go func(contextValue context.Context) {
+    defer waitGroupValue.Done()
+
+    for {
+        select {
+        case <-contextValue.Done():
+            fmt.Println(contextValue.Err())
+            return
+        default:
+            fmt.Println("等待取消中...")
+        }
+        time.Sleep(time.Millisecond * 200)
+    }
+}(cancelContext)
+
+time.Sleep(time.Second)
+cancelFunc()
+waitGroupValue.Wait()
+
+// 输出示意:
+// 等待取消中...
+// 等待取消中...
+// ...
+// context canceled
+```
+
+再来一个层级嵌套深一点的示例。父上下文一旦取消，子上下文也会随之取消，因此它很适合控制一整棵协程树。
+
+```go
+func httpHandler(contextValue context.Context) {
+    authContext, cancelAuth := context.WithCancel(contextValue)
+    mailContext, cancelMail := context.WithCancel(contextValue)
+
+    defer cancelAuth()
+    defer cancelMail()
+
+    go authService(authContext)
+    go mailService(mailContext)
+
+    for {
+        select {
+        case <-contextValue.Done():
+            return
+        default:
+            statement
+        }
+    }
 }
 ```
 
-输出如下
+例子中创建了多个 `cancelCtx`。尽管父级 `cancelCtx` 在取消的同时会取消它的子上下文，但是保险起见，如果创建了一个 `cancelCtx`，在相应流程结束后最好仍然调用对应的 `cancel` 函数。
 
+##### timerCtx
 
+`timerCtx` 在 `cancelCtx` 的基础之上增加了超时机制。`context` 包下提供了两种创建函数，分别是 `WithDeadline` 和 `WithTimeout`，两者功能类似：前者指定一个具体截止时间，后者指定一个持续时长。
 
-```
-等待取消中...
-等待取消中...
-等待取消中...
-等待取消中...
-等待取消中...
-context canceled
-```
+1. **指定截止时间**：通过 `WithDeadline` 创建。
 
-再来一个层级嵌套深一点的示例
-
-
-
-```
-var waitGroup sync.WaitGroup
-
-func main() {
-   waitGroup.Add(3)
-   ctx, cancelFunc := context.WithCancel(context.Background())
-   go HttpHandler(ctx)
-   time.Sleep(time.Second)
-   cancelFunc()
-   waitGroup.Wait()
-}
-
-func HttpHandler(ctx context.Context) {
-   cancelCtxAuth, cancelAuth := context.WithCancel(ctx)
-   cancelCtxMail, cancelMail := context.WithCancel(ctx)
-
-   defer cancelAuth()
-   defer cancelMail()
-   defer waitGroup.Done()
-
-   go AuthService(cancelCtxAuth)
-   go MailService(cancelCtxMail)
-
-   for {
-      select {
-      case <-ctx.Done():
-         fmt.Println(ctx.Err())
-         return
-      default:
-         fmt.Println("正在处理http请求...")
-      }
-      time.Sleep(time.Millisecond * 200)
-   }
-
-}
-
-func AuthService(ctx context.Context) {
-   defer waitGroup.Done()
-   for {
-      select {
-      case <-ctx.Done():
-         fmt.Println("auth 父级取消", ctx.Err())
-         return
-      default:
-         fmt.Println("auth...")
-      }
-      time.Sleep(time.Millisecond * 200)
-   }
-}
-
-func MailService(ctx context.Context) {
-   defer waitGroup.Done()
-   for {
-      select {
-      case <-ctx.Done():
-         fmt.Println("mail 父级取消", ctx.Err())
-         return
-      default:
-         fmt.Println("mail...")
-      }
-      time.Sleep(time.Millisecond * 200)
-   }
-}
+```go
+func WithDeadline(parent Context, deadline time.Time) (Context, CancelFunc)
+// parent: 父上下文
+// deadline: 具体截止时间
+// 返回结果: 带 deadline 的上下文和取消函数
 ```
 
-例子中创建了 3 个 `cancelCtx`，尽管父级 `cancelCtx` 在取消的同时会取消它的子上下文，但是保险起见，如果创建了一个 `cancelCtx`，在相应的流程结束后就应该调用 `cancel` 函数。输出如下
+2. **指定超时时长**：通过 `WithTimeout` 创建。
 
-
-
-```
-正在处理http请求...
-auth...
-mail...
-mail...
-auth...
-正在处理http请求...
-auth...
-mail...
-正在处理http请求...
-正在处理http请求...
-auth...
-mail...
-auth...
-正在处理http请求...
-mail...
-context canceled
-auth 父级取消 context canceled
-mail 父级取消 context canceled
-```
-
-##### [timerCtx](https://golang.halfiisland.com/essential/senior/110.concurrency.html#timerctx)
-
-`timerCtx` 在 `cancelCtx` 的基础之上增加了超时机制，`context` 包下提供了两种创建的函数，分别是 `WithDeadline` 和 `WithTimeout`，两者功能类似，前者是指定一个具体的超时时间，比如指定一个具体时间 `2023/3/20 16:32:00`，后者是指定一个超时的时间间隔，比如 5 分钟后。两个函数的签名如下
-
-
-
-```
-func WithDeadline(parent Context, d time.Time) (Context, CancelFunc)
-
+```go
 func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc)
+// parent: 父上下文
+// timeout: 超时时长
+// 返回结果: 带 timeout 的上下文和取消函数
 ```
 
-`timerCtx` 会在时间到期后自动取消当前上下文，取消的流程除了要额外的关闭 `timer` 之外，基本与 `cancelCtx` 一致。下面是一个简单的 `timerCtx` 的使用示例
+`timerCtx` 会在时间到期后自动取消当前上下文，取消流程除了要额外处理内部定时器之外，整体逻辑与 `cancelCtx` 相近。
 
+**示例**：使用 `WithDeadline` 创建超时上下文。
 
+```go
+var waitGroupValue sync.WaitGroup
 
-```
-var wait sync.WaitGroup
+deadlineContext, cancelFunc := context.WithDeadline(
+    context.Background(),
+    time.Now().Add(time.Second),
+)
+defer cancelFunc()
 
-func main() {
-  deadline, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second))
-  defer cancel()
-  wait.Add(1)
-  go func(ctx context.Context) {
-    defer wait.Done()
+waitGroupValue.Add(1)
+
+go func(contextValue context.Context) {
+    defer waitGroupValue.Done()
+
     for {
-      select {
-      case <-ctx.Done():
-        fmt.Println("上下文取消", ctx.Err())
-        return
-      default:
-        fmt.Println("等待取消中...")
-      }
-      time.Sleep(time.Millisecond * 200)
+        select {
+        case <-contextValue.Done():
+            fmt.Println("上下文取消", contextValue.Err())
+            return
+        default:
+            fmt.Println("等待取消中...")
+        }
+        time.Sleep(time.Millisecond * 200)
     }
-  }(deadline)
-  wait.Wait()
-}
+}(deadlineContext)
+
+waitGroupValue.Wait()
+
+// 输出示意:
+// 等待取消中...
+// 等待取消中...
+// ...
+// 上下文取消 context deadline exceeded
 ```
 
-尽管上下文到期会自动取消，但是为了保险起见，在相关流程结束后，最好手动取消上下文。输出如下
+`WithTimeout` 与 `WithDeadline` 用法基本一致，它的实现也只是稍微封装了一下并调用 `WithDeadline`。
 
-
-
-```
-等待取消中...
-等待取消中...
-等待取消中...
-等待取消中...
-等待取消中...
-上下文取消 context deadline exceeded
-```
-
-`WithTimeout` 其实与 `WithDealine` 非常相似，它的实现也只是稍微封装了一下并调用 `WithDeadline`，和上面例子中的 `WithDeadline` 用法一样，如下
-
-
-
-```
+```go
 func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc) {
-   return WithDeadline(parent, time.Now().Add(timeout))
+    return WithDeadline(parent, time.Now().Add(timeout))
 }
 ```
 
 提示
 
-就跟内存分配后不回收会造成内存泄漏一样，上下文也是一种资源，如果创建了但从来不取消，一样会造成上下文泄露，所以最好避免此种情况的发生。
+尽管上下文到期会自动取消，但是为了保险起见，在相关流程结束后，最好手动调用取消函数。就跟内存分配后不回收会造成内存泄漏一样，上下文也是一种资源，如果创建了但从来不取消，一样会造成上下文泄露，所以最好避免此种情况的发生。
 
-#### [Select](https://golang.halfiisland.com/essential/senior/110.concurrency.html#select)
+#### 锁
 
-`select` 在 Linux 系统中，是一种 IO 多路复用的解决方案，类似的，在 Go 中，`select` 是一种管道多路复用的控制结构。什么是多路复用，简单的用一句话概括：在某一时刻，同时监测多个元素是否可用，被监测的可以是网络请求，文件 IO 等。在 Go 中的 `select` 监测的元素就是管道，且只能是管道。`select` 的语法与 `switch` 语句类似，下面看看一个 `select` 语句长什么样
+Go 中 `sync` 包下的 `Mutex` 与 `RWMutex` 提供了互斥锁与读写锁两种实现，且提供了非常简单易用的 API。加锁只需要 `Lock()`，解锁也只需要 `Unlock()`。需要注意的是，Go 所提供的锁都是非递归锁，也就是不可重入锁，所以重复加锁或重复解锁都会导致 `fatal`。锁的意义在于保护不变量，加锁是希望数据不会被其他协程修改，如下：
 
-
-
-```
-func main() {
-  // 创建三个管道
-  chA := make(chan int)
-  chB := make(chan int)
-  chC := make(chan int)
-  defer func() {
-    close(chA)
-    close(chB)
-    close(chC)
-  }()
-  select {
-  case n, ok := <-chA:
-    fmt.Println(n, ok)
-  case n, ok := <-chB:
-    fmt.Println(n, ok)
-  case n, ok := <-chC:
-    fmt.Println(n, ok)
-  default:
-    fmt.Println("所有管道都不可用")
-  }
-}
+```go
+lockValue.Lock()
+// 在这个过程中，数据不会被其他协程修改
+lockValue.Unlock()
 ```
 
-##### [使用](https://golang.halfiisland.com/essential/senior/110.concurrency.html#使用)
+倘若是递归锁的话，就可能会发生如下情况：
 
-与 `switch` 类似，`select` 由多个 `case` 和一个 `default` 组成，`default` 分支可以省略。每一个 `case` 只能操作一个管道，且只能进行一种操作，要么读要么写，当有多个 `case` 可用时，`select` 会伪随机的选择一个 `case` 来执行。如果所有 `case` 都不可用，就会执行 `default` 分支，倘若没有 `default` 分支，将会阻塞等待，直到至少有一个 `case` 可用。由于上例中没有对管道写入数据，自然所有的 `case` 都不可用，所以最终输出为 `default` 分支的执行结果。稍微修改下后如下：
-
-
-
-```
-func main() {
-   chA := make(chan int)
-   chB := make(chan int)
-   chC := make(chan int)
-   defer func() {
-      close(chA)
-      close(chB)
-      close(chC)
-   }()
-   // 开启一个新的协程
-   go func() {
-      // 向A管道写入数据
-      chA <- 1
-   }()
-   select {
-   case n, ok := <-chA:
-      fmt.Println(n, ok)
-   case n, ok := <-chB:
-      fmt.Println(n, ok)
-   case n, ok := <-chC:
-      fmt.Println(n, ok)
-   }
-}
-```
-
-上例开启了一个新的协程来向管道 A 写入数据，`select` 由于没有默认分支，所以会一直阻塞等待直到有 `case` 可用。当管道 A 可用时，执行完对应分支后主协程就直接退出了。要想一直监测管道，可以配合 `for` 循环使用，如下。
-
-
-
-```
-func main() {
-  chA := make(chan int)
-  chB := make(chan int)
-  chC := make(chan int)
-  defer func() {
-    close(chA)
-    close(chB)
-    close(chC)
-  }()
-  go Send(chA)
-  go Send(chB)
-  go Send(chC)
-  // for循环
-  for {
-    select {
-    case n, ok := <-chA:
-      fmt.Println("A", n, ok)
-    case n, ok := <-chB:
-      fmt.Println("B", n, ok)
-    case n, ok := <-chC:
-      fmt.Println("C", n, ok)
-    }
-  }
+```go
+func doSomething() {
+    lockValue.Lock()
+    doOther()
+    lockValue.Unlock()
 }
 
-func Send(ch chan<- int) {
-  for i := 0; i < 3; i++ {
-    time.Sleep(time.Millisecond)
-    ch <- i
-  }
-}
-```
-
-这样确实三个管道都能用上了，但是死循环+`select` 会导致主协程永久阻塞，所以可以将其单独放到新协程中，并且加上一些其他的逻辑。
-
-
-
-```
-func main() {
-  chA := make(chan int)
-  chB := make(chan int)
-  chC := make(chan int)
-  defer func() {
-    close(chA)
-    close(chB)
-    close(chC)
-  }()
-
-  l := make(chan struct{})
-
-  go Send(chA)
-  go Send(chB)
-  go Send(chC)
-
-  go func() {
-  Loop:
-    for {
-      select {
-      case n, ok := <-chA:
-        fmt.Println("A", n, ok)
-      case n, ok := <-chB:
-        fmt.Println("B", n, ok)
-      case n, ok := <-chC:
-        fmt.Println("C", n, ok)
-      case <-time.After(time.Second): // 设置1秒的超时时间
-        break Loop // 退出循环
-      }
-    }
-    l <- struct{}{} // 告诉主协程可以退出了
-  }()
-
-  <-l
-}
-
-func Send(ch chan<- int) {
-  for i := 0; i < 3; i++ {
-    time.Sleep(time.Millisecond)
-    ch <- i
-  }
-}
-```
-
-上例中通过 `for` 循环配合 `select` 来一直监测三个管道是否可以用，并且第四个 `case` 是一个超时管道，超时过后便会退出循环，结束子协程。最终输出如下
-
-
-
-```
-C 0 true
-A 0 true
-B 0 true
-A 1 true
-B 1 true
-C 1 true
-B 2 true
-C 2 true
-A 2 true
-```
-
-**超时**
-
-上一个例子用到了 `time.After` 函数，其返回值是一个只读的管道，该函数配合 `select` 使用可以非常简单的实现超时机制，例子如下
-
-
-
-```
-func main() {
-  chA := make(chan int)
-  defer close(chA)
-  go func() {
-    time.Sleep(time.Second * 2)
-    chA <- 1
-  }()
-  select {
-  case n := <-chA:
-    fmt.Println(n)
-  case <-time.After(time.Second):
-    fmt.Println("超时")
-  }
-}
-```
-
-**永久阻塞**
-
-当 `select` 语句中什么都没有时，就会永久阻塞，例如
-
-
-
-```
-func main() {
-  fmt.Println("start")
-  select {}
-  fmt.Println("end")
-}
-```
-
-`end` 永远也不会输出，主协程会一直阻塞，这种情况一般是有特殊用途。
-
-提示
-
-在 `select` 的 `case` 中对值为 `nil` 的管道进行操作的话，并不会导致阻塞，该 `case` 则会被忽略，永远也不会被执行。例如下方代码无论执行多少次都只会输出 timeout。
-
-
-
-```
-func main() {
-   var nilCh chan int
-   select {
-   case <-nilCh:
-      fmt.Println("read")
-   case nilCh <- 1:
-      fmt.Println("write")
-   case <-time.After(time.Second):
-      fmt.Println("timeout")
-   }
-}
-```
-
-##### [非阻塞](https://golang.halfiisland.com/essential/senior/110.concurrency.html#非阻塞)
-
-通过使用`select`的`default`分支配合管道，我们可以实现非阻塞的收发操作，如下所示
-
-
-
-```
-func TrySend(ch chan int, ele int) bool  {
-	select {
-	case ch <- ele:
-		return true
-	default:
-		return false
-	}
-}
-
-func TryRecv(ch chan int) (int, bool)  {
-	select {
-	case ele, ok := <-ch:
-		return ele, ok
-	default:
-		return 0, false
-	}
-}
-```
-
-同理，也可以实现非阻塞的判断一个`context`是否已经结束
-
-
-
-```
-func IsDone(ctx context.Context) bool {
-	select {
-	case <-ctx.Done():
-		return true
-	default:
-		return false
-	}
-}
-```
-
-#### [锁](https://golang.halfiisland.com/essential/senior/110.concurrency.html#锁)
-
-先来看看的一个例子
-
-
-
-```
-var wait sync.WaitGroup
-var count = 0
-
-func main() {
-   wait.Add(10)
-   for i := 0; i < 10; i++ {
-      go func(data *int) {
-         // 模拟访问耗时
-         time.Sleep(time.Millisecond * time.Duration(rand.Intn(5000)))
-         // 访问数据
-         temp := *data
-         // 模拟计算耗时
-         time.Sleep(time.Millisecond * time.Duration(rand.Intn(5000)))
-         ans := 1
-         // 修改数据
-         *data = temp + ans
-         fmt.Println(*data)
-         wait.Done()
-      }(&count)
-   }
-   wait.Wait()
-   fmt.Println("最终结果", count)
-}
-```
-
-对于上面的例子，开启了十个协程来对 `count` 进行 `+1` 操作，并且使用了 `time.Sleep` 来模拟不同的耗时，根据直觉来讲，10 个协程执行 10 个 `+1` 操作，最终结果一定是 `10`，正确结果也确实是 `10`，但事实并非如此，上面的例子执行结果如下：
-
-
-
-```
-1
-2
-3
-3
-2
-2
-3
-3
-3
-4
-最终结果 4
-```
-
-可以看到最终结果为 4，而这只是众多可能结果中的一种。由于每个协程访问和计算所需的时间不同，A 协程访问数据耗费 500 毫秒，此时访问到的 `count` 值为 1，随后又花费了 400 毫秒计算，但在这 400 毫秒内，B 协程已经完成了访问和计算并成功更新了 `count` 的值，A 协程在计算完毕后，A 协程最初访问到的值已经过时了，但 A 协程并不知道这件事，依旧在原先访问到的值基础上加一，并赋值给 `count`，这样一来，B 协程的执行结果被覆盖了。多个协程读取和访问一个共享数据时，尤其会发生这样的问题，为此就需要用到锁。
-
-Go 中 `sync` 包下的 `Mutex` 与 `RWMutex` 提供了互斥锁与读写锁两种实现，且提供了非常简单易用的 API，加锁只需要 `Lock()`，解锁也只需要 `Unlock()`。需要注意的是，Go 所提供的锁都是非递归锁，也就是不可重入锁，所以重复加锁或重复解锁都会导致 `fatal`。锁的意义在于保护不变量，加锁是希望数据不会被其他协程修改，如下
-
-
-
-```
-func DoSomething() {
-  Lock()
-    // 在这个过程中，数据不会被其他协程修改
-  Unlock()
-}
-```
-
-倘若是递归锁的话，就可能会发生如下情况
-
-
-
-```
-func DoSomething() {
-  Lock()
-    DoOther()
-  Unlock()
-}
-
-func DoOther() {
-  Lock()
-  // do other
-  Unlock()
+func doOther() {
+    lockValue.Lock()
+    statement
+    lockValue.Unlock()
 }
 ```
 
 `DoSomthing` 函数显然不知道 `DoOther` 函数可能会对数据做点什么，从而修改了数据，比如再开几个子协程破坏了不变量。这在 Go 中是行不通的，一旦加锁以后就必须保证不变量的不变性，此时重复加锁解锁都会导致死锁。所以在编写代码时应该避免上述情况，必要时在加锁的同时立即使用 `defer` 语句解锁。
 
-##### [互斥锁](https://golang.halfiisland.com/essential/senior/110.concurrency.html#互斥锁)
+##### 互斥锁
 
-`sync.Mutex` 是 Go 提供的互斥锁实现，其实现了 `sync.Locker` 接口
+`sync.Mutex` 是 Go 提供的互斥锁实现，其实现了 `sync.Locker` 接口。
 
+1. **通用加锁接口**：`Locker` 只规定了加锁与解锁两个操作。
 
-
-```
+```go
 type Locker interface {
-   // 加锁
-   Lock()
-   // 解锁
-   Unlock()
+    Lock()
+    Unlock()
 }
 ```
 
-使用互斥锁可以非常完美的解决上述问题，例子如下
+2. **互斥锁加锁**：同一时刻只允许一个协程进入临界区。
 
-
-
+```go
+mutexValue.Lock()
+// mutexValue: 互斥锁
+// 返回结果: 获取互斥锁；若已被占用则阻塞等待
 ```
-var wait sync.WaitGroup
-var count = 0
 
-var lock sync.Mutex
+3. **互斥锁解锁**：释放临界区访问权限。
+
+```go
+mutexValue.Unlock()
+// mutexValue: 互斥锁
+// 返回结果: 释放互斥锁
+```
+
+使用互斥锁可以非常完美地解决上述问题，例子如下：
+
+```go
+var waitGroupValue sync.WaitGroup
+var sharedValue = 0
+var mutexValue sync.Mutex
 
 func main() {
-  wait.Add(10)
-  for i := 0; i < 10; i++ {
-    go func(data *int) {
-      // 加锁
-      lock.Lock()
-      // 模拟访问耗时
-      time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-      // 访问数据
-      temp := *data
-      // 模拟计算耗时
-      time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-      ans := 1
-      // 修改数据
-      *data = temp + ans
-      // 打印当前协程修改后的值
-      fmt.Println(*data)
-      // 解锁
-      lock.Unlock()
-      wait.Done()
-    }(&count)
-  }
-  wait.Wait()
-  fmt.Println("最终结果", count)
+    waitGroupValue.Add(10)
+
+    for indexValue := 0; indexValue < 10; indexValue++ {
+        go func(dataPointer *int) {
+            mutexValue.Lock()
+            defer mutexValue.Unlock()
+
+            time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
+
+            tempValue := *dataPointer
+
+            time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
+
+            answerValue := 1
+            *dataPointer = tempValue + answerValue
+
+            fmt.Println(*dataPointer)
+            waitGroupValue.Done()
+        }(&sharedValue)
+    }
+
+    waitGroupValue.Wait()
+    fmt.Println("最终结果", sharedValue)
 }
-```
 
-每一个协程在访问数据前，都先上锁，更新完成后再解锁，其他协程想要访问就必须要先获得锁，否则就阻塞等待。如此一来，就不存在上述问题了，所以输出如下
-
-
-
-```
+// 输出示意:
 1
 2
 3
@@ -8163,95 +7666,118 @@ func main() {
 最终结果 10
 ```
 
-##### [读写锁](https://golang.halfiisland.com/essential/senior/110.concurrency.html#读写锁)
+每一个协程在访问数据前，都先上锁，更新完成后再解锁，其他协程想要访问就必须要先获得锁，否则就阻塞等待。如此一来，就不存在上述问题了。
 
-互斥锁适合读操作与写操作频率都差不多的情况，对于一些读多写少的数据，如果使用互斥锁，会造成大量的不必要的协程竞争锁，这会消耗很多的系统资源，这时候就需要用到读写锁，即读写互斥锁，对于一个协程而言：
+##### 读写锁
+
+互斥锁适合读操作与写操作频率都差不多的情况。对于一些读多写少的数据，如果使用互斥锁，会造成大量不必要的协程竞争锁，这会消耗很多系统资源，这时候就需要用到读写锁，即读写互斥锁。对于一个协程而言：
 
 - 如果获得了读锁，其他协程进行写操作时会阻塞，其他协程进行读操作时不会阻塞
-- 如果获得了写锁，其他协程进行写操作时会阻塞，其他协程进行读操作时会阻塞
+- 如果获得了写锁，其他协程进行写操作时会阻塞，其他协程进行读操作时也会阻塞
 
 Go 中读写互斥锁的实现是 `sync.RWMutex`，它也同样实现了 `Locker` 接口，但它提供了更多可用的方法，如下：
 
+1. **加读锁**：允许多个读协程同时进入。
 
-
-```
-// 加读锁
+```go
 func (rw *RWMutex) RLock()
+// 返回结果: 获取读锁
+```
 
-// 尝试加读锁
+2. **尝试加读锁**：非阻塞地尝试获取读锁。
+
+```go
 func (rw *RWMutex) TryRLock() bool
+// 返回结果: 成功获取读锁返回 true，否则返回 false
+```
 
-// 解读锁
+3. **解读锁**：释放读锁。
+
+```go
 func (rw *RWMutex) RUnlock()
+// 返回结果: 释放读锁
+```
 
-// 加写锁
+4. **加写锁**：独占锁，阻塞其他读写操作。
+
+```go
 func (rw *RWMutex) Lock()
+// 返回结果: 获取写锁
+```
 
-// 尝试加写锁
+5. **尝试加写锁**：非阻塞地尝试获取写锁。
+
+```go
 func (rw *RWMutex) TryLock() bool
+// 返回结果: 成功获取写锁返回 true，否则返回 false
+```
 
-// 解写锁
+6. **解写锁**：释放写锁。
+
+```go
 func (rw *RWMutex) Unlock()
+// 返回结果: 释放写锁
 ```
 
-其中 `TryRlock` 与 `TryLock` 两个尝试加锁的操作是非阻塞式的，成功加锁会返回 `true`，无法获得锁时并不会阻塞而是返回 `false`。读写互斥锁内部实现依旧是互斥锁，并不是说分读锁和写锁就有两个锁，从始至终都只有一个锁。下面来看一个读写互斥锁的使用案例
+其中 `TryRLock` 与 `TryLock` 两个尝试加锁的操作是非阻塞式的，成功加锁会返回 `true`，无法获得锁时并不会阻塞而是返回 `false`。读写互斥锁内部实现依旧是互斥锁，并不是说分读锁和写锁就有两个锁，从始至终都只有一个锁。
 
+下面来看一个读写互斥锁的使用案例：
 
-
-```
-var wait sync.WaitGroup
-var count = 0
-
-var rw sync.RWMutex
+```go
+var waitGroupValue sync.WaitGroup
+var sharedValue = 0
+var readWriteMutex sync.RWMutex
 
 func main() {
-  wait.Add(12)
-  // 读多写少
-  go func() {
-    for i := 0; i < 3; i++ {
-      go Write(&count)
-    }
-    wait.Done()
-  }()
-  go func() {
-    for i := 0; i < 7; i++ {
-      go Read(&count)
-    }
-    wait.Done()
-  }()
-  // 等待子协程结束
-  wait.Wait()
-  fmt.Println("最终结果", count)
+    waitGroupValue.Add(12)
+
+    go func() {
+        for indexValue := 0; indexValue < 3; indexValue++ {
+            go writeValue(&sharedValue)
+        }
+        waitGroupValue.Done()
+    }()
+
+    go func() {
+        for indexValue := 0; indexValue < 7; indexValue++ {
+            go readValue(&sharedValue)
+        }
+        waitGroupValue.Done()
+    }()
+
+    waitGroupValue.Wait()
+    fmt.Println("最终结果", sharedValue)
 }
 
-func Read(i *int) {
-  time.Sleep(time.Millisecond * time.Duration(rand.Intn(500)))
-  rw.RLock()
-  fmt.Println("拿到读锁")
-  time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-  fmt.Println("释放读锁", *i)
-  rw.RUnlock()
-  wait.Done()
+func readValue(dataPointer *int) {
+    time.Sleep(time.Millisecond * time.Duration(rand.Intn(500)))
+
+    readWriteMutex.RLock()
+    fmt.Println("拿到读锁")
+
+    time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
+    fmt.Println("释放读锁", *dataPointer)
+
+    readWriteMutex.RUnlock()
+    waitGroupValue.Done()
 }
 
-func Write(i *int) {
-  time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-  rw.Lock()
-  fmt.Println("拿到写锁")
-  temp := *i
-  time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-  *i = temp + 1
-  fmt.Println("释放写锁", *i)
-  rw.Unlock()
-  wait.Done()
+func writeValue(dataPointer *int) {
+    time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
+
+    readWriteMutex.Lock()
+    fmt.Println("拿到写锁")
+
+    tempValue := *dataPointer
+    time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
+    *dataPointer = tempValue + 1
+
+    fmt.Println("释放写锁", *dataPointer)
+    readWriteMutex.Unlock()
+    waitGroupValue.Done()
 }
-```
 
-该例开启了 3 个写协程，7 个读协程，在读数据的时候都会先获得读锁，读协程可以正常获得读锁，但是会阻塞写协程，获得写锁的时候，则会同时阻塞读协程和写协程，直到释放写锁，如此一来实现了读协程与写协程互斥，保证了数据的正确性。例子输出如下：
-
-
-
-```
+// 输出示意:
 拿到读锁
 拿到读锁
 拿到读锁
@@ -8275,117 +7801,109 @@ func Write(i *int) {
 最终结果 3
 ```
 
-提示
+该例开启了 3 个写协程，7 个读协程。在读数据的时候都会先获得读锁，读协程之间可以同时获得读锁，但是会阻塞写协程；获得写锁的时候，则会同时阻塞读协程和写协程，直到释放写锁。如此一来实现了读协程与写协程互斥，保证了数据的正确性。
 
-对于锁而言，不应该将其作为值传递和存储，应该使用指针。
+**注意：对于锁而言，不应该将其作为值传递和存储，应该永远使用指针。**
 
-##### [条件变量](https://golang.halfiisland.com/essential/senior/110.concurrency.html#条件变量)
+##### 条件变量
 
-条件变量，与互斥锁一同出现和使用，所以有些人可能会误称为条件锁，但它并不是锁，是一种通讯机制。Go 中的 `sync.Cond` 对此提供了实现，而创建条件变量的函数签名如下：
+条件变量与互斥锁一同出现和使用，所以有些人可能会误称为条件锁，但它并不是锁，而是一种通信机制。Go 中的 `sync.Cond` 对此提供了实现，而创建条件变量的函数签名如下：
 
+1. **创建条件变量**：必须基于一个 `Locker`。
 
-
-```
-func NewCond(l Locker) *Cond
-```
-
-可以看到创建一个条件变量前提就是需要创建一个锁，`sync.Cond` 提供了如下的方法以供使用
-
-
-
-```
-// 阻塞等待条件生效，直到被唤醒
-func (c *Cond) Wait()
-
-// 唤醒一个因条件阻塞的协程
-func (c *Cond) Signal()
-
-// 唤醒所有因条件阻塞的协程
-func (c *Cond) Broadcast()
+```go
+func NewCond(lockerValue Locker) *Cond
+// lockerValue: 条件变量依赖的锁
+// 返回结果: 条件变量指针
 ```
 
-条件变量使用起来非常简单，将上面的读写互斥锁的例子稍微修改下即可
+`sync.Cond` 提供了如下的方法以供使用：
 
+2. **Wait**：阻塞等待条件生效，直到被唤醒。
 
-
+```go
+func (condPointer *Cond) Wait()
+// 返回结果: 当前协程阻塞等待条件
 ```
-var wait sync.WaitGroup
-var count = 0
 
-var rw sync.RWMutex
+3. **Signal**：唤醒一个因条件阻塞的协程。
 
-// 条件变量
-var cond = sync.NewCond(rw.RLocker())
+```go
+func (condPointer *Cond) Signal()
+// 返回结果: 唤醒一个等待中的协程
+```
+
+4. **Broadcast**：唤醒所有因条件阻塞的协程。
+
+```go
+func (condPointer *Cond) Broadcast()
+// 返回结果: 唤醒全部等待中的协程
+```
+
+条件变量使用起来非常简单，将上面的读写互斥锁例子稍微修改即可：
+
+```go
+var waitGroupValue sync.WaitGroup
+var sharedValue = 0
+var readWriteMutex sync.RWMutex
+var condValue = sync.NewCond(readWriteMutex.RLocker())
 
 func main() {
-  wait.Add(12)
-  // 读多写少
-  go func() {
-    for i := 0; i < 3; i++ {
-      go Write(&count)
+    waitGroupValue.Add(12)
+
+    go func() {
+        for indexValue := 0; indexValue < 3; indexValue++ {
+            go writeValue(&sharedValue)
+        }
+        waitGroupValue.Done()
+    }()
+
+    go func() {
+        for indexValue := 0; indexValue < 7; indexValue++ {
+            go readValue(&sharedValue)
+        }
+        waitGroupValue.Done()
+    }()
+
+    waitGroupValue.Wait()
+    fmt.Println("最终结果", sharedValue)
+}
+
+func readValue(dataPointer *int) {
+    time.Sleep(time.Millisecond * time.Duration(rand.Intn(500)))
+
+    readWriteMutex.RLock()
+    fmt.Println("拿到读锁")
+
+    for *dataPointer < 3 {
+        condValue.Wait()
     }
-    wait.Done()
-  }()
-  go func() {
-    for i := 0; i < 7; i++ {
-      go Read(&count)
-    }
-    wait.Done()
-  }()
-  // 等待子协程结束
-  wait.Wait()
-  fmt.Println("最终结果", count)
+
+    time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
+    fmt.Println("释放读锁", *dataPointer)
+
+    readWriteMutex.RUnlock()
+    waitGroupValue.Done()
 }
 
-func Read(i *int) {
-  time.Sleep(time.Millisecond * time.Duration(rand.Intn(500)))
-  rw.RLock()
-  fmt.Println("拿到读锁")
-  // 条件不满足就一直阻塞
-  for *i < 3 {
-    cond.Wait()
-  }
-  time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-  fmt.Println("释放读锁", *i)
-  rw.RUnlock()
-  wait.Done()
+func writeValue(dataPointer *int) {
+    time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
+
+    readWriteMutex.Lock()
+    fmt.Println("拿到写锁")
+
+    tempValue := *dataPointer
+    time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
+    *dataPointer = tempValue + 1
+
+    fmt.Println("释放写锁", *dataPointer)
+    readWriteMutex.Unlock()
+
+    condValue.Broadcast()
+    waitGroupValue.Done()
 }
 
-func Write(i *int) {
-  time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-  rw.Lock()
-  fmt.Println("拿到写锁")
-  temp := *i
-  time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-  *i = temp + 1
-  fmt.Println("释放写锁", *i)
-  rw.Unlock()
-  // 唤醒所有因条件变量阻塞的协程
-  cond.Broadcast()
-  wait.Done()
-}
-```
-
-在创建条件变量时，因为在这里条件变量作用的是读协程，所以将读锁作为互斥锁传入，如果直接传入读写互斥锁会导致写协程重复解锁的问题。这里传入的是 `sync.rlocker`，通过 `RWMutex.RLocker` 方法获得。
-
-
-
-```
-func (rw *RWMutex) RLocker() Locker {
-   return (*rlocker)(rw)
-}
-
-type rlocker RWMutex
-
-func (r *rlocker) Lock()   { (*RWMutex)(r).RLock() }
-func (r *rlocker) Unlock() { (*RWMutex)(r).RUnlock() }
-```
-
-可以看到 `rlocker` 也只是把读写互斥锁的读锁操作封装了一下，实际上是同一个引用，依旧是同一个锁。读协程读取数据时，如果小于 3 就会一直阻塞等待，直到数据大于 3，而写协程在更新数据后都会尝试唤醒所有因条件变量而阻塞的协程，所以最后的输出如下
-
-
-
-```
+// 输出示意:
 拿到读锁
 拿到读锁
 拿到读锁
@@ -8398,7 +7916,7 @@ func (r *rlocker) Unlock() { (*RWMutex)(r).RUnlock() }
 拿到读锁
 拿到读锁
 拿到写锁
-释放写锁 3 // 第三个写协程执行完毕
+释放写锁 3
 释放读锁 3
 释放读锁 3
 释放读锁 3
@@ -8409,791 +7927,599 @@ func (r *rlocker) Unlock() { (*RWMutex)(r).RUnlock() }
 最终结果 3
 ```
 
-从结果中可以看到，当第三个写协程更新完数据后，七个因条件变量而阻塞的读协程都恢复了运行。
+在创建条件变量时，因为这里条件变量作用的是读协程，所以将读锁作为 `Locker` 传入。如果直接传入读写互斥锁，会导致写协程重复解锁的问题。这里传入的是 `sync.RLocker`，通过 `RWMutex.RLocker` 方法获得。
 
-提示
+```go
+func (rw *RWMutex) RLocker() Locker {
+    return (*rlocker)(rw)
+}
 
-对于条件变量，应该使用 `for` 而不是 `if`，应该使用循环来判断条件是否满足，因为协程被唤醒时并不能保证当前条件就已经满足了。
+type rlocker RWMutex
 
+func (receiverPointer *rlocker) Lock() {
+    (*RWMutex)(receiverPointer).RLock()
+}
 
-
-```
-for !condition {
-  cond.Wait()
+func (receiverPointer *rlocker) Unlock() {
+    (*RWMutex)(receiverPointer).RUnlock()
 }
 ```
 
-#### [sync](https://golang.halfiisland.com/essential/senior/110.concurrency.html#sync)
+可以看到 `rlocker` 也只是把读写互斥锁的读锁操作封装了一下，实际上是同一个引用，依旧是同一个锁。读协程读取数据时，如果小于 3 就会一直阻塞等待，直到数据大于等于 3，而写协程在更新数据后都会尝试唤醒所有因条件变量而阻塞的协程，所以最后所有读协程都恢复了运行。
 
-Go 中很大一部分的并发相关的工具都是 `sync` 标准库提供的，上述已经介绍过了 `sync.WaitGroup`，`sync.Locker` 等，除此之外，`sync` 包下还有一些其他的工具可以使用。
+**提示：**对于条件变量，应该使用 `for` 而不是 `if`，应该使用循环来判断条件是否满足，因为协程被唤醒时并不能保证当前条件就已经满足了。
 
-##### [Once](https://golang.halfiisland.com/essential/senior/110.concurrency.html#once)
-
-当在使用一些数据结构时，如果这些数据结构太过庞大，可以考虑采用懒加载的方式，即真正要用到它的时候才会初始化该数据结构。如下面的例子
-
-
-
-```
-type MySlice []int
-
-func (m *MySlice) Get(i int) (int, bool) {
-   if *m == nil {
-      return 0, false
-   } else {
-      return (*m)[i], true
-   }
-}
-
-func (m *MySlice) Add(i int) {
-   // 当真正用到切片的时候，才会考虑去初始化
-   if *m == nil {
-      *m = make([]int, 0, 10)
-   }
-   *m = append(*m, i)
+```go
+for !conditionValue {
+    condPointer.Wait()
 }
 ```
 
-那么问题就来了，如果只有一个协程使用肯定是没有任何问题的，但是如果有多个协程访问的话就可能会出现问题了。比如协程 A 和 B 同时调用了 `Add` 方法，A 执行的稍微快一些，已经初始化完毕了，并且将数据成功添加，随后协程 B 又初始化了一遍，这样一来将协程 A 添加的数据直接覆盖掉了，这就是问题所在。
+#### Once
 
-而这就是 `sync.Once` 要解决的问题，顾名思义，`Once` 译为一次，`sync.Once` 保证了在并发条件下指定操作只会执行一次。它的使用非常简单，只对外暴露了一个 `Do` 方法，签名如下：
+`Once` 来自标准库 `sync` 包，用于保证某段初始化逻辑在并发条件下只执行一次。
 
+当在使用一些数据结构时，如果这些数据结构太过庞大，可以考虑采用懒加载的方式，即真正要用到它的时候才会初始化该数据结构。顾名思义，`Once` 译为一次，`sync.Once` 保证了在并发条件下指定操作只会执行一次。它的使用非常简单，只对外暴露了一个 `Do` 方法。
 
+1. **Do**：保证传入的初始化逻辑在并发条件下只执行一次。
 
+```go
+func (oncePointer *Once) Do(functionValue func())
+// oncePointer: Once 指针
+// functionValue: 只允许执行一次的函数
+// 返回结果: 保证 functionValue 只执行一次
 ```
-func (o *Once) Do(f func())
-```
 
-在使用时，只需要将初始化操作传入 `Do` 方法即可，如下
+在使用时，只需要将初始化操作传入 `Do` 方法即可，如下：
 
-
-
-```
-var wait sync.WaitGroup
-
-func main() {
-  var slice MySlice
-  wait.Add(4)
-  for i := 0; i < 4; i++ {
-    go func() {
-      slice.Add(1)
-      wait.Done()
-    }()
-  }
-  wait.Wait()
-  fmt.Println(slice.Len())
-}
+```go
+var waitGroupValue sync.WaitGroup
 
 type MySlice struct {
-  s []int
-  o sync.Once
+    sliceValue []int
+    onceValue  sync.Once
 }
 
-func (m *MySlice) Get(i int) (int, bool) {
-  if m.s == nil {
-    return 0, false
-  } else {
-    return m.s[i], true
-  }
-}
-
-func (m *MySlice) Add(i int) {
-  // 当真正用到切片的时候，才会考虑去初始化
-  m.o.Do(func() {
-    fmt.Println("初始化")
-    if m.s == nil {
-      m.s = make([]int, 0, 10)
+func (receiverPointer *MySlice) Get(indexValue int) (int, bool) {
+    if receiverPointer.sliceValue == nil {
+        return 0, false
     }
-  })
-  m.s = append(m.s, i)
+    return receiverPointer.sliceValue[indexValue], true
 }
 
-func (m *MySlice) Len() int {
-  return len(m.s)
-}
-```
+func (receiverPointer *MySlice) Add(elementValue int) {
+    receiverPointer.onceValue.Do(func() {
+        fmt.Println("初始化")
+        if receiverPointer.sliceValue == nil {
+            receiverPointer.sliceValue = make([]int, 0, 10)
+        }
+    })
 
-输出如下
-
-
-
-```
-初始化
-4
-```
-
-从输出结果中可以看到，所有的数据等正常添加进切片，初始化操作只执行了一次。其实 `sync.Once` 的实现相当简单，去除注释真正的代码逻辑只有 16 行，其原理就是锁+原子操作。源代码如下：
-
-
-
-```
-type Once struct {
-    // 用于判断操作是否已经执行
-  done uint32
-  m    Mutex
+    receiverPointer.sliceValue = append(receiverPointer.sliceValue, elementValue)
 }
 
-func (o *Once) Do(f func()) {
-  // 原子加载数据
-  if atomic.LoadUint32(&o.done) == 0 {
-    o.doSlow(f)
-  }
-}
-
-func (o *Once) doSlow(f func()) {
-    // 加锁
-  o.m.Lock()
-    // 解锁
-  defer o.m.Unlock()
-    // 判断是否执行
-  if o.done == 0 {
-        // 执行完毕后修改done
-    defer atomic.StoreUint32(&o.done, 1)
-    f()
-  }
-}
-```
-
-##### [Pool](https://golang.halfiisland.com/essential/senior/110.concurrency.html#pool)
-
-`sync.Pool` 的设计目的是用于存储临时对象以便后续的复用，是一个临时的并发安全对象池，将暂时用不到的对象放入池中，在后续使用中就不需要再额外的创建对象可以直接复用，减少内存的分配与释放频率，最重要的一点就是降低 GC 压力。`sync.Pool` 总共只有两个方法，如下：
-
-
-
-```
-// 申请一个对象
-func (p *Pool) Get() any
-
-// 放入一个对象
-func (p *Pool) Put(x any)
-```
-
-并且 `sync.Pool` 有一个对外暴露的 `New` 字段，用于对象池在申请不到对象时初始化一个对象
-
-
-
-```
-New func() any
-```
-
-下面以一个例子演示
-
-
-
-```
-var wait sync.WaitGroup
-
-// 临时对象池
-var pool sync.Pool
-
-// 用于计数过程中总共创建了多少个对象
-var numOfObject atomic.Int64
-
-// BigMemData 假设这是一个占用内存很大的结构体
-type BigMemData struct {
-   M string
+func (receiverPointer *MySlice) Len() int {
+    return len(receiverPointer.sliceValue)
 }
 
 func main() {
-   pool.New = func() any {
-      numOfObject.Add(1)
-      return BigMemData{"大内存"}
-   }
-   wait.Add(1000)
-   // 这里开启1000个协程
-   for i := 0; i < 1000; i++ {
-      go func() {
-         // 申请对象
-         val := pool.Get()
-         // 使用对象
-         _ = val.(BigMemData)
-         // 用完之后再释放对象
-         pool.Put(val)
-         wait.Done()
-      }()
-   }
-   wait.Wait()
-   fmt.Println(numOfObject.Load())
+    var sliceValue MySlice
+
+    waitGroupValue.Add(4)
+    for indexValue := 0; indexValue < 4; indexValue++ {
+        go func() {
+            sliceValue.Add(1)
+            waitGroupValue.Done()
+        }()
+    }
+
+    waitGroupValue.Wait()
+    fmt.Println(sliceValue.Len())
+}
+
+// 输出:
+// 初始化
+// 4
+```
+
+从输出结果中可以看到，所有的数据都正常添加进切片，初始化操作只执行了一次。其实 `sync.Once` 的实现相当简单，其原理就是锁加原子操作。
+
+```go
+type Once struct {
+    doneValue uint32
+    mutexValue Mutex
+}
+
+func (receiverPointer *Once) Do(functionValue func()) {
+    if atomic.LoadUint32(&receiverPointer.doneValue) == 0 {
+        receiverPointer.doSlow(functionValue)
+    }
+}
+
+func (receiverPointer *Once) doSlow(functionValue func()) {
+    receiverPointer.mutexValue.Lock()
+    defer receiverPointer.mutexValue.Unlock()
+
+    if receiverPointer.doneValue == 0 {
+        defer atomic.StoreUint32(&receiverPointer.doneValue, 1)
+        functionValue()
+    }
 }
 ```
 
-例子中开启了 1000 个协程不断的在池中申请和释放对象，如果不采用对象池，那么 1000 个协程都需要各自实例化对象，并且这 1000 个实例化后的对象在使用完毕后都需要由 GC 来释放内存，如果有几十万个协程或者说创建该对象的成本十分的高昂，这种情况下就会占用很大的内存并且给 GC 带来非常大的压力，采用对象池后，可以复用对象减少实例化的频率，比如上述的例子输出可能如下：
+#### Pool
 
+`Pool` 来自标准库 `sync` 包，用于缓存和复用临时对象，减少频繁分配与回收带来的开销。
 
+`sync.Pool` 的设计目的是用于存储临时对象以便后续复用，是一个临时的并发安全对象池。将暂时用不到的对象放入池中，在后续使用中就不需要再额外创建对象，可以直接复用，从而减少内存的分配与释放频率，最重要的一点就是降低 GC 压力。
 
+`sync.Pool` 总共只有两个方法，并且有一个对外暴露的 `New` 字段。
+
+1. **Get**：从对象池中申请一个对象。
+
+```go
+func (poolPointer *Pool) Get() any
+// poolPointer: Pool 指针
+// 返回结果: 申请到的对象
 ```
-5
+
+2. **Put**：将对象放回对象池。
+
+```go
+func (poolPointer *Pool) Put(objectValue any)
+// poolPointer: Pool 指针
+// objectValue: 待回收对象
+// 返回结果: 将对象放回对象池
 ```
 
-即便开启了 1000 个协程，整个过程中也只创建了 5 个对象，如果不采用对象池的话 1000 个协程将会创建 1000 个对象，这种优化带来的提升是显而易见的，尤其是在并发量特别大和实例化对象成本特别高的时候更能体现出优势。
+3. **New**：当池中没有可复用对象时，用于创建一个新对象。
+
+```go
+New func() any
+// 返回结果: 创建一个新的池对象
+```
+
+下面用一个例子演示：
+
+```go
+var waitGroupValue sync.WaitGroup
+var poolValue sync.Pool
+var objectCountValue atomic.Int64
+
+type BigMemData struct {
+    messageValue string
+}
+
+func main() {
+    poolValue.New = func() any {
+        objectCountValue.Add(1)
+        return BigMemData{messageValue: "大内存"}
+    }
+
+    waitGroupValue.Add(1000)
+
+    for indexValue := 0; indexValue < 1000; indexValue++ {
+        go func() {
+            objectValue := poolValue.Get()
+            _ = objectValue.(BigMemData)
+            poolValue.Put(objectValue)
+            waitGroupValue.Done()
+        }()
+    }
+
+    waitGroupValue.Wait()
+    fmt.Println(objectCountValue.Load())
+}
+
+// 输出示意:
+// 5
+```
+
+例子中开启了 1000 个协程不断地在池中申请和释放对象。如果不采用对象池，那么 1000 个协程都需要各自实例化对象，并且这些对象在使用完毕后都需要由 GC 来释放内存。如果有几十万个协程，或者创建该对象的成本十分高昂，这种情况下就会占用很大的内存并且给 GC 带来非常大的压力。
+
+采用对象池后，可以复用对象减少实例化的频率，比如上述例子里，即便开启了 1000 个协程，整个过程中也可能只创建了 5 个对象。如果不采用对象池的话，1000 个协程将会创建 1000 个对象，这种优化带来的提升是显而易见的，尤其是在并发量特别大和实例化对象成本特别高的时候更能体现出优势。
 
 在使用 `sync.Pool` 时需要注意几个点：
 
-- 临时对象：`sync.Pool` 只适合存放临时对象，池中的对象可能会在没有任何通知的情况下被 GC 移除，所以并不建议将网络链接，数据库连接这类存入 `sync.Pool` 中。
-- 不可预知：`sync.Pool` 在申请对象时，无法预知这个对象是新创建的还是复用的，也无法知晓池中有几个对象
+- 临时对象：`sync.Pool` 只适合存放临时对象，池中的对象可能会在没有任何通知的情况下被 GC 移除，所以并不建议将网络连接、数据库连接这类对象存入 `sync.Pool` 中。
+- 不可预知：`sync.Pool` 在申请对象时，无法预知这个对象是新创建的还是复用的，也无法知晓池中有几个对象。
 - 并发安全：官方保证 `sync.Pool` 一定是并发安全，但并不保证用于创建对象的 `New` 函数就一定是并发安全的，`New` 函数是由使用者传入的，所以 `New` 函数的并发安全性要由使用者自己来维护，这也是为什么上例中对象计数要用到原子值的原因。
 
-提示
+**提示：最后需要注意的是，当使用完对象后，一定要释放回池中，如果用了不释放，那么对象池的使用将毫无意义。**
 
-最后需要注意的是，当使用完对象后，一定要释放回池中，如果用了不释放那么对象池的使用将毫无意义。
+标准库 `fmt` 包下就有一个对象池的使用案例，在 `fmt.Fprintf` 函数中：
 
-标准库 `fmt` 包下就有一个对象池的使用案例，在 `fmt.Fprintf` 函数中
-
-
-
-```
-func Fprintf(w io.Writer, format string, a ...any) (n int, err error) {
-   // 申请一个打印缓冲区
-   p := newPrinter()
-   p.doPrintf(format, a)
-   n, err = w.Write(p.buf)
-   // 使用完毕后释放
-   p.free()
-   return
-}
-```
-
-其中 `newPointer` 函数和 `free` 方法的实现如下
-
-
-
-```
-func newPrinter() *pp {
-   // 向对象池申请的一个对象
-   p := ppFree.Get().(*pp)
-   p.panicking = false
-   p.erroring = false
-   p.wrapErrs = false
-   p.fmt.init(&p.buf)
-   return p
-}
-
-func (p *pp) free() {
-    // 为了让对象池中的缓冲区大小大致相同以便更好的弹性控制缓冲区大小
-    // 过大的缓冲区就不用放回对象池
-  if cap(p.buf) > 64<<10 {
+```go
+func Fprintf(writerValue io.Writer, formatValue string, argumentList ...any) (writtenValue int, err error) {
+    printerValue := newPrinter()
+    printerValue.doPrintf(formatValue, argumentList)
+    writtenValue, err = writerValue.Write(printerValue.buf)
+    printerValue.free()
     return
-  }
-  // 字段重置后释放对象到池中
-  p.buf = p.buf[:0]
-  p.arg = nil
-  p.value = reflect.Value{}
-  p.wrappedErr = nil
-  ppFree.Put(p)
 }
 ```
 
-##### [Map](https://golang.halfiisland.com/essential/senior/110.concurrency.html#map)
+其中 `newPrinter` 函数和 `free` 方法的实现如下：
 
-`sync.Map` 是官方提供的一种并发安全 Map 的实现，开箱即用，使用起来十分的简单，下面是该结构体对外暴露的方法：
+```go
+func newPrinter() *pp {
+    printerValue := ppFree.Get().(*pp)
+    printerValue.panicking = false
+    printerValue.erroring = false
+    printerValue.wrapErrs = false
+    printerValue.fmt.init(&printerValue.buf)
+    return printerValue
+}
 
+func (receiverPointer *pp) free() {
+    if cap(receiverPointer.buf) > 64<<10 {
+        return
+    }
 
-
+    receiverPointer.buf = receiverPointer.buf[:0]
+    receiverPointer.arg = nil
+    receiverPointer.value = reflect.Value{}
+    receiverPointer.wrappedErr = nil
+    ppFree.Put(receiverPointer)
+}
 ```
-// 根据一个key读取值，返回值会返回对应的值和该值是否存在
-func (m *Map) Load(key any) (value any, ok bool)
 
-// 存储一个键值对
-func (m *Map) Store(key, value any)
+#### sync.Map
 
-// 删除一个键值对
-func (m *Map) Delete(key any)
+`sync.Map` 来自标准库 `sync` 包，用于在并发场景下安全地存取键值对。
 
-// 如果该key已存在，就返回原有的值，否则将新的值存入并返回，当成功读取到值时，loaded为true，否则为false
-func (m *Map) LoadOrStore(key, value any) (actual any, loaded bool)
+`sync.Map` 是官方提供的一种并发安全 Map 的实现，开箱即用，使用起来十分简单。下面是该结构体对外暴露的方法：
 
-// 删除一个键值对，并返回其原有的值，loaded的值取决于key是否存在
-func (m *Map) LoadAndDelete(key any) (value any, loaded bool)
+1. **Load**：根据一个 key 读取值，并返回值是否存在。
 
-// 遍历Map，当f()返回false时，就会停止遍历
-func (m *Map) Range(f func(key, value any) bool)
+```go
+func (mapPointer *Map) Load(key any) (value any, ok bool)
+// key: 键
+// value: 读取到的值
+// ok: 键是否存在
 ```
 
-下面用一个简单的示例来演示下 `sync.Map` 的基本使用
+2. **Store**：存储一个键值对。
 
-
-
+```go
+func (mapPointer *Map) Store(key, value any)
+// key: 键
+// value: 值
+// 返回结果: 存入一个键值对
 ```
+
+3. **Delete**：删除一个键值对。
+
+```go
+func (mapPointer *Map) Delete(key any)
+// key: 键
+// 返回结果: 删除对应键值对
+```
+
+4. **LoadOrStore**：如果 key 已存在，就返回原有值；否则将新值存入并返回。
+
+```go
+func (mapPointer *Map) LoadOrStore(key, value any) (actual any, loaded bool)
+// actual: 原值或新值
+// loaded: 是否读取到了已有值
+```
+
+5. **LoadAndDelete**：删除一个键值对，并返回其原有值。
+
+```go
+func (mapPointer *Map) LoadAndDelete(key any) (value any, loaded bool)
+// value: 删除前的值
+// loaded: 键是否存在
+```
+
+6. **Range**：遍历 Map，当回调函数返回 `false` 时停止遍历。
+
+```go
+func (mapPointer *Map) Range(functionValue func(key, value any) bool)
+// functionValue: 遍历回调
+// 返回结果: 遍历 map
+```
+
+下面用一个简单的示例来演示 `sync.Map` 的基本使用：
+
+```go
 func main() {
-  var syncMap sync.Map
-  // 存入数据
-  syncMap.Store("a", 1)
-  syncMap.Store("a", "a")
-  // 读取数据
-  fmt.Println(syncMap.Load("a"))
-  // 读取并删除
-  fmt.Println(syncMap.LoadAndDelete("a"))
-  // 读取或存入
-  fmt.Println(syncMap.LoadOrStore("a", "hello world"))
-  syncMap.Store("b", "goodbye world")
-  // 遍历map
-  syncMap.Range(func(key, value any) bool {
-    fmt.Println(key, value)
-    return true
-  })
+    var syncMapValue sync.Map
+
+    syncMapValue.Store("a", 1)
+    syncMapValue.Store("a", "a")
+
+    fmt.Println(syncMapValue.Load("a"))
+    fmt.Println(syncMapValue.LoadAndDelete("a"))
+    fmt.Println(syncMapValue.LoadOrStore("a", "hello world"))
+
+    syncMapValue.Store("b", "goodbye world")
+
+    syncMapValue.Range(func(keyValue, valueValue any) bool {
+        fmt.Println(keyValue, valueValue)
+        return true
+    })
 }
+
+// 输出示意:
+// a true
+// a true
+// hello world false
+// a hello world
+// b goodbye world
 ```
 
-输出
+为了并发安全肯定需要做出一定的牺牲，`sync.Map` 的性能通常会比普通 `map` 更低，因此它更适合明确需要并发安全且使用模式合适的场景。
 
+#### 原子
 
+原子操作来自标准库 `sync/atomic` 包，用于在并发环境下对某些基础数据执行不可再分割的读写、交换、比较与更新操作。在计算机学科中，原子或原语操作，通常用于表述一些不可再细化分割的操作。由于这些操作无法再细化为更小的步骤，在执行完毕前，不会被其他任何协程打断，所以执行结果要么成功要么失败，没有第三种情况可言；如果出现了其他情况，那么它就不是原子操作。
 
-```
-a true
-a true
-hello world false
-a hello world
-b goodbye world
-```
+##### 原子类型
 
-接下来看一个并发使用 map 的例子：
+好在大多数情况下并不需要自行编写汇编，Go 标准库 `sync/atomic` 包下已经提供了原子操作相关的 API。它提供了以下几种类型以供进行原子操作：
 
-
-
-```
-func main() {
-  myMap := make(map[int]int, 10)
-  var wait sync.WaitGroup
-  wait.Add(10)
-  for i := 0; i < 10; i++ {
-    go func(n int) {
-      for i := 0; i < 100; i++ {
-        myMap[n] = n
-      }
-      wait.Done()
-    }(i)
-  }
-  wait.Wait()
-}
-```
-
-上例中使用的普通 map，开了 10 个协程不断的存入数据，显然这很可能会触发 fatal，结果大概率会如下
-
-
-
-```
-fatal error: concurrent map writes
-```
-
-使用 `sync.Map` 就可以避免这个问题
-
-
-
-```
-func main() {
-  var syncMap sync.Map
-  var wait sync.WaitGroup
-  wait.Add(10)
-  for i := 0; i < 10; i++ {
-    go func(n int) {
-      for i := 0; i < 100; i++ {
-        syncMap.Store(n, n)
-      }
-      wait.Done()
-    }(i)
-  }
-  wait.Wait()
-  syncMap.Range(func(key, value any) bool {
-    fmt.Println(key, value)
-    return true
-  })
-}
-```
-
-输出如下
-
-
-
-```
-8 8
-3 3
-1 1
-9 9
-6 6
-5 5
-7 7
-0 0
-2 2
-4 4
-```
-
-为了并发安全肯定需要做出一定的牺牲，`sync.Map` 的性能要比 map 低 10-100 倍左右。
-
-#### [原子](https://golang.halfiisland.com/essential/senior/110.concurrency.html#原子)
-
-在计算机学科中，原子或原语操作，通常用于表述一些不可再细化分割的操作，由于这些操作无法再细化为更小的步骤，在执行完毕前，不会被其他的任何协程打断，所以执行结果要么成功要么失败，没有第三种情况可言，如果出现了其他情况，那么它就是不是原子操作。例如下方的代码：
-
-
-
-```
-func main() {
-  a := 0
-  if a == 0 {
-    a = 1
-  }
-  fmt.Println(a)
-}
-```
-
-上方的代码是一个简单的判断分支，尽管代码很少，但也不是原子操作，真正的原子操作是由硬件指令层面支持的。
-
-##### [类型](https://golang.halfiisland.com/essential/senior/110.concurrency.html#类型)
-
-好在大多情况下并不需要自行编写汇编，Go 标准库 `sync/atomic` 包下已经提供了原子操作相关的 API，其提供了以下几种类型以供进行原子操作。
-
-
-
-```
+```go
 atomic.Bool{}
-atomic.Pointer[]{}
+atomic.Pointer[ElementType]{}
 atomic.Int32{}
 atomic.Int64{}
 atomic.Uint32{}
 atomic.Uint64{}
 atomic.Uintptr{}
 atomic.Value{}
+
+// 说明:
+// 1. Pointer 原子类型支持泛型
+// 2. Value 可以存储任意类型
+// 3. 原子操作更适合处理粒度较小的基础数据
 ```
 
 其中 `Pointer` 原子类型支持泛型，`Value` 类型支持存储任何类型，除此之外，还提供了许多函数来方便操作。因为原子操作的粒度过细，在大多数情况下，更适合处理这些基础的数据类型。
 
-提示
+`atomic` 包下很多原子操作的底层实现依赖更底层机制，使用时通常只需要关注其对外提供的 API。
 
-`atmoic` 包下原子操作只有函数签名，没有具体实现，具体的实现是由 `plan9` 汇编编写。
+##### 基本使用
 
-##### [使用](https://golang.halfiisland.com/essential/senior/110.concurrency.html#使用-1)
+每一个原子类型通常都会提供以下几类常见方法：
 
-每一个原子类型都会提供以下三个方法：
+1. **Load**：原子地获取值。
 
-- `Load()`：原子的获取值
-- `Swap(newVal type) (old type)`：原子的交换值，并且返回旧值
-- `Store(val type)`：原子的存储值
-
-不同的类型可能还会有其他的额外方法，比如整型类型都会提供 `Add` 方法来实现原子加减操作。下面以一个 `int64` 类型演示为例：
-
-
-
+```go
+atomicValue.Load()
+// atomicValue: 原子变量
+// 返回结果: 当前值
 ```
-func main() {
-  var aint64 atomic.Uint64
-  // 存储值
-  aint64.Store(64)
-  // 交换值
-  aint64.Swap(128)
-  // 增加
-  aint64.Add(112)
-    // 加载值
-  fmt.Println(aint64.Load())
+
+2. **Store**：原子地存储值。
+
+```go
+atomicValue.Store(newValue)
+// newValue: 新值
+// 返回结果: 原子写入
+```
+
+3. **Swap**：原子地交换值，并返回旧值。
+
+```go
+atomicValue.Swap(newValue)
+// newValue: 新值
+// 返回结果: 旧值
+```
+
+4. **Add**：整型原子类型通常还会提供 `Add` 方法，用于原子加减。
+
+```go
+atomicIntegerValue.Add(deltaValue)
+// deltaValue: 增量或减量
+// 返回结果: 修改后的值
+```
+
+下面以一个整型原子类型演示：
+
+```go
+var atomicIntegerValue atomic.Int64
+
+atomicIntegerValue.Store(64)
+oldValue := atomicIntegerValue.Swap(128)
+newValue := atomicIntegerValue.Add(112)
+currentValue := atomicIntegerValue.Load()
+
+fmt.Println(oldValue, newValue, currentValue)
+
+// 输出:
+// 64 240 240
+```
+
+除了原子类型的方法，也可以直接使用函数形式：
+
+```go
+var integerValue int64
+
+atomic.StoreInt64(&integerValue, 64)
+oldValue := atomic.SwapInt64(&integerValue, 128)
+newValue := atomic.AddInt64(&integerValue, 112)
+currentValue := atomic.LoadInt64(&integerValue)
+
+fmt.Println(oldValue, newValue, currentValue)
+
+// 输出:
+// 64 240 240
+```
+
+其他类型的使用方式也是类似的。函数式 API 与原子类型方法本质上解决的是同一类问题，只是写法不同。
+
+##### CAS
+
+`atomic` 包还提供了 `CompareAndSwap` 操作，也就是 `CAS`。它是实现乐观锁和无锁数据结构的核心。乐观锁本身并不是锁，而是一种并发条件下无锁化的并发控制方式：协程在修改数据前，不会先加锁，而是先读取数据，进行计算，然后在提交修改时使用 `CAS` 来判断在此期间是否有其他协程修改过该数据。如果没有，也就是值仍等于之前读取的值，则修改成功；否则失败并重试。因此之所以被称作乐观锁，是因为它总是假设共享数据大概率不会被修改，仅在提交时做校验。而前面提到的互斥量则更接近悲观锁，会先假设共享数据一定会被别人改动，所以直接加锁保护。
+
+对于 `CAS` 而言，有三个核心部分：内存值、期望值、新值。执行时，`CAS` 会将期望值与当前内存值进行比较，如果内存值与期望值相同，就会执行后续替换，否则什么也不做。对于 Go 中 `atomic` 包下的原子操作，`CAS` 相关函数需要传入地址、期望值、新值，并返回是否成功替换的布尔值。例如 `int64` 类型的函数签名如下：
+
+```go
+func CompareAndSwapInt64(addressPointer *int64, oldValue, newValue int64) (swapped bool)
+// addressPointer: 目标地址
+// oldValue: 期望值
+// newValue: 新值
+// swapped: 是否替换成功
+```
+
+
+
+先看一个互斥锁版本的加法：
+
+```go
+var mutexValue sync.Mutex
+var countValue int
+
+func add(numValue int) {
+    mutexValue.Lock()
+    countValue += numValue
+    mutexValue.Unlock()
 }
 ```
 
-或者也可以直接使用函数
+接下来使用 `CAS` 改造一下：
 
+```go
+var countValue int64
 
+func add(numValue int64) {
+    for {
+        expectedValue := atomic.LoadInt64(&countValue)
 
-```
-func main() {
-   var aint64 int64
-   // 存储值
-   atomic.StoreInt64(&aint64, 64)
-   // 交换值
-   atomic.SwapInt64(&aint64, 128)
-   // 增加
-   atomic.AddInt64(&aint64, 112)
-   // 加载
-   fmt.Println(atomic.LoadInt64(&aint64))
-}
-```
-
-其他的类型的使用也是十分类似的，最终输出为：
-
-
-
-```
-240
-```
-
-##### [CAS](https://golang.halfiisland.com/essential/senior/110.concurrency.html#cas)
-
-`atomic` 包还提供了 `CompareAndSwap` 操作，也就是 `CAS`。它是实现乐观锁和无锁数据结构的核心。乐观锁本身并不是锁，是一种并发条件下无锁化并发控制方式：线程/协程在修改数据前，不会先加锁，而是先读取数据，进行计算，然后在提交修改时使用`CAS`来判断在此期间是否有其他线程修改过该数据。如果没有（值仍等于之前读取的值），则修改成功；否则，失败并重试。因此之所以被称作乐观锁，是因为它总是乐观的假设共享数据不会被修改，仅当发现数据未被修改时才会去执行对应操作，而前面了解到的互斥量就是悲观锁，互斥量总是悲观的认为共享数据肯定会被修改，所以在操作时会加锁，操作完毕后就会解锁。由于无锁化实现的并发，其安全性和效率相对于锁要高一些，许多并发安全的数据结构都采用了 `CAS` 来进行实现，不过真正的效率要结合具体使用场景来看。看下面的一个例子：
-
-
-
-```
-var lock sync.Mutex
-
-var count int
-
-func Add(num int) {
-   lock.Lock()
-   count += num
-   lock.Unlock()
-}
-```
-
-这是一个使用互斥锁的例子，每次增加数字前都会先上锁，执行完毕后就会解锁，过程中会导致其他协程阻塞，接下来使用 `CAS` 改造一下：
-
-
-
-```
-var count int64
-
-func Add(num int64) {
-  for {
-    expect := atomic.LoadInt64(&count)
-    if atomic.CompareAndSwapInt64(&count, expect, expect+num) {
-      break
+        if atomic.CompareAndSwapInt64(&countValue, expectedValue, expectedValue+numValue) {
+            break
+        }
     }
-  }
 }
 ```
 
-对于 `CAS` 而言，有三个参数，内存值，期望值，新值。执行时，`CAS` 会将期望值与当前内存值进行比较，如果内存值与期望值相同，就会执行后续的操作，否则的话什么也不做。对于 Go 中 `atomic` 包下的原子操作，`CAS` 相关的函数则需要传入地址，期望值，新值，且会返回是否成功替换的布尔值。例如 `int64` 类型的 `CAS` 操作函数签名如下：
+在上面的 `CAS` 示例中，首先通过 `LoadInt64` 获取期望值，随后使用 `CompareAndSwapInt64` 来进行比较交换。如果不成功的话就不断循环，直到成功。这样无锁化的操作虽然不会导致协程阻塞，但是不断循环对于 CPU 而言依旧是一个不小的开销，所以在一些实现中失败达到了一定次数可能会放弃操作。不过对于这种简单的数字相加场景，完全可以考虑无锁化实现。大多数情况下，仅仅只是比较值并不足以保证复杂场景下的并发安全。例如 `CAS` 经典的 ABA 问题，就往往需要额外引入版本号等机制来解决。
 
+##### Value
 
+`atomic.Value` 结构体来自标准库 `sync/atomic` 包，可以存储任意类型的值。结构体如下：
 
-```
-func CompareAndSwapInt64(addr *int64, old, new int64) (swapped bool)
-```
-
-在 `CAS` 的例子中，首先会通过 `LoadInt64` 来获取期望值，随后使用 `CompareAndSwapInt64` 来进行比较交换，如果不成功的话就不断循环，直到成功。这样无锁化的操作虽然不会导致协程阻塞，但是不断的循环对于 CPU 而言依旧是一个不小的开销，所以在一些实现中失败达到了一定次数可能会放弃操作。但是对于上面的操作而言，仅仅只是简单的数字相加，涉及到的操作并不复杂，所以完全可以考虑无锁化实现。
-
-提示
-
-大多数情况下，仅仅只是比较值是无法做到并发安全的，比如因 `CAS` 引起 ABA 问题，就需要使用额外加入 `version` 来解决问题。
-
-##### [Value](https://golang.halfiisland.com/essential/senior/110.concurrency.html#value)
-
-`atomic.Value` 结构体，可以存储任意类型的值，结构体如下
-
-
-
-```
+```go
 type Value struct {
-   // any类型
-   v any
+    value any
 }
 ```
 
-尽管可以存储任意类型，但是它不能存储 `nil`，并且前后存储的值类型应当一致，下面两个例子都无法通过编译
+尽管它可以存储任意类型，但是它不能存储 `nil`，并且前后存储的值类型应当保持一致。
 
+1. **不能存储 nil**：向 `atomic.Value` 存储 `nil` 会触发 panic。
 
+```go
+var atomicValue atomic.Value
+atomicValue.Store(nil)
+fmt.Println(atomicValue.Load())
 
-```
-func main() {
-   var val atomic.Value
-   val.Store(nil)
-   fmt.Println(val.Load())
-}
+// 结果:
 // panic: sync/atomic: store of nil value into Value
 ```
 
+2. **类型必须一致**：第一次存的是什么类型，后面就必须继续存同类型值，否则也会 panic。
 
+```go
+var atomicValue atomic.Value
 
+atomicValue.Store("hello world")
+atomicValue.Store("another string")
+fmt.Println(atomicValue.Load())
+
+// 输出:
+// another string
 ```
-func main() {
-   var val atomic.Value
-   val.Store("hello world")
-   val.Store(114514)
-   fmt.Println(val.Load())
-}
-// panic: sync/atomic: store of inconsistently typed value into Value
+
+如果前后类型不一致，例如先存字符串再存整数，就会触发类型不一致的 panic。
+
+其适合原子地替换某个整体配置、快照或共享只读对象。
+
+```go
+var configValue atomic.Value
+
+configValue.Store(map[string]int{
+    "port": 8080,
+})
+
+loadedValue := configValue.Load()
+fmt.Println(loadedValue)
+
+// 输出:
+// map[port:8080]
 ```
 
-除此之外，它的使用与其他的原子类型并无太大的差别，并且需要注意的是，所有的原子类型都不应该复制值，而是应该使用它们的指针。
+除此之外，它的使用与其他原子类型并无太大的差别。需要注意的是，所有原子类型一般都不应该随意复制值，而应围绕同一个原子对象进行操作，实际使用中通常以变量本身或其地址为中心来共享。
 
 ### 网络编程
 
 #### net
 
-Go 语言的`net`标准库是一个非常强大的库，它提供了处理网络通信、IP 地址、DNS 解析、TCP/UDP 协议、HTTP 协议等常见任务的功能。由于 Go 语言本身的并发特性，得益于此，Go 在处理网络 IO 的时候非常的简洁高效。
+Go 语言的 `net` 标准库是一个非常强大的库，它来自标准库 `net` 包，提供了处理网络通信、IP 地址、DNS 解析、TCP/UDP 协议、Unix 域套接字等常见任务的功能。由于 Go 语言本身的并发特性，得益于此，Go 在处理网络 IO 的时候非常简洁高效。
 
-##### [地址解析](https://golang.halfiisland.com/essential/std/net.html#地址解析)
+##### 地址解析
 
-Go 提供了四个函数来解析网络地址，下面逐一讲解。
+Go 提供了多个函数来解析不同类型的网络地址，常见的包括 MAC 地址、CIDR、IP 地址、TCP 地址、UDP 地址、Unix 地址。
 
-###### [MAC 地址](https://golang.halfiisland.com/essential/std/net.html#mac-地址)
+1. **解析 MAC 地址**：用于把字符串形式的 MAC 地址解析为 `HardwareAddr`。
 
-签名
-
-```
-func ParseMAC(s string) (hw HardwareAddr, err error)
-```
-
-示例
-
-
-
-```
-package main
-
-import (
-  "fmt"
-  "net"
-)
-
-func main() {
-  hw, err := net.ParseMAC("00:1A:2B:3C:4D:5E")
-  if err != nil {
-    panic(err)
-  }
-  fmt.Println(hw)
-}
+```go
+func ParseMAC(addressString string) (hardwareAddress HardwareAddr, err error)
+// addressString: MAC 地址字符串
+// hardwareAddress: 解析后的 MAC 地址
+// err: 解析错误
 ```
 
-###### [CIDR](https://golang.halfiisland.com/essential/std/net.html#cidr)
+2. **解析 CIDR**：用于解析 IP 网段。
 
-签名
-
-
-
-```
-func ParseCIDR(s string) (IP, *IPNet, error)
-```
-
-示例
-
-
-
-```
-package main
-
-import (
-    "fmt"
-    "log"
-    "net"
-)
-
-func main() {
-    ipv4Addr, ipv4Net, err := net.ParseCIDR("192.0.2.1/24")
-    if err != nil {
-       log.Fatal(err)
-    }
-    fmt.Println(ipv4Addr)
-    fmt.Println(ipv4Net)
-}
+```go
+func ParseCIDR(cidrString string) (ipValue IP, ipNetValue *IPNet, err error)
+// cidrString: CIDR 字符串
+// ipValue: IP 地址
+// ipNetValue: IP 网段
+// err: 解析错误
 ```
 
-###### [IP 地址](https://golang.halfiisland.com/essential/std/net.html#ip-地址)
+3. **解析 IP 地址**：支持 `ip4`、`ip6`。
 
-IP 地址支持解析 ipv4，ipv6，函数签名如下
-
-
-
-```
-func ResolveIPAddr(network, address string) (*IPAddr, error)
-```
-
-使用示例如下
-
-
-
-```
-package main
-
-import (
-  "fmt"
-  "net"
-)
-
-func main() {
-  ipv4Addr, err := net.ResolveIPAddr("ip4", "192.168.2.1")
-  if err != nil {
-    panic(err)
-  }
-  fmt.Println(ipv4Addr)
-
-  ipv6Addr, err := net.ResolveIPAddr("ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334")
-  if err != nil {
-    panic(err)
-  }
-  fmt.Println(ipv6Addr)
-}
+```go
+func ResolveIPAddr(networkName, addressString string) (*IPAddr, error)
+// networkName: 网络类型，如 ip4、ip6
+// addressString: IP 地址字符串
+// 返回结果: IP 地址对象
 ```
 
-###### [TCP 地址](https://golang.halfiisland.com/essential/std/net.html#tcp-地址)
+4. **解析 TCP 地址**：支持 `tcp4`、`tcp6`。
 
-TCP 地址支持 tcp4，tcp6，签名如下
-
-
-
-```
-func ResolveTCPAddr(network, address string) (*TCPAddr, error)
-```
-
-使用示例如下
-
-
-
-```
-package main
-
-import (
-  "fmt"
-  "net"
-)
-
-func main() {
-  tcp4Addr, err := net.ResolveTCPAddr("tcp4", "0.0.0.0:2020")
-  if err != nil {
-    panic(err)
-  }
-  fmt.Println(tcp4Addr)
-  tcp6Addr, err := net.ResolveTCPAddr("tcp6", "[::1]:8080")
-  if err != nil {
-    panic(err)
-  }
-  fmt.Println(tcp6Addr)
-}
+```go
+func ResolveTCPAddr(networkName, addressString string) (*TCPAddr, error)
+// networkName: 网络类型，如 tcp4、tcp6
+// addressString: TCP 地址字符串
+// 返回结果: TCP 地址对象
 ```
 
-###### [UDP 地址](https://golang.halfiisland.com/essential/std/net.html#udp-地址)
+5. **解析 UDP 地址**：支持 `udp4`、`udp6`。
 
-UDP 地址支持 udp4，udp6，签名如下
-
-
-
-```
-func ResolveUDPAddr(network, address string) (*UDPAddr, error)
-```
-
-使用示例如下
-
-
-
-```
-package main
-
-import (
-  "fmt"
-  "net"
-)
-
-func main() {
-  udp4Addr, err := net.ResolveUDPAddr("udp4", "0.0.0.0:2020")
-  if err != nil {
-    panic(err)
-  }
-  fmt.Println(udp4Addr)
-  udp6Addr, err := net.ResolveUDPAddr("udp6", "[::1]:8080")
-  if err != nil {
-    panic(err)
-  }
-  fmt.Println(udp6Addr)
-}
+```go
+func ResolveUDPAddr(networkName, addressString string) (*UDPAddr, error)
+// networkName: 网络类型，如 udp4、udp6
+// addressString: UDP 地址字符串
+// 返回结果: UDP 地址对象
 ```
 
-###### [Unix 地址](https://golang.halfiisland.com/essential/std/net.html#unix-地址)
+6. **解析 Unix 地址**：支持 `unix`、`unixgram`、`unixpacket`。
 
-Unix 地址支持 unix，unixgram，unixpacket，签名如下
-
+```go
+func ResolveUnixAddr(networkName, addressString string) (*UnixAddr, error)
+// networkName: 网络类型
+// addressString: Unix Socket 地址
+// 返回结果: Unix 地址对象
 ```
-func ResolveUnixAddr(network, address string) (*UnixAddr, error)
-```
 
-使用示例如下
+**示例**：统一演示地址解析。
 
-
-
-```
+```go
 package main
 
 import (
@@ -9202,349 +8528,782 @@ import (
 )
 
 func main() {
-    unixAddr, err := net.ResolveUnixAddr("unix", "/tmp/mysocket")
-    if err != nil {
-       panic(err)
-    }
-    fmt.Println(unixAddr)
+    macAddressValue, _ := net.ParseMAC("00:1A:2B:3C:4D:5E")
+    fmt.Println(macAddressValue)
+
+    ipValue, ipNetValue, _ := net.ParseCIDR("192.0.2.1/24")
+    fmt.Println(ipValue)
+    fmt.Println(ipNetValue)
+
+    ipv4AddressValue, _ := net.ResolveIPAddr("ip4", "192.168.2.1")
+    ipv6AddressValue, _ := net.ResolveIPAddr("ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334")
+    fmt.Println(ipv4AddressValue)
+    fmt.Println(ipv6AddressValue)
+
+    tcp4AddressValue, _ := net.ResolveTCPAddr("tcp4", "0.0.0.0:2020")
+    tcp6AddressValue, _ := net.ResolveTCPAddr("tcp6", "[::1]:8080")
+    fmt.Println(tcp4AddressValue)
+    fmt.Println(tcp6AddressValue)
+
+    udp4AddressValue, _ := net.ResolveUDPAddr("udp4", "0.0.0.0:2020")
+    udp6AddressValue, _ := net.ResolveUDPAddr("udp6", "[::1]:8080")
+    fmt.Println(udp4AddressValue)
+    fmt.Println(udp6AddressValue)
+
+    unixAddressValue, _ := net.ResolveUnixAddr("unix", "/tmp/mysocket")
+    fmt.Println(unixAddressValue)
+
+    // 输出示意:
+    // 00:1a:2b:3c:4d:5e
+    // 192.0.2.1
+    // 192.0.2.0/24
+    // 192.168.2.1
+    // 2001:db8:85a3::8a2e:370:7334
+    // 0.0.0.0:2020
+    // [::1]:8080
+    // 0.0.0.0:2020
+    // [::1]:8080
+    // /tmp/mysocket
 }
 ```
 
-##### [DNS](https://golang.halfiisland.com/essential/std/net.html#dns)
+##### 域名解析
 
-Go 还提供了很多函数用于 DNS 查询，下面一个例子是解析域名的 IP 地址
+`net` 包还提供了很多函数用于 DNS 查询，例如域名解析、MX 记录查询等。
 
+1. **查询主机地址**：根据域名查询 IP 地址列表。
 
-
+```go
+func LookupHost(hostName string) (addressList []string, err error)
+// hostName: 域名
+// addressList: 解析到的地址列表
+// err: 查询错误
 ```
+
+2. **查询 MX 记录**：根据域名查询邮件交换记录。
+
+```go
+func LookupMX(domainName string) (mxList []*MX, err error)
+// domainName: 域名
+// mxList: MX 记录列表
+// err: 查询错误
+```
+
+**示例**：统一演示常见 DNS 查询。
+
+```go
 package main
 
 import (
-  "fmt"
-  "net"
+    "fmt"
+    "net"
 )
 
 func main() {
-  addrs, err := net.LookupHost("github.com")
-  if err != nil {
-    panic(err)
-  }
-  fmt.Println(addrs)
-}
-```
+    hostAddressList, _ := net.LookupHost("github.com")
+    fmt.Println(hostAddressList)
 
-查询记录值
+    mxRecordList, _ := net.LookupMX("github.com")
+    fmt.Println(mxRecordList)
 
-
-
-```
-package main
-
-import (
-  "fmt"
-  "net"
-)
-
-func main() {
-  mxs, err := net.LookupMX("github.com")
-  if err != nil {
-    panic(err)
-  }
-  fmt.Println(mxs)
+    // 输出示意:
+    // [140.82.113.4 ...]
+    // [recordValue1 recordValue2 ...]
 }
 ```
 
 ##### [网络编程](https://golang.halfiisland.com/essential/std/net.html#网络编程)
 
-tcp 编程的逻辑十分简单，对于客户端而言就是
+网络编程部分主要还是围绕 `net` 包中的连接、监听、读写这些能力展开。对于 TCP 而言，通常会区分客户端与服务端；对于 UDP 而言，因为它本身是无连接的，所以写法会和 TCP 略有不同。
 
-1. 建立连接
-2. 发送数据或读取数据
-3. 退出
+###### TCP 网络编程
 
-对于服务端而言就是
+TCP 编程的逻辑十分简单。对于客户端而言就是：
 
-1. 监听地址
-2. 获取连接
-3. 新建一个协程去处理该连接
+* 建立连接
+* 发送数据或读取数据
+* 退出
 
-下面是一个简单的例子，客户端代码
+对于服务端而言就是：
 
+* 监听地址
+* 获取连接
+* 新建一个协程去处理该连接
 
+1. **建立连接**：客户端常用 `Dial` 建立网络连接。
 
+```go
+func Dial(networkName, addressString string) (connectionValue Conn, err error)
+// networkName: 网络类型，如 tcp、udp
+// addressString: 目标地址
+// connectionValue: 建立好的连接
+// err: 连接错误
 ```
+
+2. **监听地址**：服务端常用 `Listen` 监听端口。
+
+```go
+func Listen(networkName, addressString string) (listenerValue Listener, err error)
+// networkName: 网络类型，如 tcp
+// addressString: 监听地址
+// listenerValue: 监听器
+// err: 监听错误
+```
+
+3. **接受连接**：服务端通过 `Accept` 获取新连接。
+
+```go
+func (listenerValue Listener) Accept() (connectionValue Conn, err error)
+// connectionValue: 新连接
+// err: 接收错误
+```
+
+4. **读取数据**：连接通常通过 `Read` 读取字节流。
+
+```go
+func (connectionValue Conn) Read(bufferValue []byte) (readCountValue int, err error)
+// bufferValue: 读取缓冲区
+// readCountValue: 实际读取的字节数
+// err: 读取错误
+```
+
+5. **写入数据**：连接通常通过 `Write` 写入字节流。
+
+```go
+func (connectionValue Conn) Write(dataValue []byte) (writeCountValue int, err error)
+// dataValue: 待写入数据
+// writeCountValue: 实际写入的字节数
+// err: 写入错误
+```
+
+6. **关闭连接**：连接使用完毕后应关闭。
+
+```go
+func (connectionValue Conn) Close() error
+// 返回结果: 关闭连接
+```
+
+**示例**：TCP 客户端发送数据。
+
+```go
 package main
 
-import (
-  "net"
-)
+import "net"
 
 func main() {
-  // 建立连接
-  conn, err := net.Dial("tcp", "0.0.0.0:1234")
-  if err != nil {
-    panic(err)
-  }
-  defer conn.Close()
-
-  // 发送数据
-  for i := range 10 {
-    _, err := conn.Write([]byte{'a' + byte(i)})
+    connectionValue, err := net.Dial("tcp", "0.0.0.0:1234")
     if err != nil {
-      panic(err)
+        panic(err)
     }
-  }
+    defer connectionValue.Close()
+
+    for indexValue := 0; indexValue < 5; indexValue++ {
+        _, err = connectionValue.Write([]byte("hello"))
+        if err != nil {
+            panic(err)
+        }
+    }
+
+    // 作用:
+    // 1. 建立 TCP 连接
+    // 2. 连续向服务端写入数据
 }
 ```
 
-服务端代码
+**示例**：TCP 服务端接收数据。
 
-
-
-```
+```go
 package main
 
 import (
-  "errors"
-  "fmt"
-  "io"
-  "net"
-  "sync"
+    "errors"
+    "fmt"
+    "io"
+    "net"
 )
 
 func main() {
-  // 监听地址
-  listener, err := net.Listen("tcp", "0.0.0.0:1234")
-  if err != nil {
-    panic(err)
-  }
-  defer listener.Close()
-
-  var wg sync.WaitGroup
-
-  for {
-    // 阻塞等待下一个连接建立
-    conn, err := listener.Accept()
+    listenerValue, err := net.Listen("tcp", "0.0.0.0:1234")
     if err != nil {
-      panic(err)
+        panic(err)
     }
+    defer listenerValue.Close()
 
-    // 开启一个新的协程去异步处理该连接
-    wg.Add(1)
-    go func() {
-      defer wg.Done()
-      buf := make([]byte, 4096)
-      for {
-        // 从连接中读取数据
-        n, err := conn.Read(buf)
-        if errors.Is(err, io.EOF) {
-          break
-        } else if err != nil {
-          panic(err)
+    for {
+        connectionValue, err := listenerValue.Accept()
+        if err != nil {
+            panic(err)
         }
 
-        data := string(buf[:n])
-        fmt.Println(data)
-      }
+        go func() {
+            defer connectionValue.Close()
+
+            bufferValue := make([]byte, 4096)
+
+            for {
+                readCountValue, err := connectionValue.Read(bufferValue)
+                if errors.Is(err, io.EOF) {
+                    break
+                }
+                if err != nil {
+                    panic(err)
+                }
+
+                dataValue := string(bufferValue[:readCountValue])
+                fmt.Println(dataValue)
+            }
+        }()
+    }
+
+    // 作用:
+    // 1. 监听 TCP 地址
+    // 2. 每接收到一个连接就开一个协程处理
+    // 3. 从连接中持续读取数据直到连接关闭
+}
+```
+
+###### UDP 网络编程
+
+UDP 是无连接协议，因此没有像 TCP 那样明显的“建立连接后持续收发”的过程。常见写法是：
+
+* 服务端绑定一个 UDP 地址
+* 客户端向该地址发送数据报
+* 服务端读取数据报并获知发送方地址
+* 如有需要，再把响应写回发送方
+
+1. **解析 UDP 地址**：通常先通过 `ResolveUDPAddr` 获取地址对象。
+
+```go
+func ResolveUDPAddr(networkName, addressString string) (*UDPAddr, error)
+// networkName: 网络类型，如 udp、udp4、udp6
+// addressString: UDP 地址字符串
+// 返回结果: UDP 地址对象
+```
+
+2. **监听 UDP**：服务端通过 `ListenUDP` 绑定本地 UDP 地址。
+
+```go
+func ListenUDP(networkName string, localAddressValue *UDPAddr) (*UDPConn, error)
+// networkName: 网络类型，如 udp
+// localAddressValue: 本地 UDP 地址
+// 返回结果: UDP 连接对象
+```
+
+3. **读取 UDP 数据**：服务端通过 `ReadFromUDP` 读取数据报与来源地址。
+
+```go
+func (udpConnectionValue *UDPConn) ReadFromUDP(bufferValue []byte) (readCountValue int, remoteAddressValue *UDPAddr, err error)
+// bufferValue: 读取缓冲区
+// readCountValue: 实际读取字节数
+// remoteAddressValue: 发送方地址
+// err: 读取错误
+```
+
+4. **写入 UDP 数据**：可以通过 `WriteToUDP` 向指定地址发送数据报。
+
+```go
+func (udpConnectionValue *UDPConn) WriteToUDP(dataValue []byte, remoteAddressValue *UDPAddr) (writeCountValue int, err error)
+// dataValue: 待发送数据
+// remoteAddressValue: 目标地址
+// writeCountValue: 实际写入字节数
+// err: 写入错误
+```
+
+5. **客户端快捷发送**：客户端也可以通过 `DialUDP` 获得一个面向目标地址的 UDP 连接。
+
+```go
+func DialUDP(networkName string, localAddressValue, remoteAddressValue *UDPAddr) (*UDPConn, error)
+// localAddressValue: 本地地址，可为 nil
+// remoteAddressValue: 远端地址
+// 返回结果: UDP 连接对象
+```
+
+**示例**：UDP 客户端发送数据。
+
+```go
+package main
+
+import "net"
+
+func main() {
+    remoteAddressValue, err := net.ResolveUDPAddr("udp", "127.0.0.1:2345")
+    if err != nil {
+        panic(err)
+    }
+
+    udpConnectionValue, err := net.DialUDP("udp", nil, remoteAddressValue)
+    if err != nil {
+        panic(err)
+    }
+    defer udpConnectionValue.Close()
+
+    _, err = udpConnectionValue.Write([]byte("hello udp"))
+    if err != nil {
+        panic(err)
+    }
+
+    // 作用:
+    // 1. 解析远端 UDP 地址
+    // 2. 建立一个面向该地址的 UDPConn
+    // 3. 直接发送数据报
+}
+```
+
+**示例**：UDP 服务端接收数据并回写。
+
+```go
+package main
+
+import (
+    "fmt"
+    "net"
+)
+
+func main() {
+    localAddressValue, err := net.ResolveUDPAddr("udp", "0.0.0.0:2345")
+    if err != nil {
+        panic(err)
+    }
+
+    udpConnectionValue, err := net.ListenUDP("udp", localAddressValue)
+    if err != nil {
+        panic(err)
+    }
+    defer udpConnectionValue.Close()
+
+    bufferValue := make([]byte, 4096)
+
+    for {
+        readCountValue, remoteAddressValue, err := udpConnectionValue.ReadFromUDP(bufferValue)
+        if err != nil {
+            panic(err)
+        }
+
+        dataValue := string(bufferValue[:readCountValue])
+        fmt.Println(dataValue)
+
+        _, err = udpConnectionValue.WriteToUDP([]byte("received"), remoteAddressValue)
+        if err != nil {
+            panic(err)
+        }
+    }
+
+    // 作用:
+    // 1. 服务端绑定 UDP 地址
+    // 2. 读取客户端发来的数据报
+    // 3. 根据来源地址回写响应
+}
+```
+
+客户端发送数据，服务端接收数据，这类例子本身都不复杂。TCP 更强调连接、读写流和并发处理连接；UDP 更强调数据报、来源地址和按报文收发。二者在 Go 中的 API 风格是一致的，都是围绕“解析地址、建立或监听、读写、关闭”这几个步骤展开。
+
+##### http
+
+Go 语言标准库中的 `net/http` 包十分优秀，提供了非常完善的 HTTP 客户端与服务端实现，仅通过几行代码就可以搭建一个非常简单的 HTTP 服务器。
+
+几乎所有 Go 语言中的 Web 框架，都是对已有的 `net/http` 包做的封装与修改，因此十分建议学习其他框架前先掌握 `http` 包。
+
+###### http基础
+
+`http` 相关能力主要来自标准库 `net/http` 包。它既提供了客户端请求能力，也提供了服务端启动能力，因此很多最常见的 HTTP 操作都可以直接从这个包开始。
+
+**客户端**
+
+对于客户端而言，最常见的需求就是发起请求并读取响应。`net/http` 已经提供了一组开箱即用的快捷函数。
+
+1. **GET 请求**：用于获取资源。
+
+```go
+func Get(urlValue string) (responseValue *Response, err error)
+// urlValue: 请求地址
+// responseValue: 响应对象
+// err: 请求错误
+```
+
+2. **POST 请求**：用于提交资源，通常带请求体。
+
+```go
+func Post(
+    urlValue string,
+    contentTypeValue string,
+    bodyValue io.Reader,
+) (responseValue *Response, err error)
+// urlValue: 请求地址
+// contentTypeValue: 请求体类型
+// bodyValue: 请求体
+// responseValue: 响应对象
+// err: 请求错误
+```
+
+3. **POST 表单请求**：用于发送表单数据。
+
+```go
+func PostForm(urlValue string, dataValue url.Values) (responseValue *Response, err error)
+// urlValue: 请求地址
+// dataValue: 表单数据
+// responseValue: 响应对象
+// err: 请求错误
+```
+
+4. **HEAD 请求**：用于只获取响应头，不读取响应体内容。
+
+```go
+func Head(urlValue string) (responseValue *Response, err error)
+// urlValue: 请求地址
+// responseValue: 响应对象
+// err: 请求错误
+```
+
+5. **关闭响应体**：响应体使用完后应及时关闭。
+
+```go
+defer responseValue.Body.Close()
+// responseValue.Body: 响应体
+// 返回结果: 在当前函数结束前关闭响应体
+```
+
+6. **读取响应体**：通常使用 `io.ReadAll` 读取完整响应数据。
+
+```go
+io.ReadAll(responseValue.Body)
+// responseValue.Body: 响应体
+// 返回结果: 响应体字节内容
+```
+
+**服务端**
+
+对于服务端而言，最常见的需求就是监听地址并处理请求。`net/http` 也提供了开箱即用的启动方式。
+
+1. **快速启动服务**：直接使用 `http.ListenAndServe`。
+
+```go
+func ListenAndServe(addressValue string, handlerValue Handler) error
+// addressValue: 监听地址
+// handlerValue: 处理器，为 nil 时使用默认处理器
+// 返回结果: 启动错误
+```
+
+2. **请求对象**：服务端处理请求时会接收到 `*http.Request`。
+
+```go
+type Request struct {
+    Method string
+    URL    *url.URL
+    Header Header
+    Body   io.ReadCloser
+}
+// Method: 请求方法
+// URL: 请求地址信息
+// Header: 请求头
+// Body: 请求体
+```
+
+3. **响应写入器**：服务端通过 `http.ResponseWriter` 写入响应。
+
+```go
+type ResponseWriter interface {
+    Header() Header
+    Write(dataValue []byte) (writeCountValue int, err error)
+    WriteHeader(statusCodeValue int)
+}
+// Header(): 设置响应头
+// Write(): 写入响应体
+// WriteHeader(): 写入状态码
+```
+
+4. **写入响应体**：最常见的响应方式。
+
+```go
+responseWriterValue.Write(dataValue)
+// responseWriterValue: 响应写入器
+// dataValue: 响应数据
+// 返回结果: 实际写入字节数与错误
+```
+
+5. **写入状态码**：在写入响应体前可先设置状态码。
+
+```go
+responseWriterValue.WriteHeader(statusCodeValue)
+// statusCodeValue: HTTP 状态码
+// 返回结果: 写入响应状态码
+```
+
+**示例**：统一演示客户端与服务端基础能力。
+
+```go
+package main
+
+import (
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    go func() {
+        http.HandleFunc("/", func(
+            responseWriterValue http.ResponseWriter,
+            requestValue *http.Request,
+        ) {
+            fmt.Println(requestValue.Method)
+            responseWriterValue.WriteHeader(http.StatusOK)
+            responseWriterValue.Write([]byte("hello http"))
+        })
+
+        http.ListenAndServe(":8080", nil)
     }()
-  }
 
-  wg.Wait()
+    responseValue, err := http.Get("http://127.0.0.1:8080/")
+    if err != nil {
+        return
+    }
+    defer responseValue.Body.Close()
+
+    bodyValue, err := io.ReadAll(responseValue.Body)
+    if err != nil {
+        return
+    }
+
+    fmt.Println(responseValue.StatusCode)
+    fmt.Println(string(bodyValue))
+
+    // 输出示意:
+    // GET
+    // 200
+    // hello http
 }
 ```
 
-客户端发送数据，服务端接收数据，这个例子非常的简单，服务端建立新连接时，只需开启一个新的协程就可以去处理，不需要阻塞，UDP 大体上的写法也都是类似的。
+###### 自定义请求
 
-#### http
+一般情况下，我们并不会只使用 `http.Get`、`http.Post` 这些快捷函数，而是会自己配置一个客户端来达到更加细致化的需求。这将会用到 `http.Client{}` 结构体。
 
-Go 语言标准库中的`net/http`包十分的优秀，提供了非常完善的 HTTP 客户端与服务端的实现，仅通过几行代码就可以搭建一个非常简单的 HTTP 服务器。
+`http.Client` 常见可配置项包括：
 
-几乎所有的 go 语言中的 web 框架，都是对已有的 http 包做的封装与修改，因此，十分建议学习其他框架前先行掌握 http 包。
-
-##### [Get 示例](https://golang.halfiisland.com/essential/std/http.html#get-示例)
-
-关于 Http 相关的知识这里不再赘述，想要了解更多的话可以去百度。
-
-
-
-```
-func main() {
-  resp, err := http.Get("https://baidu.com")
-  if err != nil {
-    fmt.Println(err)
-    return
-  }
-  defer resp.Body.Close()
-  content, err := io.ReadAll(resp.Body)
-  fmt.Println(string(content))
-}
-```
-
-通过直接调用 Http 包下的函数就可以发起简单的请求，会返回一个指针与错误，调用过后必须将其手动关闭。
-
-##### [Post 示例](https://golang.halfiisland.com/essential/std/http.html#post-示例)
-
-
-
-```
-func main() {
-   person := Person{
-      UserId:   "120",
-      Username: "jack",
-      Age:      18,
-      Address:  "usa",
-   }
-
-   json, _ := json.Marshal(person)
-   reader := bytes.NewReader(json)
-
-   resp, err := http.Post("https://golang.org", "application/json;charset=utf-8", reader)
-   if err != nil {
-      fmt.Println(err)
-   }
-   defer resp.Body.Close()
-}
-```
-
-##### [客户端](https://golang.halfiisland.com/essential/std/http.html#客户端)
-
-一般情况下，我们都不会直接使用上述的方法，而且会自己配置一个客户端来达到更加细致化的需求。这将会用到`http.Client{}`结构体，可提供的配置项总共有四个:
-
-- `Transport`:配置 Http 客户端数据传输相关的配置项，没有就采用默认的策略
+- `Transport`：配置 HTTP 客户端数据传输相关选项，没有就采用默认策略
 - `Timeout`：请求超时时间配置
 - `Jar`：Cookie 相关配置
 - `CheckRedirect`：重定向配置
 
-##### [**简单示例**](https://golang.halfiisland.com/essential/std/http.html#简单示例)
+1. **自定义客户端**：通过 `http.Client` 控制请求行为。
 
-
-
-```
-func main() {
-  client := &http.Client{}
-  request, _ := http.NewRequest("GET", "https://golang.org", nil)
-  resp, _ := client.Do(request)
-  defer resp.Body.Close()
+```go
+type Client struct {
+    Transport     RoundTripper
+    CheckRedirect func(requestValue *Request, viaValue []*Request) error
+    Jar           CookieJar
+    Timeout       time.Duration
 }
 ```
 
-##### [**增加 header**](https://golang.halfiisland.com/essential/std/http.html#增加-header)
+2. **创建请求对象**：使用 `http.NewRequest` 构造任意方法的请求。
 
-
-
+```go
+func NewRequest(
+    methodValue string,
+    urlValue string,
+    bodyValue io.Reader,
+) (requestValue *Request, err error)
+// methodValue: 请求方法，如 GET、POST、PUT、DELETE、PATCH、OPTIONS
+// urlValue: 请求地址
+// bodyValue: 请求体
+// requestValue: 请求对象
+// err: 创建错误
 ```
-func main() {
-   client := &http.Client{}
-   request, _ := http.NewRequest("GET", "https://golang.org", nil)
-   request.Header.Add("Authorization","123456")
-   resp, _ := client.Do(request)
-   defer resp.Body.Close()
+
+3. **发送请求**：客户端通过 `Do` 执行请求。
+
+```go
+func (clientValue *Client) Do(requestValue *Request) (responseValue *Response, err error)
+// requestValue: 请求对象
+// responseValue: 响应对象
+// err: 执行错误
+```
+
+4. **设置请求头**：常用于认证、内容类型、用户标识等。
+
+```go
+requestValue.Header.Add(keyValue, valueValue)
+// keyValue: 请求头名称
+// valueValue: 请求头值
+```
+
+因为 `NewRequest` 可以指定任意请求方法，所以除了 GET、POST 外，也可以自然支持 PUT、DELETE、PATCH、OPTIONS 等方法。
+
+**示例**：统一演示自定义请求。
+
+```go
+clientValue := &http.Client{
+    Timeout: 5 * time.Second,
+}
+
+getRequestValue, _ := http.NewRequest("GET", "https://example.com/users", nil)
+getRequestValue.Header.Add("Authorization", "Bearer token")
+getResponseValue, _ := clientValue.Do(getRequestValue)
+defer getResponseValue.Body.Close()
+
+putBodyValue := bytes.NewReader([]byte(`{"name":"new-name"}`))
+putRequestValue, _ := http.NewRequest("PUT", "https://example.com/users/1", putBodyValue)
+putRequestValue.Header.Add("Content-Type", "application/json")
+putResponseValue, _ := clientValue.Do(putRequestValue)
+defer putResponseValue.Body.Close()
+
+deleteRequestValue, _ := http.NewRequest("DELETE", "https://example.com/users/1", nil)
+deleteResponseValue, _ := clientValue.Do(deleteRequestValue)
+defer deleteResponseValue.Body.Close()
+
+patchBodyValue := bytes.NewReader([]byte(`{"age":20}`))
+patchRequestValue, _ := http.NewRequest("PATCH", "https://example.com/users/1", patchBodyValue)
+patchRequestValue.Header.Add("Content-Type", "application/json")
+patchResponseValue, _ := clientValue.Do(patchRequestValue)
+defer patchResponseValue.Body.Close()
+
+optionsRequestValue, _ := http.NewRequest("OPTIONS", "https://example.com/users", nil)
+optionsResponseValue, _ := clientValue.Do(optionsRequestValue)
+defer optionsResponseValue.Body.Close()
+
+// 作用:
+// 1. 通过 NewRequest 支持任意 HTTP 方法
+// 2. 通过 Header 自定义请求头
+// 3. 通过 Client 控制超时等行为
+```
+
+一些更细致的配置，如自定义 `Transport`、TLS、代理、Cookie Jar 等，这里不做过多展开。
+
+###### 路由与处理器
+
+对于服务端而言，请求到达以后到底由谁处理、如何分发到不同路径，这部分主要由处理器与路由机制负责。
+
+首先需要理解 `Handler` 接口。只要实现了 `ServeHTTP(ResponseWriter, *Request)` 方法，就可以作为一个 HTTP 处理器。
+
+1. **Handler 接口**：HTTP 处理器的核心接口。
+
+```go
+type Handler interface {
+    ServeHTTP(responseWriterValue ResponseWriter, requestValue *Request)
 }
 ```
 
-一些详细的配置这里不会做过多的赘述，还请自行了解。
+2. **注册处理器**：通过 `http.Handle` 绑定一个实现了 `Handler` 的对象。
 
-##### [服务端](https://golang.halfiisland.com/essential/std/http.html#服务端)
-
-对于 go 而言，创建一个 http 服务器只需要一行代码。
-
-第一个参数是监听的地址，第二个参数是处理器，如果为空的话则使用默认的处理器。大多数情况下使用默认的处理器 DefaultServeMux 即可。
-
-
-
-```
-http.ListenAndServe("localhost:8080", nil)
+```go
+func Handle(patternValue string, handlerValue Handler)
+// patternValue: 路由模式
+// handlerValue: 处理器对象
 ```
 
-##### [**自定义**](https://golang.halfiisland.com/essential/std/http.html#自定义)
+3. **函数式处理器**：通过 `http.HandleFunc` 直接注册函数。
 
-当然也可以自定义配置一个服务端
-
-
-
-```
-func main() {
-   server := &http.Server{
-      Addr:              ":8080",
-      Handler:           nil,
-      TLSConfig:         nil,
-      ReadTimeout:       0,
-      ReadHeaderTimeout: 0,
-      WriteTimeout:      0,
-      IdleTimeout:       0,
-      MaxHeaderBytes:    0,
-      TLSNextProto:      nil,
-      ConnState:         nil,
-      ErrorLog:          nil,
-      BaseContext:       nil,
-      ConnContext:       nil,
-   }
-   server.ListenAndServe()
-}
+```go
+func HandleFunc(
+    patternValue string,
+    handlerFuncValue func(ResponseWriter, *Request),
+)
+// patternValue: 路由模式
+// handlerFuncValue: 处理函数
 ```
 
-一些详细的配置请自行了解。
+4. **默认路由器**：`DefaultServeMux` 是默认使用的多路复用器。
 
-##### [**路由**](https://golang.halfiisland.com/essential/std/http.html#路由)
-
-首先需要首先自定义一个结构体实现`Handler`接口中的`ServeHTTP(ResponseWriter, *Request)`方法，再调用`http.handle()`函数即可
-
-
-
+```go
+var DefaultServeMux *ServeMux
+// 说明:
+// ListenAndServe(address, nil) 时会使用默认路由器
 ```
-func main() {
-   http.Handle("/index", &MyHandler{})
-   http.ListenAndServe(":8080", nil)
-}
 
+**示例**：统一演示结构体处理器与函数处理器。
+
+```go
 type MyHandler struct {
 }
 
-func (h *MyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-   fmt.Println("my implement")
+func (receiverPointer *MyHandler) ServeHTTP(
+    responseWriterValue http.ResponseWriter,
+    requestValue *http.Request,
+) {
+    responseWriterValue.Write([]byte("custom handler"))
 }
-```
 
-但是每一次都要自定义一个结构体将会十分的繁琐，也可以直接`http.handlerFunc`函数，我们只需要写处理函数即可，从而不用创建结构体。其内部是使用了适配器类型`HandlerFunc`,HandlerFunc 类型是一个适配器，允许将普通函数用作 HTTP 的处理器。如果 f 是具有适当签名的函数，HandlerFunc(f)是调用 f 的 Handler。
-
-
-
-```
 func main() {
-   http.HandleFunc("/index", func(responseWriter http.ResponseWriter, request *http.Request) {
-      fmt.Println(responseWriter, "index")
-   })
-   http.ListenAndServe(":8080", nil)
+    http.Handle("/custom", &MyHandler{})
+
+    http.HandleFunc("/index", func(
+        responseWriterValue http.ResponseWriter,
+        requestValue *http.Request,
+    ) {
+        responseWriterValue.Write([]byte("index"))
+    })
+
+    http.HandleFunc("/method", func(
+        responseWriterValue http.ResponseWriter,
+        requestValue *http.Request,
+    ) {
+        responseWriterValue.Write([]byte(requestValue.Method))
+    })
+
+    http.ListenAndServe(":8080", nil)
+
+    // 效果:
+    // 1. /custom 由结构体处理器处理
+    // 2. /index 由函数处理器处理
+    // 3. /method 返回请求方法
 }
 ```
 
-`ServerMux`是核心结构体，实现了基本的方法，`DefaultServeMux`是的默认实例。
+`ServeMux` 是核心结构体，实现了基本的路由分发能力，而 `DefaultServeMux` 是它的默认实例。大多数基础场景下使用默认实例即可。
 
-##### [**反向代理**](https://golang.halfiisland.com/essential/std/http.html#反向代理)
+###### 反向代理
 
-http 包提供了开箱即用的反向代理功能
+`http` 相关能力还可以配合 `net/http/httputil` 包提供开箱即用的反向代理功能。反向代理的核心思想是：客户端请求先到本地服务，再由本地服务代替客户端去请求真正的目标服务，然后把结果返回给客户端。
 
+1. **反向代理结构体**：常用入口是 `httputil.ReverseProxy`。
 
-
-```
-func main() {
-   http.HandleFunc("/forward", func(writer http.ResponseWriter, request *http.Request) {
-      director := func(request *http.Request) {
-         request.URL.Scheme = "https"
-         request.URL.Host = "golang.org"
-         request.URL.Path = "index"
-      }
-
-      proxy := httputil.ReverseProxy{Director: director}
-      proxy.ServeHTTP(writer, request)
-
-   })
-
-   http.ListenAndServe(":8080", nil)
+```go
+type ReverseProxy struct {
+    Director func(requestValue *http.Request)
 }
 ```
 
-上述代码会将所有请求转发到`https://golang.org/index`。
+2. **转发请求**：代理最终仍然通过 `ServeHTTP` 来处理请求。
+
+```go
+func (proxyValue *ReverseProxy) ServeHTTP(
+    responseWriterValue http.ResponseWriter,
+    requestValue *http.Request,
+)
+// responseWriterValue: 响应写入器
+// requestValue: 原始请求
+```
+
+**示例**：
+
+```go
+http.HandleFunc("/forward", func(
+    responseWriterValue http.ResponseWriter,
+    requestValue *http.Request,
+) {
+    directorValue := func(requestValue *http.Request) {
+        requestValue.URL.Scheme = "https"
+        requestValue.URL.Host = "golang.org"
+        requestValue.URL.Path = "/"
+    }
+
+    proxyValue := httputil.ReverseProxy{
+        Director: directorValue,
+    }
+
+    proxyValue.ServeHTTP(responseWriterValue, requestValue)
+})
+
+http.ListenAndServe(":8080", nil)
+
+// 作用:
+// 访问本地 /forward 时，实际会把请求转发到 https://golang.org/
+```
+
+上述代码会将请求转发到指定目标地址。实际项目中，反向代理通常还会配合 Header 修改、Host 重写、错误处理、日志记录等能力一起使用。
+
+
 
 ## 语言特性
 
