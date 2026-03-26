@@ -9309,2558 +9309,1862 @@ http.ListenAndServe(":8080", nil)
 
 ### 范围
 
-Go 语言中 range 关键字用于 for 循环中迭代数组(array)、切片(slice)、通道(channel)或集合(map)的元素。在数组和切片中它返回元素的索引和索引对应的值，在集合中返回 key-value 对。
+Go 语言中 `range` 关键字用于 `for` 循环中迭代数组、切片、字符串、映射、通道等数据。它最大的特点是：**同一个关键字，可以针对不同数据类型返回不同含义的结果**。
 
-for 循环的 range 格式可以对 slice、map、数组、字符串等进行迭代循环。格式如下：
+一般来说，`range` 最常见的形式如下：
 
-```
-for key, value := range oldMap {
-    newMap[key] = value
+1. **同时获取索引 / 键 与值**：这是最完整的写法。
+
+```go
+for keyValue, elementValue := range targetValue {
+    statement
 }
+// keyValue: 索引或键
+// elementValue: 元素值
+// targetValue: 被遍历对象
 ```
 
-以上代码中的 key 和 value 是可以省略。
+2. **只获取索引 / 键**：当只关心位置或键时，可以省略值。
 
-如果只想读取 key，格式如下：
-
-```
-for key := range oldMap
-```
-
-或者这样：
-
-for key, _ := range oldMap
-
-如果只想读取 value，格式如下：
-
-```
-for _, value := range oldMap
+```go
+for keyValue := range targetValue {
+    statement
+}
+// keyValue: 索引或键
+// targetValue: 被遍历对象
 ```
 
-#### 数组与切片
+也可以显式忽略值：
 
+```go
+for keyValue, _ := range targetValue {
+    statement
+}
+// keyValue: 索引或键
+// _: 忽略值
 ```
+
+3. **只获取值**：当只关心元素值时，可以忽略索引或键。
+
+```go
+for _, elementValue := range targetValue {
+    statement
+}
+// _: 忽略索引或键
+// elementValue: 元素值
+```
+
+#### 常见数据类型
+
+`range` 针对不同数据类型时，返回结果略有区别：
+
+- 对数组、切片：返回索引和值
+- 对字符串：返回字符起始字节索引和 `rune`
+- 对映射：返回键和值
+- 对通道：只返回接收到的值，直到通道关闭
+
+1. **数组与切片**：返回索引和值。
+
+```go
+for indexValue, elementValue := range sliceValue {
+    statement
+}
+// indexValue: 元素索引
+// elementValue: 元素值
+// sliceValue: 数组或切片
+```
+
+如果只需要值：
+
+```go
+for _, elementValue := range sliceValue {
+    statement
+}
+// elementValue: 元素值
+```
+
+如果只需要索引：
+
+```go
+for indexValue := range sliceValue {
+    statement
+}
+// indexValue: 元素索引
+```
+
+2. **字符串**：返回字符起始字节索引和 `rune`。
+
+```go
+for indexValue, runeValue := range stringValue {
+    statement
+}
+// indexValue: 当前字符的起始字节索引
+// runeValue: 当前字符对应的 Unicode 码点
+// stringValue: 字符串
+```
+
+需要注意的是，字符串和数组、切片并不完全一样。`range` 遍历字符串时，返回的不是“每个字节”，而是**字符起始位置的字节索引**和对应的 `rune`。因此在包含中文等多字节字符时，索引值可能不是连续加一的。
+
+3. **映射（Map）**：返回键和值。
+
+```go
+for keyValue, elementValue := range mapValue {
+    statement
+}
+// keyValue: 键
+// elementValue: 值
+// mapValue: 映射
+```
+
+如果只需要键：
+
+```go
+for keyValue := range mapValue {
+    statement
+}
+// keyValue: 键
+```
+
+如果只需要值：
+
+```go
+for _, elementValue := range mapValue {
+    statement
+}
+// elementValue: 值
+```
+
+4. **通道（Channel）**：只返回接收到的值，直到通道关闭。
+
+```go
+for elementValue := range channelValue {
+    statement
+}
+// elementValue: 从通道中接收到的值
+// channelValue: 通道
+```
+
+`range` 遍历通道时不会返回索引，它只会不断接收值；当通道关闭并且数据读完后，循环才会结束。这也是它和数组、切片、映射最明显的不同之一。
+
+```go
 package main
 
 import "fmt"
 
-// 声明一个包含 2 的幂次方的切片
-var pow = []int{1, 2, 4, 8, 16, 32, 64, 128}
-
 func main() {
-   // 遍历 pow 切片，i 是索引，v 是值
-   for i, v := range pow {
-      // 打印 2 的 i 次方等于 v
-      fmt.Printf("2**%d = %d\n", i, v)
-   }
-}
-```
-
-#### 字符串
-
-range 迭代字符串时，返回每个字符的索引和 Unicode 代码点（rune）。
-
-```
-package main
-
-import "fmt"
-
-func main() {
-    for i, c := range "hello" {
-        fmt.Printf("index: %d, char: %c\n", i, c)
-    }
-}
-```
-
-#### 映射（Map）
-
-for 循环的 range 格式可以省略 key 和 value，如下实例：
-
-```
-package main
-
-import "fmt"
-
-func main() {
-    // 创建一个空的 map，key 是 int 类型，value 是 float32 类型
-    map1 := make(map[int]float32)
-    
-    // 向 map1 中添加 key-value 对
-    map1[1] = 1.0
-    map1[2] = 2.0
-    map1[3] = 3.0
-    map1[4] = 4.0
-   
-    // 遍历 map1，读取 key 和 value
-    for key, value := range map1 {
-        // 打印 key 和 value
-        fmt.Printf("key is: %d - value is: %f\n", key, value)
+    sliceValue := []int{2, 3, 4}
+    stringValue := "go语言"
+    mapValue := map[string]string{
+        "a": "apple",
+        "b": "banana",
     }
 
-    // 遍历 map1，只读取 key
-    for key := range map1 {
-        // 打印 key
-        fmt.Printf("key is: %d\n", key)
+    channelValue := make(chan int, 2)
+    channelValue <- 1
+    channelValue <- 2
+    close(channelValue)
+
+    // 1. 数组 / 切片: 返回索引和值
+    for indexValue, elementValue := range sliceValue {
+        fmt.Println("slice:", indexValue, elementValue)
     }
 
-    // 遍历 map1，只读取 value
-    for _, value := range map1 {
-        // 打印 value
-        fmt.Printf("value is: %f\n", value)
-    }
-}
-```
-
-#### 通道（Channel）
-
-range 遍历从通道接收的值，直到通道关闭。
-
-```
-package main
-
-import "fmt"
-
-func main() {
-    ch := make(chan int, 2)
-    ch <- 1
-    ch <- 2
-    close(ch)
-    
-    for v := range ch {
-        fmt.Println(v)
-    }
-}
-```
-
-#### 忽略值
-
-在遍历时可以使用 **_** 来忽略索引或值。
-
-```
-package main
-
-import "fmt"
-
-func main() {
-    nums := []int{2, 3, 4}
-    
-    // 忽略索引
-    for _, num := range nums {
-        fmt.Println("value:", num)
-    }
-    
-    // 忽略值
-    for i := range nums {
-        fmt.Println("index:", i)
-    }
-}
-```
-
-#### 其他
-
-range 遍历其他数据结构：
-
-```
-package main
-import "fmt"
-func main() {
-    //这是我们使用 range 去求一个 slice 的和。使用数组跟这个很类似
-    nums := []int{2, 3, 4}
-    sum := 0
-    for _, num := range nums {
-        sum += num
-    }
-    fmt.Println("sum:", sum)
-    //在数组上使用 range 将传入索引和值两个变量。上面那个例子我们不需要使用该元素的序号，所以我们使用空白符"_"省略了。有时侯我们确实需要知道它的索引。
-    for i, num := range nums {
-        if num == 3 {
-            fmt.Println("index:", i)
-        }
-    }
-    //range 也可以用在 map 的键值对上。
-    kvs := map[string]string{"a": "apple", "b": "banana"}
-    for k, v := range kvs {
-        fmt.Printf("%s -> %s\n", k, v)
+    // 2. 只读取值
+    for _, elementValue := range sliceValue {
+        fmt.Println("slice value:", elementValue)
     }
 
-    //range也可以用来枚举 Unicode 字符串。第一个参数是字符的索引，第二个是字符（Unicode的值）本身。
-    for i, c := range "go" {
-        fmt.Println(i, c)
+    // 3. 只读取索引
+    for indexValue := range sliceValue {
+        fmt.Println("slice index:", indexValue)
     }
+
+    // 4. 字符串: 返回字符起始字节索引和 rune
+    for indexValue, runeValue := range stringValue {
+        fmt.Printf("string: index=%d rune=%c\n", indexValue, runeValue)
+    }
+
+    // 5. map: 返回 key 和 value
+    for keyValue, elementValue := range mapValue {
+        fmt.Printf("map: %s -> %s\n", keyValue, elementValue)
+    }
+
+    // 6. map 只读取 key
+    for keyValue := range mapValue {
+        fmt.Println("map key:", keyValue)
+    }
+
+    // 7. map 只读取 value
+    for _, elementValue := range mapValue {
+        fmt.Println("map value:", elementValue)
+    }
+
+    // 8. channel: 只返回值，直到通道关闭
+    for elementValue := range channelValue {
+        fmt.Println("channel:", elementValue)
+    }
+
+    // 9. 一个常见用途: 求切片元素和
+    sumValue := 0
+    for _, elementValue := range sliceValue {
+        sumValue += elementValue
+    }
+    fmt.Println("sum:", sumValue)
+
+    // 输出示意:
+    // slice: 0 2
+    // slice: 1 3
+    // slice: 2 4
+    // slice value: 2
+    // slice value: 3
+    // slice value: 4
+    // slice index: 0
+    // slice index: 1
+    // slice index: 2
+    // string: index=0 rune=g
+    // string: index=1 rune=o
+    // string: index=2 rune=语
+    // string: index=5 rune=言
+    // map: a -> apple
+    // map: b -> banana
+    // map key: a
+    // map key: b
+    // map value: apple
+    // map value: banana
+    // channel: 1
+    // channel: 2
+    // sum: 9
 }
 ```
 
 ### 迭代器
 
-在 Go 中，用于迭代特定数据结构的关键字为`for range`，之前的章节中已经介绍过它的一些应用，它仅能作用于语言内置的几个数据结构
+在 Go 中，过去 `for range` 只能直接作用于语言内置的一些数据结构，例如数组、切片、字符串、`map`、`chan` 以及整型值。这样虽然简单，但对自定义类型几乎没有扩展性。好在 Go 1.23 之后，`for range` 支持了 `range over func`，这样一来自定义迭代器就成为了可能。
 
-- 数组
-- 切片
-- 字符串
-- map
-- chan
-- 整型值
+Go 的迭代器本质上就是一个函数，它接受一个回调函数作为参数，并在迭代过程中把元素逐个传给这个回调。这里的 `yield` 只是一个惯用命名，并不是关键字。它和其他语言里的生成器、回调式遍历比较类似，只是 Go 没有为此新增新的语法关键字。
 
-这样的话使用起来非常的不灵活，没有拓展性，对于自定义类型几乎不支持，不过好在 go1.23 版本更新以后，`for range`关键字支持了`range over func`，这样一来自定义迭代器也就成为了可能。
+#### 推送式迭代器
 
-#### [认识](https://golang.halfiisland.com/essential/senior/91.iterator.html#认识)
+关于迭代器的定义，可以在 `iter` 标准库中看到一个非常直接的描述：**迭代器是一个函数，它将序列中的元素逐个传递给回调函数，通常称为 `yield`**。这种由迭代器主动把值“推送”给调用方的模式，一般就称为推送式迭代器。
 
-下面通过一个例子来初步认识迭代器，不知道各位还是否记得在函数小节中讲解的[闭包求解斐波那契数列的例子](https://golang.halfiisland.com/essential/base/69.func.html#闭包)，它的实现代码如下
+标准库 `iter` 包中定义了两种常见的迭代器类型：
 
+1. **单值迭代器**：每次推送一个值。
 
-
+```go
+type Seq[ValueType any] func(yieldValue func(ValueType) bool)
+// ValueType: 迭代值类型
+// yieldValue: 每轮迭代接收一个值，返回是否继续
 ```
-func Fibonacci(n int) func() (int, bool) {
-  a, b, c := 1, 1, 2
-  i := 0
-  return func() (int, bool) {
-    if i >= n {
-      return 0, false
-    } else if i < 2 {
-      f := i
-      i++
-      return f, true
+
+2. **双值迭代器**：每次推送两个值，通常对应键值对或索引和值。
+
+```go
+type Seq2[KeyType, ValueType any] func(yieldValue func(KeyType, ValueType) bool)
+// KeyType: 第一个返回值类型
+// ValueType: 第二个返回值类型
+// yieldValue: 每轮迭代接收两个值，返回是否继续
+```
+
+如果是 `iter.Seq`，使用起来就是一个返回值：
+
+```go
+for elementValue := range iteratorValue {
+    statement
+}
+// elementValue: 每轮迭代得到的值
+```
+
+如果是 `iter.Seq2`，使用起来就是两个返回值：
+
+```go
+for keyValue, elementValue := range iteratorValue {
+    statement
+}
+// keyValue: 第一个值
+// elementValue: 第二个值
+```
+
+理论上也允许 0 参数形式的迭代器，它大致等价于：
+
+```go
+func(yieldValue func() bool)
+// yieldValue: 不接收任何值，只负责决定是否继续
+```
+
+使用时也就是：
+
+```go
+for range iteratorValue {
+    statement
+}
+```
+
+不过回调函数的参数个数只能是 0 到 2 个，再多就无法通过编译。
+
+换句话说，`for range` 中的循环体，其实就相当于迭代器里的 `yield` 回调函数。每一轮迭代，迭代器都会调用一次 `yield`，也就相当于执行了一次循环体中的代码。因此下面这两种写法，本质上是等价的：
+
+```go
+for fibonacciValue := range Fibonacci(countValue) {
+    fmt.Println(fibonacciValue)
+}
+// fibonacciValue: 每轮迭代得到的斐波那契数
+```
+
+```go
+Fibonacci(countValue)(func(fibonacciValue int) bool {
+    fmt.Println(fibonacciValue)
+    return true
+})
+// fibonacciValue: 当前被推送出来的值
+// 返回 true: 继续迭代
+// 返回 false: 停止迭代
+```
+
+循环体里的 `return`、`break`、`continue`、`goto`、`defer` 等关键字在 `range over func` 中依旧会表现得像普通循环一样，这是编译器额外帮我们处理好的，因此使用时不需要手动改写这些控制流。
+
+#### 拉取式迭代器
+
+推送式迭代器是由迭代器控制迭代过程，调用方被动接收元素；相反，拉取式迭代器则是由调用方主动控制，每次自己决定何时获取下一个元素。一般来说，拉取式迭代器往往会暴露出类似 `next()`、`stop()` 这样的操作接口。
+
+标准库 `iter` 包提供了 `Pull` 和 `Pull2`，用于把标准的推送式迭代器转换为拉取式迭代器：
+
+1. **单值拉取转换**：
+
+```go
+func Pull[ValueType any](seqValue Seq[ValueType]) (
+    nextValue func() (ValueType, bool),
+    stopValue func(),
+)
+// seqValue: 推送式迭代器
+// nextValue: 每次调用获取一个值和是否有效
+// stopValue: 提前结束迭代
+```
+
+2. **双值拉取转换**：
+
+```go
+func Pull2[KeyType, ValueType any](seqValue Seq2[KeyType, ValueType]) (
+    nextValue func() (KeyType, ValueType, bool),
+    stopValue func(),
+)
+// seqValue: 推送式迭代器
+// nextValue: 每次调用获取两个值和是否有效
+// stopValue: 提前结束迭代
+```
+
+其中 `next()` 会返回当前迭代值以及一个布尔值；当布尔值为 `false` 时，说明迭代已经结束。`stop()` 用来主动停止迭代，一旦调用方决定不再继续使用这个迭代器，就应该调用它。需要注意的是，同一个拉取式迭代器的 `next` 不是并发安全的，不应在多个协程中同时调用。
+
+例如，把前面的斐波那契推送式迭代器改造成拉取式后，可以写成这样：
+
+```go
+nextValue, stopValue := iter.Pull(Fibonacci(countValue))
+defer stopValue()
+
+for {
+    fibonacciValue, okValue := nextValue()
+    if !okValue {
+        break
     }
 
-    a, b = b, c
-    c = a + b
-    i++
+    fmt.Println(fibonacciValue)
+}
+// nextValue: 主动拉取下一个元素
+// stopValue: 结束迭代
+```
 
-    return a, true
-  }
+这样一来，调用方就可以完全掌控迭代节奏，而不是由迭代器主动往外推值。
+
+#### 执行模型
+
+在使用推送式迭代器时，一个比较容易让人困惑的问题是：`yield` 回调函数是从哪里来的。代码中我们通常只定义了迭代器函数本身，却没有显式写出那个回调函数，但它依然能够正常工作。
+
+关键点在于：这个回调函数并不是我们手动写出来的，而是**由编译器根据 `for range` 的循环体自动生成的**。
+
+例如下面这段代码：
+
+```go
+for elementValue := range iteratorValue {
+    fmt.Println(elementValue)
+}
+// elementValue: 每轮迭代得到的值
+```
+
+从语义上看，它大致等价于：
+
+```go
+iteratorValue(func(elementValue int) bool {
+    fmt.Println(elementValue)
+    return true
+})
+// elementValue: 当前被推送出来的值
+// 返回 true: 继续迭代
+// 返回 false: 停止迭代
+```
+
+也就是说，整个执行过程可以理解为下面这样：
+
+- 迭代器函数本身的类型类似 `func(func(T) bool)`
+- `for range` 会把循环体转换成一个回调函数
+- 然后把这个回调函数作为参数传给迭代器执行
+
+换句话说，**循环体本身就相当于 `yield` 回调函数**。
+
+从执行流程来看，可以把它理解为：先调用 `iteratorValue` 得到一个可执行的迭代器函数，然后编译器把 `for` 循环体包装成回调函数，再由迭代器内部不断调用这个回调。每调用一次回调，就相当于执行了一次循环体。
+
+因此，迭代器中很常见的这段代码：
+
+```go
+if !yieldValue(elementValue) {
+    return
 }
 ```
 
-我们可以把它改造成迭代器，如下所示，可以看到代码量要减少了一些
+并不是一种随意的写法，而是用来承接循环控制流的必要模式。它的作用就是：**一旦循环体要求停止，迭代器也必须随之停止继续推送元素**。
 
+例如：
 
-
-```
-func Fibonacci(n int) func(yield func(int) bool) {
-  a, b, c := 0, 1, 1
-  return func(yield func(int) bool) {
-    for range n {
-      if !yield(a) {
-        return
-      }
-      a, b = b, c
-      c = a + b
+```go
+for elementValue := range iteratorValue {
+    if elementValue > 3 {
+        break
     }
-  }
 }
 ```
 
-Go 的迭代器是`range over func`风格，我们可以直接用`for range`关键字来进行使用，使用起来也要比原来更方便
+从语义上看，大致等价于：
 
-
-
-```
-func main() {
-    n := 8
-  for f := range Fibonacci(n) {
-    fmt.Println(f)
-  }
-}
-```
-
-输出如下
-
-
-
-```
-0
-1
-1
-2
-3
-5
-8
-13
-```
-
-如上所示，迭代器就是一个闭包函数，它接受一个回调函数作为参数，你甚至可以在里面看到`yield`这种字眼，写过 python 的人应该都很熟悉，它与 python 中的生成器很类似。Go 的迭代器并没有新增任何关键字，语法特性，在上述示例中`yield`也只是一个回调函数，它并非关键字，官方取这个名字是为了方便理解。
-
-#### [推送式迭代器](https://golang.halfiisland.com/essential/senior/91.iterator.html#推送式迭代器)
-
-关于迭代器的定义，我们可以在`iter`库中找到如下解释
-
-> An iterator is a function that passes successive elements of a sequence to a callback function, conventionally named yield.
->
-> 迭代器是一个函数，它将序列中的元素逐个传递给回调函数，通常称为 yield。
-
-我们从中可以明确的一点，迭代器就是一个函数，它接受一个回调函数作为参数，在迭代过程中会将序列中的元素逐个传递给回调函数`yield`。在之前示例中我们是按照下面的方式使用迭代器的
-
-
-
-```
-for f := range Fibonacci(n) {
-    fmt.Println(f)
-}
-```
-
-根据官方定义，上面迭代器`Backward`的例子使用就等同于下面这段代码
-
-
-
-```
-Fibonacci(n)(func(f int) bool {
-    fmt.Println(f)
+```go
+iteratorValue(func(elementValue int) bool {
+    if elementValue > 3 {
+        return false
+    }
     return true
 })
 ```
 
-循环体的 body 就是迭代器的回调函数`yiled`，当函数返回`true`迭代器会继续迭代，否则就会停止。
+也就是说：
 
-此外，`iter`标准库中也定义了迭代器的类型`iter.Seq`，它的类型就是函数。
+- `yieldValue(...) == true`：继续迭代
+- `yieldValue(...) == false`：停止迭代，可以对应 `break` 这样的行为
 
+需要特别注意的是，这是一种**同步调用模型**。它不会自动引入 `goroutine`，也不会经过 `channel`。本质上，迭代器函数仍然只是普通函数调用，因此它的执行特征更接近普通的 `for` 循环，而不是并发流水线。
 
+可以用一句话来概括这一机制：**`range over func` 的本质，就是把 `for` 循环体包装成回调函数，并交给迭代器驱动执行。**
 
+标准库 `iter` 包中定义了两种常见的迭代器类型：
+
+1. **单值迭代器**：每次推送一个值。
+
+```go
+type Seq[ValueType any] func(yieldValue func(ValueType) bool)
+// ValueType: 迭代值类型
+// yieldValue: 每轮迭代接收一个值，返回是否继续
 ```
-type Seq[V any] func(yield func(V) bool)
 
-type Seq2[K, V any] func(yield func(K, V) bool)
+2. **双值迭代器**：每次推送两个值，通常对应键值对或索引和值。
+
+```go
+type Seq2[KeyType, ValueType any] func(yieldValue func(KeyType, ValueType) bool)
+// KeyType: 第一个返回值类型
+// ValueType: 第二个返回值类型
+// yieldValue: 每轮迭代接收两个值，返回是否继续
 ```
 
-`iter.Seq`的回调函数只接受一个参数，那么在迭代时`for range`仅有一个返回值，如下
+如果是 `iter.Seq`，使用起来就是一个返回值：
 
-
-
+```go
+for elementValue := range iteratorValue {
+    statement
+}
+// elementValue: 每轮迭代得到的值
 ```
-for v := range iter {
-  // body
+
+如果是 `iter.Seq2`，使用起来就是两个返回值：
+
+```go
+for keyValue, elementValue := range iteratorValue {
+    statement
+}
+// keyValue: 第一个值
+// elementValue: 第二个值
+```
+
+理论上也允许 0 参数形式的迭代器，它大致等价于：
+
+```go
+func(yieldValue func() bool)
+// yieldValue: 不接收任何值，只负责决定是否继续
+```
+
+使用时也就是：
+
+```go
+for range iteratorValue {
+    statement
 }
 ```
 
-`iter.Seq2`的回调函数接受两个参数，那么在迭代时`for range`就有两个返回值，如下
+不过回调函数的参数个数只能是 0 到 2 个，再多就无法通过编译。
 
+换句话说，`for range` 中的循环体，其实就相当于迭代器里的 `yield` 回调函数。每一轮迭代，迭代器都会调用一次 `yield`，也就相当于执行了一次循环体中的代码。因此下面这两种写法，本质上是等价的：
 
-
-```
-for k, v := range iter {
-  // body
+```go
+for fibonacciValue := range Fibonacci(countValue) {
+    fmt.Println(fibonacciValue)
 }
+// fibonacciValue: 每轮迭代得到的斐波那契数
 ```
 
-虽然标准库中没有定义 0 个参数的 Seq，但这也是完全允许的，它相当于
-
-
-
-```
-func(yield func() bool)
-```
-
-使用起来如下所示
-
-
-
-```
-for range iter {
-  // body
-}
-```
-
-回调函数的参数数量只能是 0 至 2 个，多了会无法通过编译。
-
-简而言之，`for range`中的循环体就是迭代器中的`yield`回调函数，`for range`返回几个值，相应的`yeild`函数就有几个入参，每一轮迭代时，迭代器都会调用`yield`函数，也就是执行循环体中的代码，主动将序列中的元素传递给`yield`函数，这种主动传递元素的迭代器我们一般称之为推送式迭代器（pushing iterator），比较典型的例子就是其他语言中的`foreach`，比如 js
-
-
-
-```
-let arr = [1, 2, 3, 4, 5];
-arr
-  .filter((e) => e % 2 === 0)
-  .forEach((e) => {
-    console.log(e);
-  });
-```
-
-在 Go 中的表现形式就是由`range`返回被迭代的元素。
-
-
-
-```
-for index, value := range iterator() {
-  fmt.Println(index, value)
-}
-```
-
-在某些语言（比如 Java）中它还有另一个叫法：数据流处理。
-
-既然循环体中的代码是作为回调函数传入迭代器的，而且它很可能是一个闭包函数，Go 就需要让一个闭包函数在执行`defer`，`return`，`break`，`goto`等关键字时表现的像一个普通循环体代码段一样，思考下面几种情况。
-
-比如说在迭代器循环中返回，那么在`yield`回调函数中要怎么去处理这个 return 呢？
-
-
-
-```
-for index, value := range iterator() {
-    if value > 10 {
-        return
-  }
-  fmt.Println(index, value)
-}
-```
-
-不可能直接在回调函数中 return，这么做只会让迭代停止而已，达不到返回的效果
-
-
-
-```
-iterator()(func(index int, value int) bool {
-  if value > 10 {
-    return false
-  }
-  fmt.Println(index, value)
+```go
+Fibonacci(countValue)(func(fibonacciValue int) bool {
+    fmt.Println(fibonacciValue)
+    return true
 })
+// fibonacciValue: 当前被推送出来的值
+// 返回 true: 继续迭代
+// 返回 false: 停止迭代
 ```
 
-再比如说在迭代器循环中使用`defer`
+循环体里的 `return`、`break`、`continue`、`goto`、`defer` 等关键字在 `range over func` 中依旧会表现得像普通循环一样，这是编译器额外帮我们处理好的，因此使用时不需要手动改写这些控制流。
 
+#### 错误处理
 
+如果在迭代过程中可能出现错误，最直接的办法就是把错误也作为迭代值的一部分返回。最常见的方式是使用 `iter.Seq2`，把第二个返回值设计成 `error`。
 
-```
-for index, value := range iterator() {
-    defer fmt.Println(index, value)
-}
-```
+例如，一个按行扫描输入流的迭代器可以这样定义：
 
-也不能直接在回调函数中使用`defer`，因为这么做的话在回调函数结束时就会直接延迟调用了
+```go
+func ScanLines(readerValue io.Reader) iter.Seq2[string, error] {
+    scannerValue := bufio.NewScanner(readerValue)
 
-
-
-```
-iterator()(func(index int, value int) bool {
-  defer fmt.Println(index, value)
-})
-```
-
-像其他的几个关键字`break`，`continue`，`goto`也是类似的，好在这些情况 Go 已经帮我们处理好了，我们只需使用即可，可以暂时不需要关心这些，如果感兴趣可以自行浏览[rangefunc/rewrite.go](https://github.com/golang/go/blob/go1.23.0/src/cmd/compile/internal/rangefunc/rewrite.go#L628)中的源代码。
-
-#### [拉取式迭代器](https://golang.halfiisland.com/essential/senior/91.iterator.html#拉取式迭代器)
-
-推送式迭代器（pushing iterator）是由迭代器来控制迭代的逻辑，用户被动获取元素，相反的拉取式迭代器（pulling iterator）就是由用户来控制迭代逻辑，主动的去获取序列元素。一般而言，拉取式迭代器都会有特定的函数如`next()`，`stop()`来控制迭代的开始或结束，它可以是一个闭包或者结构体。
-
-
-
-```
-scanner := bufio.NewScanner(file)
-for scanner.Scan() {
-    line, err := scanner.Text(), scanner.Err()
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
-    fmt.Println(line)
-}
-```
-
-如上所示，Scanner 通过方法`Text()`来获取文件中的下一行文本，通过方法`Scan()`来表示迭代是否结束，这也是拉取式迭代器的一种模式。Scanner 采用结构体来记录状态，而在`iter`库定义的拉取式迭代器采用闭包来记录状态，我们通过`iter.Pull`或`iter.Pull2`函数就可以将一个标准的推送式迭代器转换为拉取式迭代器，`iter.Pull`与`iter.Pull2`的区别就是后者的返回值有两个，签名如下
-
-
-
-```
-func Pull[V any](seq Seq[V]) (next func() (V, bool), stop func())
-
-func Pull2[K, V any](seq Seq2[K, V]) (next func() (K, V, bool), stop func())
-```
-
-它们都接受一个迭代器作为参数，然后会返回两个函数`next()`和`stop()`，用于控制迭代的继续和停止。
-
-
-
-```
-func next() (V, bool)
-
-func stop()
-```
-
-`next`会返回被迭代的元素，和一个表示当前值是否有效的布尔值，当迭代结束时`next`函数会返回元素的零值和`false`。`stop`函数会结束迭代过程，当调用者不再使用迭代器后，就必须使用`stop`函数来结束迭代。顺带一提，在多个协程调用同一个迭代器的`next`函数是错误的做法，因为它并非并发安全。
-
-下面通过一个例子来演示，它的功能就是把之前的斐波那契迭代器改造成拉取式迭代器，如下
-
-
-
-```
-func main() {
-  n := 10
-  next, stop := iter.Pull(Fibonacci(n))
-  defer stop()
-  for {
-    fibn, ok := next()
-    if !ok {
-      break
-    }
-    fmt.Println(fibn)
-  }
-}
-```
-
-输出
-
-
-
-```
-0
-1
-1
-2
-3
-5
-8
-13
-21
-34
-```
-
-这样一来我们就可以通过`next`和`stop`函数来手动控制迭代的逻辑了。你或许可能会觉得这样做多此一举，如果要这样做的话那为什么不直接用最初的闭包版本就好了，一样可以自己控制迭代，闭包的用法是这样的
-
-
-
-```
-func main() {
-  fib := Fibonacci(10)
-    for {
-        n, ok := fib()
-        if !ok {
-            break
+    return func(yieldValue func(string, error) bool) {
+        for scannerValue.Scan() {
+            if !yieldValue(scannerValue.Text(), scannerValue.Err()) {
+                return
+            }
         }
-        fmt.Prinlnt(n)
     }
 }
+// readerValue: 输入源
+// 返回结果: 每次迭代返回一行文本和一个错误
 ```
 
-转换过程：闭包 → 迭代器 → 拉取式迭代器，闭包与拉取式迭代器的用法都大差不差，它们的思想都是一样的，后者还会因为各种各样的处理导致性能上的拖累。老实说这么做确实多此一举，它的应用场景确实不是很多，不过`iter.pull`是为了`iter.Seq`而存在的，也就是为了将推送式迭代器转换成拉取式迭代器的而存在的，如果你仅仅只是想要一个拉取式迭代器，还专门为此去实现一个推送式迭代器来进行转换，要这样做的话不妨考虑下自己实现的复杂度和性能，就像这个斐波那契数列的例子一样，绕了一圈又回到原点，唯一的好处可能就是符合官方的迭代器规范。
+使用推送式迭代器时，可以这样处理错误：
 
-#### [错误处理](https://golang.halfiisland.com/essential/senior/91.iterator.html#错误处理)
-
-在迭代时发生了错误怎么办？我们可以将其传递给`yield`函数让`for range`返回，让调用者来进行处理，就像下面这个行迭代器的例子一样
-
-
-
-```
-func ScanLines(reader io.Reader) iter.Seq2[string, error] {
-  scanner := bufio.NewScanner(reader)
-  return func(yield func(string, error) bool) {
-    for scanner.Scan() {
-      if !yield(scanner.Text(), scanner.Err()) {
-        return
-      }
-    }
-  }
-}
-```
-
-提示
-
-值得注意的是，`ScanLines`迭代器是一次性使用的，文件关闭以后就不能再次使用了。
-
-可以看到它的第二个返回值是`error`类型，使用起来如下
-
-
-
-```
-for line, err := range ScanLines(file) {
-    if err != nil {
-        fmt.Println(err)
+```go
+for lineValue, errValue := range ScanLines(readerValue) {
+    if errValue != nil {
+        fmt.Println(errValue)
         break
     }
-    fmt.Println(line)
+
+    fmt.Println(lineValue)
 }
+// lineValue: 当前行内容
+// errValue: 当前错误
 ```
 
-这样处理起来就跟普通的错误处理没什么区别，拉取式迭代器也是同理
+使用拉取式迭代器时，也可以同样处理：
 
+```go
+nextValue, stopValue := iter.Pull2(ScanLines(readerValue))
+defer stopValue()
 
-
-```
-next, stop := iter.Pull2(ScanLines(file))
-defer stop()
 for {
-    line, err, ok := next()
-    if err != nil {
-        fmt.Println(err)
-        break
-    } else if !ok {
-        break
-    }
-    fmt.Println(line)
-}
-```
+    lineValue, errValue, okValue := nextValue()
 
-如果发生了 panic，就像平常一样使用`recovery`即可。
-
-
-
-```
-defer func() {
-    if err := recover(); err != nil {
-        fmt.Println("panic:", err)
-        os.Exit(1)
-    }
-}()
-
-for line, err := range ScanLines(file) {
-    if err != nil {
-        fmt.Println(err)
+    if errValue != nil {
+        fmt.Println(errValue)
         break
     }
-    fmt.Println(line)
-}
-```
 
-拉取式迭代器依然同理，这里就不演示了。
-
-#### [标准库](https://golang.halfiisland.com/essential/senior/91.iterator.html#标准库)
-
-有很多标准库也支持了迭代器，最常用的就是`slices`和`maps`标准库，下面介绍几个比较实用的功能。
-
-**slices.All**
-
-
-
-```
-func All[Slice ~[]E, E any](s Slice) iter.Seq2[int, E]
-```
-
-`slices.All`会将切片转换成一个切片迭代器
-
-
-
-```
-func main() {
-  s := []int{1, 2, 3, 4, 5}
-  for i, n := range slices.All(s) {
-    fmt.Println(i, n)
-  }
-}
-```
-
-输出
-
-
-
-```
-0 1
-1 2
-2 3
-3 4
-4 5
-```
-
-**slices.Values**
-
-
-
-```
-func Values[Slice ~[]E, E any](s Slice) iter.Seq[E]
-```
-
-`slices.Values`会将切片转换成一个切片迭代器，但是不带索引
-
-
-
-```
-func main() {
-  s := []int{1, 2, 3, 4, 5}
-  for n := range slices.Values(s) {
-    fmt.Println(n)
-  }
-}
-```
-
-输出
-
-
-
-```
-1
-2
-3
-4
-5
-```
-
-**slices.Chunk**
-
-
-
-```
-func Chunk[Slice ~[]E, E any](s Slice, n int) iter.Seq[Slice]
-```
-
-`slices.Chunk`函数会返回一个迭代器，该迭代器会以 n 个元素为切片推送给调用者
-
-
-
-```
-func main() {
-  s := []int{1, 2, 3, 4, 5}
-  for chunk := range slices.Chunk(s, 2) {
-    fmt.Println(chunk)
-  }
-}
-```
-
-输出
-
-
-
-```
-[1 2]
-[3 4]
-[5]
-```
-
-**slices.Collect**
-
-
-
-```
-func Collect[E any](seq iter.Seq[E]) []E
-```
-
-`slices.Collect`函数会将切片迭代器收集成一个切片
-
-
-
-```
-func main() {
-  s := []int{1, 2, 3, 4, 5}
-  s2 := slices.Collect(slices.Values(s))
-  fmt.Println(s2)
-}
-```
-
-输出
-
-
-
-```
-[1 2 3 4 5]
-```
-
-**maps.Keys**
-
-
-
-```
-func Keys[Map ~map[K]V, K comparable, V any](m Map) iter.Seq[K]
-```
-
-`maps.Keys`会返回一个迭代 map 所有键的迭代器，配合`slices.Collect`可以直接收集成一个切片。
-
-
-
-```
-func main() {
-  m := map[string]int{"one": 1, "two": 2, "three": 3}
-  keys := slices.Collect(maps.Keys(m))
-  fmt.Println(keys)
-}
-```
-
-输出
-
-
-
-```
-[three one two]
-```
-
-由于 map 是无序的，所以输出也不固定
-
-**maps.Values**
-
-
-
-```
-func Values[Map ~map[K]V, K comparable, V any](m Map) iter.Seq[V]
-```
-
-`maps.Values`会返回一个迭代 map 所有值的迭代器，配合`slices.Collect`可以直接收集成一个切片。
-
-
-
-```
-func main() {
-  m := map[string]int{"one": 1, "two": 2, "three": 3}
-  keys := slices.Collect(maps.Values(m))
-  fmt.Println(keys)
-}
-```
-
-输出
-
-
-
-```
-[3 1 2]
-```
-
-由于 map 是无序的，所以输出也不固定
-
-**maps.All**
-
-
-
-```
-func All[Map ~map[K]V, K comparable, V any](m Map) iter.Seq2[K, V]
-```
-
-`maps.All`可以将一个 map 转换为成一个 map 迭代器
-
-
-
-```
-func main() {
-  m := map[string]int{"one": 1, "two": 2, "three": 3}
-  for k, v := range maps.All(m) {
-    fmt.Println(k, v)
-  }
-}
-```
-
-一般不会这么直接用，都是拿来配合其他数据流处理函数的。
-
-**maps.Collect**
-
-
-
-```
-func Collect[K comparable, V any](seq iter.Seq2[K, V]) map[K]V
-```
-
-`maps.Collect`可以将一个 map 迭代器收集成一个 map
-
-
-
-```
-func main() {
-  m := map[string]int{"one": 1, "two": 2, "three": 3}
-  m2 := maps.Collect(maps.All(m))
-  fmt.Println(m2)
-}
-```
-
-collect 函数一般作为数据流处理的终结函数来使用。
-
-#### [链式调用](https://golang.halfiisland.com/essential/senior/91.iterator.html#链式调用)
-
-通过上面标准库提供的函数，我们可以将其组合来处理数据流，比如对数据流进行排序，如下
-
-
-
-```
-sortedSlices := slices.Sorted(slices.Values(s))
-```
-
-go 的迭代器采用的是闭包，只能像这样嵌套函数调用，本身没法链式调用，调用链长了以后可读性会很差，但我们可以自己通过结构体来记录迭代器，就能够实现链式调用。
-
-##### [demo](https://golang.halfiisland.com/essential/senior/91.iterator.html#demo)
-
-一个简单的链式调用 demo 如下所示，它包含了`Filter`，`Map`，`Find`，`Some`等常用的功能。
-
-
-
-```
-package iterx
-
-import (
-  "iter"
-  "slices"
-)
-
-type SliceSeq[E any] struct {
-  seq iter.Seq2[int, E]
-}
-
-func (s SliceSeq[E]) All() iter.Seq2[int, E] {
-  return s.seq
-}
-
-func (s SliceSeq[E]) Filter(filter func(int, E) bool) SliceSeq[E] {
-  return SliceSeq[E]{
-    seq: func(yield func(int, E) bool) {
-      // 重新组织索引
-      i := 0
-      for k, v := range s.seq {
-        if filter(k, v) {
-          if !yield(i, v) {
-            return
-          }
-          i++
-        }
-      }
-    },
-  }
-}
-
-func (s SliceSeq[E]) Map(mapFn func(E) E) SliceSeq[E] {
-  return SliceSeq[E]{
-    seq: func(yield func(int, E) bool) {
-      for k, v := range s.seq {
-        if !yield(k, mapFn(v)) {
-          return
-        }
-      }
-    },
-  }
-}
-
-func (s SliceSeq[E]) Fill(fill E) SliceSeq[E] {
-  return SliceSeq[E]{
-    seq: func(yield func(int, E) bool) {
-      for i, _ := range s.seq {
-        if !yield(i, fill) {
-          return
-        }
-      }
-    },
-  }
-}
-
-func (s SliceSeq[E]) Find(equal func(int, E) bool) (_ E) {
-  for i, v := range s.seq {
-    if equal(i, v) {
-      return v
+    if !okValue {
+        break
     }
-  }
-  return
+
+    fmt.Println(lineValue)
 }
+// lineValue: 当前行内容
+// errValue: 当前错误
+// okValue: 当前值是否有效
+```
 
-func (s SliceSeq[E]) Some(match func(int, E) bool) bool {
-  for i, v := range s.seq {
-    if match(i, v) {
-      return true
-    }
-  }
-  return false
+如果在迭代过程中发生 `panic`，处理方式和普通 Go 代码没有区别，仍然是通过 `recover` 来兜底即可。
+
+#### 标准库
+
+Go 1.23 之后，很多标准库也开始支持迭代器，最常用的就是 `slices`、`maps` 和 `iter` 这些包。下面列几个比较常用的工具。
+
+1. **slices.All**：把切片转换为带索引和值的迭代器。
+
+```go
+func All[SliceType ~[]ElementType, ElementType any](
+    sliceValue SliceType,
+) iter.Seq2[int, ElementType]
+// sliceValue: 切片
+// 返回结果: 返回索引和值的迭代器
+```
+
+2. **slices.Values**：把切片转换为只返回值的迭代器。
+
+```go
+func Values[SliceType ~[]ElementType, ElementType any](
+    sliceValue SliceType,
+) iter.Seq[ElementType]
+// sliceValue: 切片
+// 返回结果: 只返回值的迭代器
+```
+
+3. **slices.Chunk**：按固定大小分块返回子切片。
+
+```go
+func Chunk[SliceType ~[]ElementType, ElementType any](
+    sliceValue SliceType,
+    sizeValue int,
+) iter.Seq[SliceType]
+// sliceValue: 原切片
+// sizeValue: 每块大小
+// 返回结果: 分块后的切片迭代器
+```
+
+4. **slices.Collect**：把切片迭代器重新收集成切片。
+
+```go
+func Collect[ElementType any](
+    seqValue iter.Seq[ElementType],
+) []ElementType
+// seqValue: 迭代器
+// 返回结果: 收集后的切片
+```
+
+5. **maps.Keys**：返回 map 所有键的迭代器。
+
+```go
+func Keys[
+    MapType ~map[KeyType]ValueType,
+    KeyType comparable,
+    ValueType any,
+](mapValue MapType) iter.Seq[KeyType]
+// mapValue: 原 map
+// 返回结果: 键迭代器
+```
+
+6. **maps.Values**：返回 map 所有值的迭代器。
+
+```go
+func Values[
+    MapType ~map[KeyType]ValueType,
+    KeyType comparable,
+    ValueType any,
+](mapValue MapType) iter.Seq[ValueType]
+// mapValue: 原 map
+// 返回结果: 值迭代器
+```
+
+7. **maps.All**：返回 map 的键值对迭代器。
+
+```go
+func All[
+    MapType ~map[KeyType]ValueType,
+    KeyType comparable,
+    ValueType any,
+](mapValue MapType) iter.Seq2[KeyType, ValueType]
+// mapValue: 原 map
+// 返回结果: 键值对迭代器
+```
+
+8. **maps.Collect**：把 map 迭代器重新收集成 map。
+
+```go
+func Collect[KeyType comparable, ValueType any](
+    seqValue iter.Seq2[KeyType, ValueType],
+) map[KeyType]ValueType
+// seqValue: map 迭代器
+// 返回结果: 收集后的 map
+```
+
+这些函数通常作为数据流处理的中间环节或终结环节使用，例如把一个切片转成迭代器、再做筛选、排序、收集等操作。
+
+#### 链式调用
+
+标准库里的这些函数虽然可以组合起来处理数据流，但 Go 的迭代器采用的是闭包函数风格，本身只能通过函数嵌套来组合，调用链一长以后可读性会比较差，例如：
+
+```go
+sortedValues := slices.Sorted(slices.Values(sliceValue))
+// sliceValue: 原切片
+// 返回结果: 排序后的新切片
+```
+
+因此，如果希望写出更直观的链式调用风格，通常就需要自己再封装一层结构体，把迭代器保存到结构体中，再通过方法把各种操作串起来。一个简单的封装大致如下：
+
+```go
+type SliceSeq[ElementType any] struct {
+    seqValue iter.Seq2[int, ElementType]
 }
-
-func (s SliceSeq[E]) Every(match func(int, E) bool) bool {
-  for i, v := range s.seq {
-    if !match(i, v) {
-      return false
-    }
-  }
-  return true
-}
-
-func (s SliceSeq[E]) Collect() []E {
-  var res []E
-  for _, v := range s.seq {
-    res = append(res, v)
-  }
-  return res
-}
-
-func (s SliceSeq[E]) Sort(cmp func(x, y E) int) []E {
-  collect := s.Collect()
-  slices.SortFunc(collect, cmp)
-  return collect
-}
-
-func (s SliceSeq[E]) SortStable(cmp func(x, y E) int) []E {
-  collect := s.Collect()
-  slices.SortStableFunc(collect, cmp)
-  return collect
-}
-
-func Slice[S ~[]E, E any](s S) SliceSeq[E] {
-  return SliceSeq[E]{seq: slices.All(s)}
-}
+// seqValue: 底层切片迭代器
 ```
 
-然后我们就可以通过链式调用来处理了，看几个使用案例。
+1. **返回原始迭代器**：
 
-**处理元素值**
-
-
-
-```
-func main() {
-  s := []string{"apple", "banana", "cherry"}
-  all := iterx.Slice(s).Map(strings.ToUpper).All()
-  for i, v := range all {
-    fmt.Printf("index: %d, value: %s\n", i, v)
-  }
-}
+```go
+func (receiverValue SliceSeq[ElementType]) All() iter.Seq2[int, ElementType]
+// 返回结果: 原始索引和值迭代器
 ```
 
-输出
+2. **过滤元素**：
 
-
-
-```
-index: 0, value: APPLE
-index: 1, value: BANANA
-index: 2, value: CHERRY
-```
-
-**寻找某一个指定值**
-
-
-
-```
-func main() {
-  s := []int{1, 2, 3, 4, 5}
-  result := iterx.Slice(s).Find(func(i int, e int) bool {
-    return e == 3
-  })
-  fmt.Println(result)
-}
+```go
+func (receiverValue SliceSeq[ElementType]) Filter(
+    filterValue func(int, ElementType) bool,
+) SliceSeq[ElementType]
+// filterValue: 过滤条件
+// 返回结果: 过滤后的迭代器包装
 ```
 
-输出
+3. **映射元素**：
 
-
-
-```
-3
-```
-
-**填充切片**
-
-
-
-```
-func main() {
-  s := []int{1, 2, 3, 4, 5}
-  result := iterx.Slice(s).Fill(6).Collect()
-  fmt.Println(result)
-}
+```go
+func (receiverValue SliceSeq[ElementType]) Map(
+    mapValue func(ElementType) ElementType,
+) SliceSeq[ElementType]
+// mapValue: 映射函数
+// 返回结果: 映射后的迭代器包装
 ```
 
-输出
+4. **查找元素**：
 
-
-
-```
-[6 6 6 6 6]
-```
-
-**过滤元素**
-
-
-
-```
-func main() {
-  s := []int{1, 2, 3, 4, 5}
-  filter := iterx.Slice(s).Filter(func(i int, e int) bool {
-    return e%2 == 0
-  }).All()
-  for i, v := range filter {
-    fmt.Printf("Index: %d, Value: %d\n", i, v)
-  }
-}
+```go
+func (receiverValue SliceSeq[ElementType]) Find(
+    matchValue func(int, ElementType) bool,
+) (resultValue ElementType)
+// matchValue: 查找条件
+// resultValue: 第一个匹配到的值
 ```
 
-输出
+5. **收集结果**：
 
-
-
-```
-Index: 0, Value: 2
-Index: 1, Value: 4
+```go
+func (receiverValue SliceSeq[ElementType]) Collect() []ElementType
+// 返回结果: 收集后的切片
 ```
 
-比较可惜的是 Go 目前还不支持简写匿名函数，就像 js，rust，java 中的箭头函数一样，否则链式调用还可以更加简洁和优雅一些。
+6. **排序结果**：
 
-#### [性能](https://golang.halfiisland.com/essential/senior/91.iterator.html#性能)
-
-因为 Go 对迭代器做了许多的处理，它的性能肯定是不如原生 for range 循环的，我们拿最简单的一个切片遍历来测试下它们的性能区别，分为下面几种
-
-- 原生 for 循环
-- 推送式迭代器
-- 拉取式迭代器
-
-测试代码如下，测试切片长度为 1000。
-
+```go
+func (receiverValue SliceSeq[ElementType]) Sort(
+    compareValue func(leftValue, rightValue ElementType) int,
+) []ElementType
+// compareValue: 比较函数
+// 返回结果: 排序后的切片
 ```
+
+7. **入口函数**：把普通切片包装成链式可用的对象。
+
+```go
+func Slice[SliceType ~[]ElementType, ElementType any](
+    sliceValue SliceType,
+) SliceSeq[ElementType]
+// sliceValue: 原切片
+// 返回结果: 可链式调用的包装对象
+```
+
+有了这一层封装后，就可以写出类似下面这样的调用方式：
+
+```go
+upperValues := iterx.Slice(stringSliceValue).
+    Map(strings.ToUpper).
+    Collect()
+// stringSliceValue: 原字符串切片
+// 返回结果: 转大写后的切片
+```
+
+```go
+resultValue := iterx.Slice(intSliceValue).
+    Filter(func(indexValue int, elementValue int) bool {
+        return elementValue%2 == 0
+    }).
+    Collect()
+// intSliceValue: 原整型切片
+// 返回结果: 过滤后的切片
+```
+
+这种方式本质上并不是 Go 原生语法支持的链式迭代器，而是通过结构体方法把推送式迭代器包装成了更接近数据流处理风格的接口。比较可惜的是，Go 目前还不支持更简短的匿名函数写法，因此链式调用虽然可行，但在表达上通常还是不如一些函数式语言或脚本语言简洁。
+
+```go
 package main
 
 import (
-  "iter"
-  "slices"
-  "testing"
+	"fmt"
+	"iter"
+	"slices"
 )
 
-var s []int
+// SortedValuesIterator 接收一个切片，返回一个“排序后的值迭代器”。
+// 它不会修改原切片，而是先拷贝一份，再排序，然后按顺序 yield。
+func SortedValuesIterator(sliceValue []int) iter.Seq[int] {
+	copiedValue := slices.Clone(sliceValue)
+	slices.Sort(copiedValue)
 
-const n = 10000
-
-func init() {
-  for i := range n {
-    s = append(s, i)
-  }
+	return func(yieldValue func(int) bool) {
+		for _, elementValue := range copiedValue {
+			if !yieldValue(elementValue) {
+				return
+			}
+		}
+	}
 }
 
-func testNaiveFor(s []int) {
-  for i, n := range s {
-    _ = i
-    _ = n
-  }
+func main() {
+	numberSliceValue := []int{5, 1, 4, 2, 3, 9, 7, 6, 8}
+
+	for elementValue := range SortedValuesIterator(numberSliceValue) {
+		fmt.Println(elementValue)
+	}
+
+	// 输出:
+	// 1
+	// 2
+	// 3
+	// 4
+	// 5
+	// 6
+	// 7
+	// 8
+	// 9
 }
 
-func testPushing(s []int) {
-  for i, n := range slices.All(s) {
-    _ = i
-    _ = n
-  }
-}
-
-func testPulling(s []int) {
-  next, stop := iter.Pull2(slices.All(s))
-  for {
-    i, n, ok := next()
-    if !ok {
-      stop()
-      return
-    }
-    _ = i
-    _ = n
-  }
-}
-
-func BenchmarkNaive_10000(b *testing.B) {
-  for range b.N {
-    testNaiveFor(s)
-  }
-}
-
-func BenchmarkPushing_10000(b *testing.B) {
-  for range b.N {
-    testPushing(s)
-  }
-}
-
-func BenchmarkPulling_10000(b *testing.B) {
-  for range b.N {
-    testPulling(s)
-  }
-}
 ```
 
-测试结果如下
-
-
-
-```
-goos: windows
-goarch: amd64
-pkg: golearn
-cpu: 11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz
-BenchmarkNaive_10000
-BenchmarkNaive_10000-16           492658              2398 ns/op               0 B/op          0 allocs/op
-BenchmarkPushing_10000
-BenchmarkPushing_10000-16         315889              3707 ns/op               0 B/op          0 allocs/op
-BenchmarkPulling_10000
-BenchmarkPulling_10000-16           2016            574509 ns/op             440 B/op         14 allocs/op
-PASS
-ok      golearn 4.029s
-```
-
-我们通过结果可以看到推送式迭代器与原生的`for range`循环相差不是特别大，但拉取式迭代器要比前面两个慢了几乎两个数量级，在使用的时候各位可以根据自己的实际情况来进行考虑。
+**Go 的推送式迭代器相对于原生 `for range` 会有一些额外开销，但通常还在可接受范围内；而拉取式迭代器由于要额外做转换和状态管理，性能往往会明显差于前两者。** 因此在实际使用时，一般更适合优先考虑可读性、统一性和抽象能力，而不是把它当成原生循环的性能替代品。
 
 ### 反射
 
-反射是一种在运行时检查语言自身结构的机制，它可以很灵活的去应对一些问题，但同时带来的弊端也很明显，例如性能问题等等。在 Go 中，反射与`interface{}`密切相关，很大程度上，只要有`interface{}`出现的地方，就会有反射。Go 中的反射 API 是由标准库`reflect`包提供的。
+反射是一种在运行时检查语言自身结构的机制，它可以很灵活地去应对一些问题，但同时带来的弊端也很明显，例如性能问题、可读性下降、类型安全变弱等。在 Go 中，反射与 `any` 密切相关，很大程度上，只要有 `any` 出现的地方，就会有反射。Go 中的反射 API 主要由标准库 `reflect` 包提供。
 
-#### [接口](https://golang.halfiisland.com/essential/senior/105.reflect.html#接口)
+#### 实现机制
 
-在开始之前先简单的了解一下位于`runtime`包下的两个接口。在 Go 中，接口本质上是结构体，Go 在运行时将接口分为了两大类，一类是没有方法集的接口，另一个类则是有方法集的接口。对于含有方法集的接口来说，在运行时由如下的结构体`iface`来进行表示
+在 Go 中，接口在运行时并不是一个抽象概念，而是会被表示成具体的数据结构。Go 运行时大体上把接口分成两类：一类是**没有方法集的接口**，另一类是**有方法集的接口**。
 
+对于带方法集的接口，在运行时大致可以表示为：
 
-
-```
+```go
 type iface struct {
-   tab  *itab // 包含 数据类型，接口类型，方法集等
-   data unsafe.Pointer // 指向值的指针
+    tab  *itab
+    data unsafe.Pointer
 }
+// tab: 保存接口类型、具体类型、方法集等信息
+// data: 指向真实值的指针
 ```
 
-而对于没有方法集接口来说，在运行时由`eface` 结构体来进行表示，如下
+对于空接口，也就是没有方法集的接口，在运行时大致可以表示为：
 
-
-
-```
+```go
 type eface struct {
-   _type *_type // 类型
-   data  unsafe.Pointer // 指向值的指针
+    _type *_type
+    data  unsafe.Pointer
 }
+// _type: 具体类型信息
+// data: 指向真实值的指针
 ```
 
-而这两个结构体在`reflect`包下都有与其对应的结构体类型，`iface`对应的是`nonEmptyInterface`
+而在 `reflect` 包内部，也存在与它们对应的表示。对于普通接口，内部有类似这样的结构：
 
-
-
-```
+```go
 type nonEmptyInterface struct {
-  itab *struct {
-    ityp *rtype // 静态接口类型
-    typ  *rtype // 动态具体类型
-    hash uint32 // 类型哈希
-    _    [4]byte
-    fun  [100000]unsafe.Pointer // 方法集
-  }
-  word unsafe.Pointer // 指向值的指针
+    itab *struct {
+        ityp *rtype
+        typ  *rtype
+        hash uint32
+        _    [4]byte
+        fun  [100000]unsafe.Pointer
+    }
+    word unsafe.Pointer
 }
+// ityp: 静态接口类型
+// typ: 动态具体类型
+// word: 指向具体值
 ```
 
-而`eface`对应的是`emptyInterface`
+对于空接口，则对应类似这样的结构：
 
-
-
-```
+```go
 type emptyInterface struct {
-   typ  *rtype // 动态具体类型
-   word unsafe.Pointer // 指向指针的值
+    typ  *rtype
+    word unsafe.Pointer
 }
+// typ: 动态具体类型
+// word: 指向具体值
 ```
 
-对于这两种类型，官方给出了很明确的定义
+这里经常会提到“动态具体类型”这一说法。需要注意，Go 依然是静态类型语言；这里所谓的“动态”，并不是说语言本身变成了动态类型，而是说：**接口对外暴露的抽象类型不变，但它内部实际存放的具体值类型可以变化。**
 
-- `nonEmptyInterface`： nonEmptyInterface is the header for an interface value with methods
-- `emptyInterface`：emptyInterface is the header for an interface{} value
+理解这一点以后，就可以自然过渡到反射。因为在 `reflect` 包中，最核心的两个类型正是：
 
-上述提到了动态具体类型这一词，原文为`dynamic concrete type`，首先 Go 语言是一个百分之百的静态类型语言，静态这一词是体现在对外表现的抽象的接口类型是不变的，而动态表示是接口底层存储的具体实现的类型是可以变化的。至此，对于接口的简单原理只需要了解到这里就足够满足后续反射的学习。
-
-#### [桥梁](https://golang.halfiisland.com/essential/senior/105.reflect.html#桥梁)
-
-在`reflect`包下，分别有`reflect.Type`接口类型来表示 Go 中的类型，`reflect.Value`结构体类型来表示 Go 中的值
-
-
-
-```
+```go
 type Type interface {
-    ...
-
     Name() string
-
-  PkgPath() string
-
-  Size() uintptr
-
-  String() string
-
-  Kind() Kind
-
-    ...
-}
-
-type Value struct {
-
-   typ *rtype
-
-   ptr unsafe.Pointer
-
-   flag
-
-}
-```
-
-上面的代码省略了很多细节，先只需要了解这两个类型的存在即可。Go 中所有反射相关的操作都是基于这两个类型，`reflect`包提供了两个函数来将 Go 中的类型转换为上述的两种类型以便进行反射操作，分别是`reflect.TypeOf`函数
-
-
-
-```
-func TypeOf(i any) Type
-```
-
-与`reflect.ValueOf`函数
-
-
-
-```
-func ValueOf(i any) Value
-```
-
-可以看到两个函数的参数类型都是`any`，也就是`interface{}`的别名。如果想要进行反射操作，就需要先将其类型转换为`interface{}`，这也是为什么前面提到了只要有反射就离不开空接口。不严谨的说，空接口就是连接 Go 类型系统与反射的桥梁，下图很形象的描述了其过程。
-
-![img](./assets/reflect_1.png)
-
-提示
-
-下文中为了方便，统一使用别名`any`来替代`interface{}`
-
-#### [核心](https://golang.halfiisland.com/essential/senior/105.reflect.html#核心)
-
-在 Go 中有三个经典的反射定律，结合上面所讲的内容也就非常好懂，分别如下
-
-1. 反射可以将`interface{}`类型变量转换成反射对象
-2. 反射可以将反射对象还原成`interface{}`类型变量
-3. 要修改反射对象，其值必须是可设置的
-
-这三个定律便是 Go 反射的核心，当需要访问类型相关信息时，便需要用到`reflect.TypeOf`，当需要修改反射值时，就需要用到`reflect.ValueOf`
-
-#### [类型](https://golang.halfiisland.com/essential/senior/105.reflect.html#类型)
-
-`reflect.Type`代表着 Go 中的类型，使用`reflect.TypeOf()`函数可以将变量转换成`reflect.Type`。代码示例如下
-
-
-
-```
-func main() {
-  str := "hello world!"
-  reflectType := reflect.TypeOf(str)
-  fmt.Println(reflectType)
-}
-```
-
-输出结果为
-
-
-
-```
-string
-```
-
-##### [Kind](https://golang.halfiisland.com/essential/senior/105.reflect.html#kind)
-
-对于`Type`而言，Go 内部使用`reflect.Kind`来表示 Go 中的基础类型，其本质上是无符号整型`uint`。
-
-
-
-```
-type Kind uint
-```
-
-`reflect`包使用`Kind`枚举出了 Go 中所有的基础类型，如下所示
-
-
-
-```
-const (
-   Invalid Kind = iota
-   Bool
-   Int
-   Int8
-   Int16
-   Int32
-   Int64
-   Uint
-   Uint8
-   Uint16
-   Uint32
-   Uint64
-   Uintptr
-   Float32
-   Float64
-   Complex64
-   Complex128
-   Array
-   Chan
-   Func
-   Interface
-   Map
-   Pointer
-   Slice
-   String
-   Struct
-   UnsafePointer
-)
-```
-
-`Kind`类型仅仅实现了`Stringer`接口的`String()`方法，该类型也仅有这一个方法，`String()`方法的返回值来自于一个其内部的 `slice`，如下所示，这种写法乍一看很像 map，但其实这是 Go 中的一种特殊的写法：索引初始化语法（index expressions in slice literals）
-
-
-
-```
-var kindNames = []string{
-   Invalid:       "invalid",
-   Bool:          "bool",
-   Int:           "int",
-   Int8:          "int8",
-   Int16:         "int16",
-   Int32:         "int32",
-   Int64:         "int64",
-   Uint:          "uint",
-   Uint8:         "uint8",
-   Uint16:        "uint16",
-   Uint32:        "uint32",
-   Uint64:        "uint64",
-   Uintptr:       "uintptr",
-   Float32:       "float32",
-   Float64:       "float64",
-   Complex64:     "complex64",
-   Complex128:    "complex128",
-   Array:         "array",
-   Chan:          "chan",
-   Func:          "func",
-   Interface:     "interface",
-   Map:           "map",
-   Pointer:       "ptr",
-   Slice:         "slice",
-   String:        "string",
-   Struct:        "struct",
-   UnsafePointer: "unsafe.Pointer",
-}
-```
-
-
-
-```
-type Type interface{
+    PkgPath() string
+    Size() uintptr
+    String() string
     Kind() Kind
 }
 ```
 
-通过`Kind`，可以知晓空接口存储的值究竟是什么基础类型，例如
-
-
-
-```
-func main() {
-    // 声明一个any类型的变量
-  var eface any
-    // 赋值
-  eface = 100
-    // 通过Kind方法，来获取其类型
-  fmt.Println(reflect.TypeOf(eface).Kind())
+```go
+type Value struct {
+    typ *rtype
+    ptr unsafe.Pointer
+    flag
 }
 ```
 
-输出结果
+`reflect.Type` 用来表示 Go 中的**类型**，`reflect.Value` 用来表示 Go 中的**值**。Go 中几乎所有反射相关的操作，最终都围绕这两个类型展开。
 
+而要把普通 Go 值转换成这两类反射对象，就需要使用下面两个函数：
 
+1. **获取类型对象**
 
-```
-int
-```
-
-##### [Elem](https://golang.halfiisland.com/essential/senior/105.reflect.html#elem)
-
-
-
-```
-type Type interface{
-    Elem() Type
-}
+```go
+func TypeOf(i any) Type
+// i: 任意值
+// 返回结果: 对应的反射类型
 ```
 
-使用`Type.Elem()`方法，可以判断类型为`any`的数据结构所存储的元素类型，可接收的底层参数类型必须是指针，切片，数组，通道，映射表其中之一，否则会`panic`。下面是代码示例
+2. **获取值对象**
 
-
-
-```
-func main() {
-  var eface any
-  eface = map[string]int{}
-  rType := reflect.TypeOf(eface)
-    // key()会返回map的键反射类型
-  fmt.Println(rType.Key().Kind())
-  fmt.Println(rType.Elem().Kind())
-}
+```go
+func ValueOf(i any) Value
+// i: 任意值
+// 返回结果: 对应的反射值
 ```
 
-输出为
+之所以它们的参数都是 `any`，本质上就是因为：**空接口是 Go 类型系统与反射系统之间的桥梁。** 普通 Go 值先进入 `any`，随后再由 `reflect.TypeOf` 或 `reflect.ValueOf` 转换成反射对象，这就是反射最基本的入口。
 
+也正因为如此，Go 反射里有三个非常经典的定律，基本可以看作反射的核心：
 
+第一，反射可以把 `any` 类型变量转换成反射对象。  
+第二，反射也可以把反射对象再还原成 `any` 类型变量。  
+第三，如果想通过反射修改值，那么这个值必须是可设置的。
 
-```
-string
-int
-```
+所以在实际使用时，通常就是：
 
-指针也可以理解为是一个容器，对于指针使用`Elem()`会获得其指向元素的反射类型，代码示例如下
+- 想访问类型相关信息时，使用 `reflect.TypeOf`
+- 想读取值、修改值、调用函数或方法时，使用 `reflect.ValueOf`
 
+到这里，其实就已经把接口、桥梁和核心三部分串起来了：**接口是运行时承载值与类型信息的容器，`any` 是普通值进入反射系统的桥梁，而 `Type` / `Value` 与三条反射定律则构成了反射的核心。**
 
+#### 类型
 
-```
-func main() {
-  var eface any
-    // 赋值指针
-  eface = new(strings.Builder)
-  rType := reflect.TypeOf(eface)
-    // 拿到指针所指向元素的反射类型
-  vType := rType.Elem()
-    // 输出包路径
-  fmt.Println(vType.PkgPath())
-    // 输出其名称
-  fmt.Println(vType.Name())
-}
+`reflect.Type` 代表着 Go 中的类型，使用 `reflect.TypeOf()` 函数可以将变量转换成 `reflect.Type`。代码示例如下：
+
+```go
+reflect.TypeOf(targetValue)
+// targetValue: 任意 Go 值
+// 返回结果: reflect.Type
 ```
 
+例如：
 
-
-```
-strings
-Builder
-```
-
-对于数组，切片，通道用使用起来都是类似的。
-
-##### [Size](https://golang.halfiisland.com/essential/senior/105.reflect.html#size)
-
-
-
-```
-type Type interface{
-    Size() uintptr
-}
+```go
+stringValue := "hello world"
+typeValue := reflect.TypeOf(stringValue)
+fmt.Println(typeValue)
+// 输出: string
 ```
 
-通过`Size`方法可以获取对应类型所占的字节大小，示例如下
+##### Kind
 
+对于 `Type` 而言，Go 内部使用 `reflect.Kind` 来表示 Go 中的基础类型，其本质上是无符号整型 `uint`。
 
-
-```
-func main() {
-  fmt.Println(reflect.TypeOf(0).Size())
-  fmt.Println(reflect.TypeOf("").Size())
-  fmt.Println(reflect.TypeOf(complex(0, 0)).Size())
-  fmt.Println(reflect.TypeOf(0.1).Size())
-  fmt.Println(reflect.TypeOf([]string{}).Size())
-}
+```go
+type Kind uint
 ```
 
-输出结果为
+`reflect` 包使用 `Kind` 枚举出了 Go 中所有的基础类型，如下所示：
 
-
-
-```
-8
-16
-16
-8
-24
-```
-
-提示
-
-使用`unsafe.Sizeof()`可以达到同样的效果
-
-##### [Comparable](https://golang.halfiisland.com/essential/senior/105.reflect.html#comparable)
-
-
-
-```
-type Type interface{
-    Comparable() bool
-}
-```
-
-通过`Comparable`方法可以判断一个类型是否可以被比较，例子如下
-
-
-
-```
-func main() {
-  fmt.Println(reflect.TypeOf("hello world!").Comparable())
-  fmt.Println(reflect.TypeOf(1024).Comparable())
-  fmt.Println(reflect.TypeOf([]int{}).Comparable())
-  fmt.Println(reflect.TypeOf(struct{}{}).Comparable())
-}
+```go
+const (
+    Invalid Kind = iota
+    Bool
+    Int
+    Int8
+    Int16
+    Int32
+    Int64
+    Uint
+    Uint8
+    Uint16
+    Uint32
+    Uint64
+    Uintptr
+    Float32
+    Float64
+    Complex64
+    Complex128
+    Array
+    Chan
+    Func
+    Interface
+    Map
+    Pointer
+    Slice
+    String
+    Struct
+    UnsafePointer
+)
 ```
 
-输出如下
+通过 `Kind`，可以知晓空接口存储的值究竟是什么基础类型，例如：
 
+```go
+var anyValue any
+anyValue = 100
 
-
-```
-true
-true
-false
-true
-```
-
-##### [Implements](https://golang.halfiisland.com/essential/senior/105.reflect.html#implements)
-
-
-
-```
-type Type interface{
-    Implements(u Type) bool
-}
+fmt.Println(reflect.TypeOf(anyValue).Kind())
+// 输出: int
 ```
 
-通过`Implements`方法可以判断一个类型是否实现了某一接口
+##### Elem
 
-
-
+```go
+typeValue.Elem()
+// typeValue: 指针、切片、数组、通道、映射等类型
+// 返回结果: 元素类型对应的 reflect.Type
 ```
+
+使用 `Type.Elem()` 方法，可以判断类型为 `any` 的数据结构所存储的元素类型。对于 `map` 而言，还可以结合 `Key()` 一起使用。
+
+```go
+var anyValue any
+anyValue = map[string]int{}
+
+typeValue := reflect.TypeOf(anyValue)
+
+fmt.Println(typeValue.Key().Kind())
+fmt.Println(typeValue.Elem().Kind())
+// 输出:
+// string
+// int
+```
+
+指针也可以理解为是一个容器，对于指针使用 `Elem()` 会获得其指向元素的反射类型，代码示例如下：
+
+```go
+var anyValue any
+anyValue = new(strings.Builder)
+
+typeValue := reflect.TypeOf(anyValue)
+elementTypeValue := typeValue.Elem()
+
+fmt.Println(elementTypeValue.PkgPath())
+fmt.Println(elementTypeValue.Name())
+// 输出:
+// strings
+// Builder
+```
+
+对于数组、切片、通道，使用起来都是类似的。
+
+##### Size
+
+```go
+typeValue.Size()
+// typeValue: reflect.Type
+// 返回结果: 类型所占字节数
+```
+
+通过 `Size` 方法可以获取对应类型所占的字节大小，示例如下：
+
+```go
+fmt.Println(reflect.TypeOf(0).Size())
+fmt.Println(reflect.TypeOf("").Size())
+fmt.Println(reflect.TypeOf(complex(0, 0)).Size())
+fmt.Println(reflect.TypeOf(0.1).Size())
+fmt.Println(reflect.TypeOf([]string{}).Size())
+// 输出:
+// 8
+// 16
+// 16
+// 8
+// 24
+```
+
+提示：使用 `unsafe.Sizeof()` 也可以达到类似效果。
+
+##### Comparable
+
+```go
+typeValue.Comparable()
+// typeValue: reflect.Type
+// 返回结果: 是否可比较
+```
+
+通过 `Comparable` 方法可以判断一个类型是否可以被比较，例子如下：
+
+```go
+fmt.Println(reflect.TypeOf("hello world").Comparable())
+fmt.Println(reflect.TypeOf(1024).Comparable())
+fmt.Println(reflect.TypeOf([]int{}).Comparable())
+fmt.Println(reflect.TypeOf(struct{}{}).Comparable())
+// 输出:
+// true
+// true
+// false
+// true
+```
+
+##### Implements
+
+```go
+typeValue.Implements(interfaceTypeValue)
+// typeValue: 某个具体类型
+// interfaceTypeValue: 某个接口类型
+// 返回结果: 是否实现该接口
+```
+
+通过 `Implements` 方法可以判断一个类型是否实现了某一接口。
+
+```go
 type MyInterface interface {
-  My() string
+    My() string
 }
 
 type MyStruct struct {
 }
 
-func (m MyStruct) My() string {
-  return "my"
+func (receiverValue MyStruct) My() string {
+    return "my"
 }
 
 type HisStruct struct {
 }
 
-func (h HisStruct) String() string {
-  return "his"
+func (receiverValue HisStruct) String() string {
+    return "his"
 }
 
-func main() {
-  rIface := reflect.TypeOf(new(MyInterface)).Elem()
-  fmt.Println(reflect.TypeOf(new(MyStruct)).Elem().Implements(rIface))
-  fmt.Println(reflect.TypeOf(new(HisStruct)).Elem().Implements(rIface))
+interfaceTypeValue := reflect.TypeOf(new(MyInterface)).Elem()
+
+fmt.Println(reflect.TypeOf(new(MyStruct)).Elem().Implements(interfaceTypeValue))
+fmt.Println(reflect.TypeOf(new(HisStruct)).Elem().Implements(interfaceTypeValue))
+// 输出:
+// true
+// false
+```
+
+##### ConvertibleTo
+
+```go
+typeValue.ConvertibleTo(targetTypeValue)
+// typeValue: 原类型
+// targetTypeValue: 目标类型
+// 返回结果: 是否可转换
+```
+
+使用 `ConvertibleTo` 方法可以判断一个类型是否可以被转换为另一个指定的类型。
+
+```go
+type MyInt int
+type YourInt int
+
+sourceTypeValue := reflect.TypeOf(MyInt(0))
+targetTypeValue := reflect.TypeOf(YourInt(0))
+
+fmt.Println(sourceTypeValue.ConvertibleTo(targetTypeValue))
+// 输出: true
+```
+
+#### 值
+
+`reflect.Value` 代表着反射接口的值，使用 `reflect.ValueOf()` 函数可以将变量转换成 `reflect.Value`。
+
+```go
+reflect.ValueOf(targetValue)
+// targetValue: 任意 Go 值
+// 返回结果: reflect.Value
+```
+
+例如：
+
+```go
+stringValue := "hello world"
+valueValue := reflect.ValueOf(stringValue)
+fmt.Println(valueValue)
+// 输出: hello world
+```
+
+##### Type
+
+```go
+valueValue.Type()
+// valueValue: reflect.Value
+// 返回结果: reflect.Type
+```
+
+`Type` 方法可以获取一个反射值的类型。
+
+```go
+numberValue := 114514
+valueValue := reflect.ValueOf(numberValue)
+
+fmt.Println(valueValue.Type())
+// 输出: int
+```
+
+##### Elem
+
+```go
+valueValue.Elem()
+// valueValue: 指针、接口等包装值
+// 返回结果: 内部元素的 reflect.Value
+```
+
+获取一个反射值的元素反射值。
+
+```go
+numberPointerValue := new(int)
+*numberPointerValue = 114514
+
+valueValue := reflect.ValueOf(numberPointerValue).Elem()
+fmt.Println(valueValue.Interface())
+// 输出: 114514
+```
+
+##### 指针
+
+获取一个反射值的指针方式有几种：
+
+1. **获取地址形式的反射值**
+
+```go
+valueValue.Addr()
+// valueValue: 可取址的 reflect.Value
+// 返回结果: 表示地址的 reflect.Value
+```
+
+2. **获取原始地址**
+
+```go
+valueValue.UnsafeAddr()
+// valueValue: 可取址的 reflect.Value
+// 返回结果: uintptr 形式的地址
+```
+
+3. **获取某些引用类型的底层地址**
+
+```go
+valueValue.Pointer()
+// valueValue: Chan、Func、Map、Pointer、Slice、UnsafePointer 等
+// 返回结果: uintptr 形式的地址
+```
+
+4. **获取 unsafe.Pointer**
+
+```go
+valueValue.UnsafePointer()
+// valueValue: Chan、Func、Map、Pointer、Slice、UnsafePointer 等
+// 返回结果: unsafe.Pointer
+```
+
+示例如下：
+
+```go
+numberValue := 1024
+elementValue := reflect.ValueOf(&numberValue).Elem()
+
+fmt.Println("&numberValue", &numberValue)
+fmt.Println("Addr", elementValue.Addr())
+fmt.Println("UnsafeAddr", unsafe.Pointer(elementValue.UnsafeAddr()))
+fmt.Println("Pointer", unsafe.Pointer(elementValue.Addr().Pointer()))
+fmt.Println("UnsafePointer", elementValue.Addr().UnsafePointer())
+// 输出示意:
+// &numberValue 0xc0000...
+// Addr 0xc0000...
+// UnsafeAddr 0xc0000...
+// Pointer 0xc0000...
+// UnsafePointer 0xc0000...
+```
+
+提示：`fmt.Println` 会反射获取参数的类型，如果是 `reflect.Value` 类型的话，会自动调用 `Value.Interface()` 来获取其原始值。
+
+##### 设置值
+
+```go
+valueValue.Set(newValueValue)
+// valueValue: 可设置的 reflect.Value
+// newValueValue: 新 reflect.Value
+```
+
+倘若通过反射来修改反射值，那么其值必须是可取址、可设置的，这时应该通过指针来修改其元素值，而不是直接尝试修改值本身。
+
+```go
+numberPointerValue := new(int)
+*numberPointerValue = 114514
+
+valueValue := reflect.ValueOf(numberPointerValue)
+elementValue := valueValue.Elem()
+
+fmt.Println(elementValue.Interface())
+
+elementValue.SetInt(11)
+
+fmt.Println(elementValue.Interface())
+// 输出:
+// 114514
+// 11
+```
+
+##### 获取值
+
+```go
+valueValue.Interface()
+// valueValue: reflect.Value
+// 返回结果: any
+```
+
+通过 `Interface()` 方法可以获取反射值原有的值。
+
+```go
+stringValue := "hello"
+valueValue := reflect.ValueOf(stringValue)
+
+if resultValue, okValue := valueValue.Interface().(string); okValue {
+    fmt.Println(resultValue)
 }
+// 输出: hello
 ```
 
-输出结果
+#### 函数
 
+通过反射可以获取函数的一切信息，也可以反射调用函数。
 
+##### 信息
 
-```
-true
-false
-```
+通过反射类型来获取函数的信息。
 
-##### [ConvertibleTo](https://golang.halfiisland.com/essential/senior/105.reflect.html#convertibleto)
-
-
-
-```
-type Type interface{
-    ConvertibleTo(u Type) bool
-}
-```
-
-使用`ConvertibleTo`方法可以判断一个类型是否可以被转换为另一个指定的类型
-
-
-
-```
-type MyInterface interface {
-  My() string
-}
-
-type MyStruct struct {
-}
-
-func (m MyStruct) My() string {
-  return "my"
-}
-
-type HisStruct struct {
-}
-
-func (h HisStruct) String() string {
-  return "his"
-}
-
-func main() {
-  rIface := reflect.TypeOf(new(MyInterface)).Elem()
-  fmt.Println(reflect.TypeOf(new(MyStruct)).Elem().ConvertibleTo(rIface))
-  fmt.Println(reflect.TypeOf(new(HisStruct)).Elem().ConvertibleTo(rIface))
-}
-```
-
-输出
-
-
-
-```
-true
-false
-```
-
-#### [值](https://golang.halfiisland.com/essential/senior/105.reflect.html#值)
-
-`reflect.Value`代表着反射接口的值，使用`reflect.ValueOf()`函数可以将变量转换成`reflect.Value`。代码示例如下
-
-
-
-```
-func main() {
-  str := "hello world!"
-  reflectValue := reflect.ValueOf(str)
-  fmt.Println(reflectValue)
-}
-```
-
-输出结果为
-
-
-
-```
-hello world!
-```
-
-##### [Type](https://golang.halfiisland.com/essential/senior/105.reflect.html#type)
-
-
-
-```
-func (v Value) Type() Type
-```
-
-`Type`方法可以获取一个反射值的类型
-
-
-
-```
-func main() {
-   num := 114514
-   rValue := reflect.ValueOf(num)
-   fmt.Println(rValue.Type())
-}
-```
-
-输出
-
-
-
-```
-int
-```
-
-##### [Elem](https://golang.halfiisland.com/essential/senior/105.reflect.html#elem-1)
-
-
-
-```
-func (v Value) Elem() Value
-```
-
-获取一个反射值的元素反射值
-
-
-
-```
-func main() {
-   num := new(int)
-   *num = 114514
-   // 以指针为例子
-   rValue := reflect.ValueOf(num).Elem()
-   fmt.Println(rValue.Interface())
-}
-```
-
-输出
-
-
-
-```
-114514
-```
-
-##### [指针](https://golang.halfiisland.com/essential/senior/105.reflect.html#指针)
-
-获取一个反射值的指针方式有两种
-
-
-
-```
-// 返回一个表示v地址的指针反射值
-func (v Value) Addr() Value
-
-// 返回一个指向v的原始值的uinptr 等价于 uintptr(Value.Addr().UnsafePointer())
-func (v Value) UnsafeAddr() uintptr
-
-// 返回一个指向v的原始值的uintptr
-// 仅当v的Kind为 Chan, Func, Map, Pointer, Slice, UnsafePointer时，否则会panic
-func (v Value) Pointer() uintptr
-
-// 返回一个指向v的原始值的unsafe.Pointer
-// 仅当v的Kind为 Chan, Func, Map, Pointer, Slice, UnsafePointer时，否则会panic
-func (v Value) UnsafePointer() unsafe.Pointer
-```
-
-示例如下
-
-
-
-```
-func main() {
-   num := 1024
-   ele := reflect.ValueOf(&num).Elem()
-   fmt.Println("&num", &num)
-   fmt.Println("Addr", ele.Addr())
-   fmt.Println("UnsafeAddr", unsafe.Pointer(ele.UnsafeAddr()))
-   fmt.Println("Pointer", unsafe.Pointer(ele.Addr().Pointer()))
-   fmt.Println("UnsafePointer", ele.Addr().UnsafePointer())
-}
-```
-
-输出
-
-
-
-```
-&num 0xc0000a6058
-Addr 0xc0000a6058
-UnsafeAddr 0xc0000a6058
-Pointer 0xc0000a6058
-UnsafePointer 0xc0000a6058
-```
-
-提示
-
-`fmt.Println`会反射获取参数的类型，如果是`reflect.Value`类型的话，会自动调用`Value.Interface()`来获取其原始值。
-
-换成一个 map 再来一遍
-
-
-
-```
-func main() {
-  dic := map[string]int{}
-  ele := reflect.ValueOf(&dic).Elem()
-  println(dic)
-  fmt.Println("Addr", ele.Addr())
-  fmt.Println("UnsafeAddr", *(*unsafe.Pointer)(unsafe.Pointer(ele.UnsafeAddr())))
-  fmt.Println("Pointer", unsafe.Pointer(ele.Pointer()))
-  fmt.Println("UnsafePointer", ele.UnsafePointer())
+```go
+func Max(leftValue, rightValue int) int {
+    if leftValue > rightValue {
+        return leftValue
+    }
+    return rightValue
 }
 ```
 
-输出
+```go
+typeValue := reflect.TypeOf(Max)
 
+fmt.Println(typeValue.Name())
+fmt.Println(typeValue.NumIn(), typeValue.NumOut())
 
+parameterTypeValue := typeValue.In(0)
+resultTypeValue := typeValue.Out(0)
 
-```
-0xc00010e4b0
-Addr &map[]
-UnsafeAddr 0xc00010e4b0
-Pointer 0xc00010e4b0
-UnsafePointer 0xc00010e4b0
-```
-
-##### [设置值](https://golang.halfiisland.com/essential/senior/105.reflect.html#设置值)
-
-
-
-```
-func (v Value) Set(x Value)
+fmt.Println(parameterTypeValue.Kind())
+fmt.Println(resultTypeValue.Kind())
+// 输出:
+// 2 1
+// int
+// int
 ```
 
-倘若通过反射来修改反射值，那么其值必须是可取址的，这时应该通过指针来修改其元素值，而不是直接尝试修改元素的值。
+##### 调用
 
-
-
+```go
+valueValue.Call(argumentValues)
+// valueValue: 函数对应的 reflect.Value
+// argumentValues: 参数 reflect.Value 列表
+// 返回结果: 返回值 reflect.Value 列表
 ```
-func main() {
-   // *int
-   num := new(int)
-   *num = 114514
-   rValue := reflect.ValueOf(num)
-    // 获取指针指向的元素
-   ele := rValue.Elem()
-   fmt.Println(ele.Interface())
-   ele.SetInt(11)
-   fmt.Println(ele.Interface())
+
+通过反射值来调用函数。
+
+```go
+functionValue := reflect.ValueOf(Max)
+
+resultValues := functionValue.Call([]reflect.Value{
+    reflect.ValueOf(18),
+    reflect.ValueOf(50),
+})
+
+for _, resultValue := range resultValues {
+    fmt.Println(resultValue.Interface())
 }
+// 输出: 50
 ```
 
-输出如下
+#### 结构体
 
+假设有如下结构体：
 
-
-```
-114514
-11
-```
-
-##### [获取值](https://golang.halfiisland.com/essential/senior/105.reflect.html#获取值)
-
-
-
-```
-func (v Value) Interface() (i any)
-```
-
-通过`Interface()`方法可以获取反射值原有的值
-
-
-
-```
-func main() {
-   var str string
-   str = "hello"
-   rValue := reflect.ValueOf(str)
-   if v, ok := rValue.Interface().(string); ok {
-      fmt.Println(v)
-   }
-}
-```
-
-输出
-
-
-
-```
-hello
-```
-
-#### [函数](https://golang.halfiisland.com/essential/senior/105.reflect.html#函数)
-
-通过反射可以获取函数的一切信息，也可以反射调用函数
-
-##### [信息](https://golang.halfiisland.com/essential/senior/105.reflect.html#信息)
-
-通过反射类型来获取函数的一切信息
-
-
-
-```
-func Max(a, b int) int {
-   if a > b {
-      return a
-   }
-   return b
-}
-
-func main() {
-   rType := reflect.TypeOf(Max)
-   // 输出函数名称,字面量函数的类型没有名称
-   fmt.Println(rType.Name())
-   // 输出参数，返回值的数量
-   fmt.Println(rType.NumIn(), rType.NumOut())
-   rParamType := rType.In(0)
-   // 输出第一个参数的类型
-   fmt.Println(rParamType.Kind())
-   rResType := rType.Out(0)
-   // 输出第一个返回值的类型
-   fmt.Println(rResType.Kind())
-}
-```
-
-输出
-
-
-
-```
-2 1
-int
-int
-```
-
-##### [调用](https://golang.halfiisland.com/essential/senior/105.reflect.html#调用)
-
-通过反射值来调用函数
-
-
-
-```
-func (v Value) Call(in []Value) []Value
-```
-
-
-
-```
-func main() {
-   // 获取函数的反射值
-   rType := reflect.ValueOf(Max)
-   // 传入参数数组
-   rResValue := rType.Call([]reflect.Value{reflect.ValueOf(18), reflect.ValueOf(50)})
-   for _, value := range rResValue {
-      fmt.Println(value.Interface())
-   }
-}
-```
-
-输出
-
-
-
-```
-50
-```
-
-#### [结构体](https://golang.halfiisland.com/essential/senior/105.reflect.html#结构体)
-
-假设有如下结构体
-
-
-
-```
+```go
 type Person struct {
-  Name    string `json:"name"`
-  Age     int    `json:"age"`
-  Address string `json:"address"`
-  money   int
+    Name    string `json:"name"`
+    Age     int    `json:"age"`
+    Address string `json:"address"`
+    money   int
 }
 
-func (p Person) Talk(msg string) string {
-  return msg
+func (receiverValue Person) Talk(messageValue string) string {
+    return messageValue
 }
 ```
 
-##### [访问字段](https://golang.halfiisland.com/essential/senior/105.reflect.html#访问字段)
+##### 访问字段
 
-`reflect.StructField`结构的结构如下
+`reflect.StructField` 结构如下：
 
-
-
-```
+```go
 type StructField struct {
-  // 字段名称
-  Name string
-  // 包名
-  PkgPath string
-  // 类型名
-  Type      Type
-  // Tag
-  Tag       StructTag
-  // 字段的字节偏移
-  Offset    uintptr
-  // 索引
-  Index     []int
-  // 是否为嵌套字段
-  Anonymous bool
+    Name      string
+    PkgPath   string
+    Type      Type
+    Tag       StructTag
+    Offset    uintptr
+    Index     []int
+    Anonymous bool
 }
 ```
 
-访问结构体字段的方法有两种，一种是通过索引来进行访问，另一种是通过名称。
+访问结构体字段的方法有两种，一种是通过索引来访问，另一种是通过名称。
 
+1. **按索引访问字段**
 
-
+```go
+typeValue.Field(indexValue)
+// typeValue: 结构体对应的 reflect.Type
+// indexValue: 字段下标
+// 返回结果: StructField
 ```
-type Type interface{
-    Field(i int) StructField
+
+```go
+typeValue := reflect.TypeOf(new(Person)).Elem()
+
+fmt.Println(typeValue.NumField())
+
+for indexValue := 0; indexValue < typeValue.NumField(); indexValue++ {
+    fieldValue := typeValue.Field(indexValue)
+    fmt.Println(
+        fieldValue.Index,
+        fieldValue.Name,
+        fieldValue.Type,
+        fieldValue.Offset,
+        fieldValue.IsExported(),
+    )
 }
+// 输出示意:
+// 4
+// [0] Name string 0 true
+// [1] Age int 16 true
+// [2] Address string 24 true
+// [3] money int 40 false
 ```
 
-通过索引访问的例子如下
+2. **按名称访问字段**
 
-
-
+```go
+typeValue.FieldByName(fieldNameValue)
+// fieldNameValue: 字段名
+// 返回结果: StructField, bool
 ```
-func main() {
-  rType := reflect.TypeOf(new(Person)).Elem()
-  // 输出结构体字段的数量
-  fmt.Println(rType.NumField())
-  for i := 0; i < rType.NumField(); i++ {
-    structField := rType.Field(i)
-    fmt.Println(structField.Index, structField.Name, structField.Type, structField.Offset, structField.IsExported())
-  }
+
+```go
+typeValue := reflect.TypeOf(new(Person)).Elem()
+
+fmt.Println(typeValue.NumField())
+
+if fieldValue, okValue := typeValue.FieldByName("money"); okValue {
+    fmt.Println(fieldValue.Name, fieldValue.Type, fieldValue.IsExported())
 }
+// 输出:
+// 4
+// money int false
 ```
 
-输出
+##### 修改字段
 
+倘若要修改结构体字段值，则必须传入一个结构体指针。
 
-
-```
-4
-[0] Name string 0 true
-[1] Age int 16 true
-[2] Address string 24 true
-[3] money int 40 false
-```
-
-
-
-```
-type Type interface{
-    FieldByName(name string) (StructField, bool)
-}
-```
-
-通过名称访问的例子如下
-
-
-
-```
-func main() {
-   rType := reflect.TypeOf(new(Person)).Elem()
-   // 输出结构体字段的数量
-   fmt.Println(rType.NumField())
-   if field, ok := rType.FieldByName("money"); ok {
-      fmt.Println(field.Name, field.Type, field.IsExported())
-   }
-}
-```
-
-输出
-
-
-
-```
-4
-money int false
-```
-
-##### [修改字段](https://golang.halfiisland.com/essential/senior/105.reflect.html#修改字段)
-
-倘若要修改结构体字段值，则必须传入一个结构体指针，下面是一个修改字段的例子
-
-
-
-```
-func main() {
-  // 传入指针
-  rValue := reflect.ValueOf(&Person{
+```go
+valueValue := reflect.ValueOf(&Person{
     Name:    "",
     Age:     0,
     Address: "",
     money:   0,
-  }).Elem()
+}).Elem()
 
-  // 获取字段
-  name := rValue.FieldByName("Name")
-  // 修改字段值
-  if (name != reflect.Value{}) { // 如果返回reflect.Value{}，则说明该字段不存在
-    name.SetString("jack")
-  }
-  // 输出结构体
-  fmt.Println(rValue.Interface())
+nameFieldValue := valueValue.FieldByName("Name")
+
+if nameFieldValue != (reflect.Value{}) {
+    nameFieldValue.SetString("jack")
 }
+
+fmt.Println(valueValue.Interface())
+// 输出: {jack 0  0}
 ```
 
-输出
+对于修改结构体私有字段而言，需要进行一些额外的操作，例如借助 `reflect.NewAt` 和 `unsafe`：
 
-
-
-```
-{jack 0  0}
-```
-
-对于修改结构体私有字段而言，需要进行一些额外的操作，如下
-
-
-
-```
-func main() {
-  // 传入指针
-  rValue := reflect.ValueOf(&Person{
+```go
+valueValue := reflect.ValueOf(&Person{
     Name:    "",
     Age:     0,
     Address: "",
     money:   0,
-  }).Elem()
+}).Elem()
 
-  // 获取一个私有字段
-  money := rValue.FieldByName("money")
-  // 修改字段值
-  if (money != reflect.Value{}) {
-    // 构造指向该结构体未导出字段的指针反射值
-    p := reflect.NewAt(money.Type(), money.Addr().UnsafePointer())
-    // 获取该指针所指向的元素，也就是要修改的字段
-    field := p.Elem()
-    // 修改值
-    field.SetInt(164)
-  }
-  // 输出结构体
-  fmt.Printf("%+v\n", rValue.Interface())
+moneyFieldValue := valueValue.FieldByName("money")
+
+if moneyFieldValue != (reflect.Value{}) {
+    pointerValue := reflect.NewAt(
+        moneyFieldValue.Type(),
+        moneyFieldValue.Addr().UnsafePointer(),
+    )
+
+    fieldValue := pointerValue.Elem()
+    fieldValue.SetInt(164)
 }
+
+fmt.Printf("%+v
+", valueValue.Interface())
+// 输出示意:
+// {Name: Age:0 Address: money:164}
 ```
 
-##### [访问 Tag](https://golang.halfiisland.com/essential/senior/105.reflect.html#访问-tag)
+##### 访问 Tag
 
-获取到`StructField`后，便可以直接访问其 Tag
+获取到 `StructField` 后，便可以直接访问其 Tag。
 
+1. **查找标签并区分是否存在**
 
-
-```
-// 如果不存在，ok为false
-func (tag StructTag) Lookup(key string) (value string, ok bool)
-
-// 如果不存在，返回空字符串
-func (tag StructTag) Get(key string) string
+```go
+fieldValue.Tag.Lookup(tagKeyValue)
+// tagKeyValue: 标签名
+// 返回结果: 标签值, 是否存在
 ```
 
-示例如下
+2. **直接获取标签值**
 
-
-
+```go
+fieldValue.Tag.Get(tagKeyValue)
+// tagKeyValue: 标签名
+// 返回结果: 标签值，不存在时为空字符串
 ```
-func main() {
-   rType := reflect.TypeOf(new(Person)).Elem()
-   name, ok := rType.FieldByName("Name")
-   if ok {
-      fmt.Println(name.Tag.Lookup("json"))
-      fmt.Println(name.Tag.Get("json"))
-   }
+
+示例如下：
+
+```go
+typeValue := reflect.TypeOf(new(Person)).Elem()
+
+nameFieldValue, okValue := typeValue.FieldByName("Name")
+if okValue {
+    fmt.Println(nameFieldValue.Tag.Lookup("json"))
+    fmt.Println(nameFieldValue.Tag.Get("json"))
 }
+// 输出:
+// name true
+// name
 ```
 
-输出
+##### 访问方法
 
+访问方法与访问字段的过程很相似。`reflect.Method` 结构如下：
 
-
-```
-name true
-name
-```
-
-##### [访问方法](https://golang.halfiisland.com/essential/senior/105.reflect.html#访问方法)
-
-访问方法与访问字段的过程很相似，只是函数签名略有区别。`reflect.Method`结构体如下
-
-
-
-```
+```go
 type Method struct {
-  // 方法名
-  Name string
-  // 包名
-  PkgPath string
-  // 方法类型
-  Type  Type
-  // 方法对应的函数，第一个参数是接收者
-  Func  Value
-  // 索引
-  Index int
+    Name    string
+    PkgPath string
+    Type    Type
+    Func    Value
+    Index   int
 }
 ```
 
-访问方法信息示例如下
+访问方法信息示例如下：
 
+```go
+typeValue := reflect.TypeOf(new(Person)).Elem()
 
+fmt.Println(typeValue.NumMethod())
 
-```
-func main() {
-  // 获取结构体反射类型
-  rType := reflect.TypeOf(new(Person)).Elem()
-  // 输出方法个数
-  fmt.Println(rType.NumMethod())
-  // 遍历输出方法信息
-  for i := 0; i < rType.NumMethod(); i++ {
-    method := rType.Method(i)
-    fmt.Println(method.Index, method.Name, method.Type, method.IsExported())
-  }
+for indexValue := 0; indexValue < typeValue.NumMethod(); indexValue++ {
+    methodValue := typeValue.Method(indexValue)
+    fmt.Println(
+        methodValue.Index,
+        methodValue.Name,
+        methodValue.Type,
+        methodValue.IsExported(),
+    )
 }
+// 输出示意:
+// 1
+// 0 Talk func(main.Person, string) string true
 ```
 
-输出
+如果想要获取方法的参数和返回值细节，可以通过 `Method.Func.Type()` 来获取，过程与访问函数信息一致。需要注意，第一个参数是接收者类型。
 
+```go
+typeValue := reflect.TypeOf(new(Person)).Elem()
 
+fmt.Println(typeValue.NumMethod())
 
-```
-1
-0 Talk func(main.Person, string) string true
-```
+for indexValue := 0; indexValue < typeValue.NumMethod(); indexValue++ {
+    methodValue := typeValue.Method(indexValue)
 
-如果想要获取方法的参数和返回值细节，可以通过`Method.Func`来进行获取，过程与访问函数信息一致，将上面的代码稍微修改下
+    fmt.Println(
+        methodValue.Index,
+        methodValue.Name,
+        methodValue.Type,
+        methodValue.IsExported(),
+    )
 
-
-
-```
-func main() {
-  // 获取结构体反射类型
-  rType := reflect.TypeOf(new(Person)).Elem()
-  // 输出方法个数
-  fmt.Println(rType.NumMethod())
-  // 遍历输出方法信息
-  for i := 0; i < rType.NumMethod(); i++ {
-    method := rType.Method(i)
-    fmt.Println(method.Index, method.Name, method.Type, method.IsExported())
     fmt.Println("方法参数")
-    for i := 0; i < method.Func.Type().NumIn(); i++ {
-      fmt.Println(method.Func.Type().In(i).String())
+    for parameterIndexValue := 0; parameterIndexValue < methodValue.Func.Type().NumIn(); parameterIndexValue++ {
+        fmt.Println(methodValue.Func.Type().In(parameterIndexValue).String())
     }
+
     fmt.Println("方法返回值")
-    for i := 0; i < method.Func.Type().NumOut(); i++ {
-      fmt.Println(method.Func.Type().Out(i).String())
+    for resultIndexValue := 0; resultIndexValue < methodValue.Func.Type().NumOut(); resultIndexValue++ {
+        fmt.Println(methodValue.Func.Type().Out(resultIndexValue).String())
     }
-  }
 }
+// 输出示意:
+// 1
+// 0 Talk func(main.Person, string) string true
+// 方法参数
+// main.Person
+// string
+// 方法返回值
+// string
 ```
 
-可以看到第一个参数是`main.Person`，也就是接收者类型
+##### 调用方法
 
+调用方法与调用函数的过程相似，而且并不需要手动传入接收者。
 
+```go
+valueValue := reflect.ValueOf(new(Person)).Elem()
 
-```
-1
-0 Talk func(main.Person, string) string true
-方法参数
-main.Person
-string
-方法返回值
-string
-```
+fmt.Println(valueValue.NumMethod())
 
-##### [调用方法](https://golang.halfiisland.com/essential/senior/105.reflect.html#调用方法)
+talkMethodValue := valueValue.MethodByName("Talk")
 
-调用方法与调用函数的过程相似，而且并不需要手动传入接收者，例子如下
+if talkMethodValue != (reflect.Value{}) {
+    resultValues := talkMethodValue.Call([]reflect.Value{
+        reflect.ValueOf("hello,reflect!"),
+    })
 
-
-
-```
-func main() {
-   // 获取结构体反射类型
-   rValue := reflect.ValueOf(new(Person)).Elem()
-   // 输出方法个数
-   fmt.Println(rValue.NumMethod())
-   // 遍历输出方法信息
-   talk := rValue.MethodByName("Talk")
-   if (talk != reflect.Value{}) {
-      // 调用方法，并获取返回值
-      res := talk.Call([]reflect.Value{reflect.ValueOf("hello,reflect!")})
-      // 遍历输出返回值
-      for _, re := range res {
-         fmt.Println(re.Interface())
-      }
-   }
-}
-```
-
-输出
-
-
-
-```
-1
-hello,reflect!
-```
-
-#### [创建](https://golang.halfiisland.com/essential/senior/105.reflect.html#创建)
-
-通过反射可以构造新的值，`reflect`包同时根据一些特殊的类型提供了不同的更为方便的函数。
-
-##### [基本类型](https://golang.halfiisland.com/essential/senior/105.reflect.html#基本类型)
-
-
-
-```
-// 返回指向反射值的指针反射值
-func New(typ Type) Value
-```
-
-以`string`为例
-
-
-
-```
-func main() {
-   rValue := reflect.New(reflect.TypeOf(*new(string)))
-   rValue.Elem().SetString("hello world!")
-   fmt.Println(rValue.Elem().Interface())
-}
-```
-
-
-
-```
-hello world!
-```
-
-##### [结构体](https://golang.halfiisland.com/essential/senior/105.reflect.html#结构体-1)
-
-结构体的创建同样用到`reflect.New`函数
-
-
-
-```
-type Person struct {
-   Name    string `json:"name"`
-   Age     int    `json:"age"`
-   Address string `json:"address"`
-   money   int
-}
-
-func (p Person) Talk(msg string) string {
-   return msg
-}
-
-func main() {
-   // 创建结构体反射值
-   rType := reflect.TypeOf(new(Person)).Elem()
-   person := reflect.New(rType).Elem()
-   fmt.Println(person.Interface())
-}
-```
-
-输出
-
-
-
-```
-{ 0  0}
-```
-
-##### [切片](https://golang.halfiisland.com/essential/senior/105.reflect.html#切片)
-
-反射创建切片
-
-
-
-```
-func MakeSlice(typ Type, len, cap int) Value
-```
-
-
-
-```
-func main() {
-   // 创建切片反射值
-   rValue := reflect.MakeSlice(reflect.TypeOf(*new([]int)), 10, 10)
-   // 遍历赋值
-   for i := 0; i < 10; i++ {
-      rValue.Index(i).SetInt(int64(i))
-   }
-   fmt.Println(rValue.Interface())
-}
-```
-
-
-
-```
-[0 1 2 3 4 5 6 7 8 9]
-```
-
-##### [Map](https://golang.halfiisland.com/essential/senior/105.reflect.html#map)
-
-反射创建 Map
-
-
-
-```
-func MakeMapWithSize(typ Type, n int) Value
-```
-
-
-
-```
-func main() {
-   //构建map反射值
-   rValue := reflect.MakeMapWithSize(reflect.TypeOf(*new(map[string]int)), 10)
-   // 设置值
-   rValue.SetMapIndex(reflect.ValueOf("a"), reflect.ValueOf(1))
-   fmt.Println(rValue.Interface())
-}
-```
-
-
-
-```
-map[a:1]
-```
-
-##### [管道](https://golang.halfiisland.com/essential/senior/105.reflect.html#管道)
-
-反射创建管道
-
-
-
-```
-func MakeChan(typ Type, buffer int) Value
-```
-
-
-
-```
-func main() {
-   // 创建管道反射值
-   makeChan := reflect.MakeChan(reflect.TypeOf(new(chan int)).Elem(), 0)
-   fmt.Println(makeChan.Interface())
-}
-```
-
-##### [函数](https://golang.halfiisland.com/essential/senior/105.reflect.html#函数-1)
-
-反射创建函数
-
-
-
-```
-func MakeFunc(typ Type, fn func(args []Value) (results []Value)) Value
-```
-
-
-
-```
-func main() {
-    // 传入包装类型和函数体
-  fn := reflect.MakeFunc(reflect.TypeOf(new(func(int))).Elem(), func(args []reflect.Value) (results []reflect.Value) {
-    for _, arg := range args {
-      fmt.Println(arg.Interface())
+    for _, resultValue := range resultValues {
+        fmt.Println(resultValue.Interface())
     }
-    return nil
-  })
-  fmt.Println(fn.Type())
-  fn.Call([]reflect.Value{reflect.ValueOf(1024)})
 }
+// 输出:
+// 1
+// hello,reflect!
 ```
 
-输出
+#### 创建
 
+通过反射可以构造新的值，`reflect` 包同时根据一些特殊的类型提供了不同的更为方便的函数。
 
+##### 基本类型
 
-```
-func(int)
-1024
-```
-
-#### [完全相等](https://golang.halfiisland.com/essential/senior/105.reflect.html#完全相等)
-
-`reflect.DeepEqual`是反射包下提供的一个用于判断两个变量是否完全相等的函数，签名如下。
-
-
-
-```
-func DeepEqual(x, y any) bool
+```go
+reflect.New(typeValue)
+// typeValue: reflect.Type
+// 返回结果: 指向该类型零值的 reflect.Value
 ```
 
-该函数对于每一种基础类型都做了处理，下面是一些类型判断方式。
+以 `string` 为例：
+
+```go
+valueValue := reflect.New(reflect.TypeOf(*new(string)))
+valueValue.Elem().SetString("hello world!")
+
+fmt.Println(valueValue.Elem().Interface())
+// 输出: hello world!
+```
+
+##### 结构体
+
+结构体的创建同样用到 `reflect.New` 函数。
+
+```go
+typeValue := reflect.TypeOf(new(Person)).Elem()
+personValue := reflect.New(typeValue).Elem()
+
+fmt.Println(personValue.Interface())
+// 输出示意:
+// { 0  0}
+```
+
+##### 切片
+
+```go
+reflect.MakeSlice(typeValue, lengthValue, capacityValue)
+// typeValue: 切片类型
+// lengthValue: 长度
+// capacityValue: 容量
+// 返回结果: reflect.Value
+```
+
+```go
+sliceValue := reflect.MakeSlice(
+    reflect.TypeOf(*new([]int)),
+    10,
+    10,
+)
+
+for indexValue := 0; indexValue < 10; indexValue++ {
+    sliceValue.Index(indexValue).SetInt(int64(indexValue))
+}
+
+fmt.Println(sliceValue.Interface())
+// 输出:
+// [0 1 2 3 4 5 6 7 8 9]
+```
+
+##### Map
+
+```go
+reflect.MakeMapWithSize(typeValue, sizeValue)
+// typeValue: map 类型
+// sizeValue: 初始容量
+// 返回结果: reflect.Value
+```
+
+```go
+mapValue := reflect.MakeMapWithSize(
+    reflect.TypeOf(*new(map[string]int)),
+    10,
+)
+
+mapValue.SetMapIndex(
+    reflect.ValueOf("a"),
+    reflect.ValueOf(1),
+)
+
+fmt.Println(mapValue.Interface())
+// 输出:
+// map[a:1]
+```
+
+##### 管道
+
+```go
+reflect.MakeChan(typeValue, bufferValue)
+// typeValue: chan 类型
+// bufferValue: 缓冲区大小
+// 返回结果: reflect.Value
+```
+
+```go
+chanValue := reflect.MakeChan(
+    reflect.TypeOf(new(chan int)).Elem(),
+    0,
+)
+
+fmt.Println(chanValue.Interface())
+```
+
+##### 函数
+
+```go
+reflect.MakeFunc(typeValue, functionBodyValue)
+// typeValue: 函数类型
+// functionBodyValue: 用反射值切片接收参数并返回结果
+// 返回结果: reflect.Value
+```
+
+```go
+functionValue := reflect.MakeFunc(
+    reflect.TypeOf(new(func(int))).Elem(),
+    func(argumentValues []reflect.Value) (resultValues []reflect.Value) {
+        for _, argumentValue := range argumentValues {
+            fmt.Println(argumentValue.Interface())
+        }
+        return nil
+    },
+)
+
+fmt.Println(functionValue.Type())
+
+functionValue.Call([]reflect.Value{
+    reflect.ValueOf(1024),
+})
+// 输出:
+// func(int)
+// 1024
+```
+
+#### 完全相等
+
+`reflect.DeepEqual` 是反射包下提供的一个用于判断两个变量是否完全相等的函数。
+
+```go
+reflect.DeepEqual(leftValue, rightValue)
+// leftValue: 任意值
+// rightValue: 任意值
+// 返回结果: 是否完全相等
+```
+
+该函数对于每一种基础类型都做了处理，大致规则如下：
 
 - 数组：数组中的每一个元素都完全相等
-- 切片：都为`nil`时，判为完全相等，或者都不为空时，长度范围内的元素完全相等
+- 切片：都为 `nil` 时判为完全相等，或者都不为空且长度范围内元素完全相等
 - 结构体：所有字段都完全相等
-- 映射表：都为`nil`时，为完全相等，都不为`nil`时，每一个键所映射的值都完全相等
+- 映射表：都为 `nil` 时为完全相等，都不为 `nil` 时每一个键所映射的值都完全相等
 - 指针：指向同一个元素或指向的元素完全相等
-- 接口：接口的具体类型完全相等时
-- 函数：只有两者都为`nil`时才是完全相等，否则就不是完全相等
+- 接口：接口的具体类型和值都完全相等
+- 函数：只有两者都为 `nil` 时才是完全相等，否则就不是完全相等
 
-下面是一些例子：
+下面是一些例子。
 
 **切片**
 
+```go
+leftValue := make([]int, 100)
+rightValue := make([]int, 100)
 
-
-```
-func main() {
-   a := make([]int, 100)
-   b := make([]int, 100)
-   fmt.Println(reflect.DeepEqual(a, b))
-}
-```
-
-输出
-
-
-
-```
-true
+fmt.Println(reflect.DeepEqual(leftValue, rightValue))
+// 输出: true
 ```
 
 **结构体**
 
-
-
-```
-func main() {
-   mike := Person{
-      Name:   "mike",
-      Age:    39,
-      Father: nil,
-   }
-
-   jack := Person{
-      Name:   "jack",
-      Age:    18,
-      Father: &mike,
-   }
-
-   tom := Person{
-      Name:   "tom",
-      Age:    18,
-      Father: &mike,
-   }
-   fmt.Println(reflect.DeepEqual(mike, jack))
-   fmt.Println(reflect.DeepEqual(tom, jack))
-   fmt.Println(reflect.DeepEqual(jack, jack))
+```go
+type PersonNode struct {
+    Name   string
+    Age    int
+    Father *PersonNode
 }
-```
 
-输出
+mikeValue := PersonNode{
+    Name:   "mike",
+    Age:    39,
+    Father: nil,
+}
 
+jackValue := PersonNode{
+    Name:   "jack",
+    Age:    18,
+    Father: &mikeValue,
+}
 
+tomValue := PersonNode{
+    Name:   "tom",
+    Age:    18,
+    Father: &mikeValue,
+}
 
-```
-false
-false
-true
+fmt.Println(reflect.DeepEqual(mikeValue, jackValue))
+fmt.Println(reflect.DeepEqual(tomValue, jackValue))
+fmt.Println(reflect.DeepEqual(jackValue, jackValue))
+// 输出:
+// false
+// false
+// true
 ```
 
 ## 工程化
