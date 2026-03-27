@@ -2777,176 +2777,452 @@ except IndexError:
 
 ## 面向对象
 
-### 类的基本能力
-#### 类/实例/属性/方法
-Python从设计之初就已经是一门面向对象的语言，正因为如此，在Python中创建一个类和对象是很容易的。和其它编程语言相比。Python 在尽可能不增加新的语法和语义的情况下加入了类机制。Python中的类提供了面向对象编程的所有基本功能：类的继承机制允许多个基类，派生类可以覆盖基类中的任何方法，方法中可以调用基类中的同名方法。对象可以包含任意数量和类型的数据。
+Python 是一门多范式语言，但它从一开始就提供了完整的对象模型。类、实例、属性、方法、继承、多态、抽象、泛型，以及对象通过特殊方法参与语言机制的能力，都可以放在面向对象这一章下统一理解。学习 Python 的面向对象时，既要掌握传统的类与继承，也要理解 Python 特有的对象模型与协议思想。
 
-##### 类定义
+### 类与对象
 
-类实例化后，可以使用其属性，实际上，创建一个类之后，可以通过类名访问其属性。
+#### 类定义与实例化
 
-```
+类用于描述一组对象共有的状态与行为。类定义执行完成后，类名会绑定到一个类对象上；调用类对象时，会创建实例并执行初始化逻辑。
+
+语法：
+
+```python
 class ClassName:
-    <statement-1>
-    .
-    .
-    .
-    <statement-N>
-```
-
-##### 类实例
-
-类可以被实例化为一个具体的对象，对象可以使用self来指代自己，用以说明指向实例对象。
-
-```
-#!/usr/bin/python3
- 
-class MyClass:
- 
-x = MyClass()
-```
-
-##### 类属性
-
-属性引用使用和 Python 中所有的属性引用一样的标准语法：**obj.name**。
-
-类对象创建后，类命名空间中所有的命名都是有效属性名。
-
-```
-#!/usr/bin/python3
- 
-class MyClass:
-    """一个简单的类实例"""
-    i = 12345
-    def f(self):
-        return 'hello world'
- 
-# 实例化类
-x = MyClass()
- 
-# 访问类的属性和方法
-print("MyClass 类的属性 i 为：", x.i)
-print("MyClass 类的方法 f 输出为：", x.f())
-```
-
-**__private_attrs**：两个下划线开头，声明该属性为私有，不能在类的外部被使用或直接访问。在类内部的方法中使用时 **self.__private_attrs**。
-
-##### 类方法
-
-在类的内部，使用 **def** 关键字来定义一个方法，与一般函数定义不同，类方法必须包含参数 self, 且为第一个参数，self 代表的是类的实例。在类的内部，使用 def 关键字来定义一个方法，与一般函数定义不同，类方法必须包含参数 **self**，且为第一个参数，**self** 代表的是类的实例。**self** 的名字并不是规定死的，也可以使用 **this**，但是最好还是按照约定使用 **self**。
-
-```
-#!/usr/bin/python3
- 
-#类定义
-class people:
-    #定义基本属性
-    name = ''
-    age = 0
-    #定义私有属性,私有属性在类外部无法直接进行访问
-    __weight = 0
-    #定义构造方法
-    def __init__(self,n,a,w):
-        self.name = n
-        self.age = a
-        self.__weight = w
-    def speak(self):
-        print("%s 说: 我 %d 岁。" %(self.name,self.age))
- 
-# 实例化类
-p = people('runoob',10,30)
-p.speak()
-```
-
-- **__init__ :** 构造函数，在生成对象时调用
-- **__del__ :** 析构函数，释放对象时使用
-- **__repr__ :** 打印，转换
-- **__setitem__ :** 按照索引赋值
-- **__getitem__:** 按照索引获取值
-- **__len__:** 获得长度
-- **__cmp__:** 比较运算
-- **__call__:** 函数调用
-- **__add__:** 加运算
-- **__sub__:** 减运算
-- **__mul__:** 乘运算
-- **__truediv__:** 除运算
-- **__mod__:** 求余运算
-- **__pow__:** 乘方
-
-#### 继承
-##### 继承
-Python 同样支持类的继承，如果一种语言不支持继承，类就没有什么意义。子类（派生类 DerivedClassName）会继承父类（基类 BaseClassName）的属性和方法。除了类，还可以用表达式，基类定义在另一个模块中时这一点非常有用。Python同样有限的支持多继承形式。
-
-```
-class DerivedClassName(BaseClassName):
-    <statement-1>
-    .
-    .
-    .
-    <statement-N>
+    statement
     
-class DerivedClassName(modname.BaseClassName):
-
-class DerivedClassName(Base1, Base2, Base3):
-    <statement-1>
-    .
-    .
-    .
-    <statement-N>
+instanceName = ClassName(argumentList)
 ```
 
-#### 多态
+其中，`ClassName` 是类名，通常使用大驼峰命名法；`statement` 表示类体中的语句，可以是属性定义、方法定义，或其他在类定义阶段执行的语句；`instanceName` 表示实例对象名称，`argumentList` 表示实例化时传入的参数列表。
 
-##### 多态
+#### 属性与方法
 
-如果你的父类方法的功能不能满足你的需求，你可以在子类重写你父类的方法.[super() 函数](https://www.runoob.com/python/python-func-super.html)是用于调用父类(超类)的一个方法。 Python同样支持运算符重载，我们可以对类的专有方法进行重载
+属性用于保存对象状态，通常分为类属性与实例属性。类属性定义在类体中，属于类对象本身，通常由所有实例共享；实例属性通常在 `__init__()` 中定义，绑定到具体实例上。方法用于描述对象行为，本质上仍然是定义在类命名空间中的函数，只是在通过实例访问时会自动绑定实例对象。
 
+语法：
+
+```python
+class ClassName:
+    classAttributeName = expression
+
+    def __init__(self, parameterList) -> None:
+        self.instanceAttributeName = expression
+
+    def methodName(self, parameterList) -> ReturnType:
+        statement
+        return expression
+
+ClassName.classAttributeName
+instanceName.instanceAttributeName
+instanceName.methodName(argumentList)
 ```
-#!/usr/bin/python3
- 
-class Parent:        # 定义父类
-   def myMethod(self):
-      print ('调用父类方法')
- 
-class Child(Parent): # 定义子类
-   def myMethod(self):
-      print ('调用子类方法')
- 
-c = Child()          # 子类实例
-c.myMethod()         # 子类调用重写方法
-super(Child,c).myMethod() #用子类对象调用父类已被覆盖的方法
+
+访问 `instanceName.attributeName` 时，Python 会先查找实例命名空间；若找不到，再沿着类和父类继续查找，因此同名实例属性会遮蔽同名类属性。实例方法的第一个参数按约定写作 `self`，表示当前实例对象；`self` 不是关键字，但通常都这样写。
+
+```python
+class ClassName:
+    classAttributeName = "class-level value"  # 类属性: 所有实例共享
+
+    def __init__(self, instanceAttributeValue: str) -> None:
+        # 参数 instanceAttributeValue: 用于初始化实例属性
+        # 返回值: None
+        self.instanceAttributeName = instanceAttributeValue
+        self.itemList = []
+
+    def add_item(self, itemValue: str) -> None:
+        # 参数 itemValue: 待添加的元素
+        # 返回值: None
+        self.itemList.append(itemValue)
+
+    def get_summary(self) -> str:
+        # 返回值: 当前实例的摘要信息
+        return f"{self.instanceAttributeName}: {self.itemList}"
 
 
-#!/usr/bin/python3
- 
+instanceName = ClassName("instance-level value")
+instanceName.add_item("first item")
+instanceName.add_item("second item")
+
+print(ClassName.classAttributeName)       # 输出类属性: class-level value
+print(instanceName.instanceAttributeName) # 输出实例属性: instance-level value
+print(instanceName.get_summary())         # 输出摘要: instance-level value: ['first item', 'second item']
+```
+
+#### 特殊方法与对象协议
+
+特殊方法用于让对象接入语言机制，通常写成双下划线包裹的形式，例如 `__init__()`、`__repr__()`、`__len__()`、`__getitem__()`、`__call__()` 等。对象协议则是从行为角度对这些特殊方法进行归类：对象只要实现了对应特殊方法，就能参与相应语言机制。例如，支持长度、下标访问、迭代、调用、上下文管理，本质上都是对象协议的体现。
+
+常见特殊方法如下：
+
+| 方法                                 | 作用                         |
+| ------------------------------------ | ---------------------------- |
+| `__init__`                           | 初始化实例                   |
+| `__repr__`                           | 返回更偏调试用途的字符串表示 |
+| `__str__`                            | 返回更偏展示用途的字符串表示 |
+| `__len__`                            | 支持 `len(instanceName)`     |
+| `__getitem__`                        | 支持下标访问                 |
+| `__setitem__`                        | 支持下标赋值                 |
+| `__call__`                           | 让实例可调用                 |
+| `__iter__` / `__next__`              | 支持迭代                     |
+| `__enter__` / `__exit__`             | 支持上下文协议               |
+| `__add__` / `__sub__` / `__mul__` 等 | 支持运算符重载               |
+
+从对象协议角度看：
+
+- 长度协议对应 `__len__()`
+- 下标访问协议对应 `__getitem__()` 与 `__setitem__()`
+- 调用协议对应 `__call__()`
+- 迭代协议对应 `__iter__()` 与 `__next__()`
+- 上下文协议对应 `__enter__()` 与 `__exit__()`
+
+因此，`len(instanceName)`、`instanceName[indexValue]`、`instanceName1 + instanceName2`、`with instanceName as targetName:` 这些写法虽然表面上像语言内建能力，但其背后本质上都是对象通过特殊方法参与统一语法。
+
+```python
+class ClassName:
+    def __init__(self) -> None:
+        self.itemList = ["item-1", "item-2"]
+
+    def __repr__(self) -> str:
+        # 返回值: 更偏调试用途的字符串表示
+        return f"ClassName(itemList={self.itemList!r})"
+
+    def __len__(self) -> int:
+        # 返回值: 元素个数
+        return len(self.itemList)
+
+    def __getitem__(self, indexValue: int) -> str:
+        # 参数 indexValue: 索引位置
+        # 返回值: 指定位置的元素
+        return self.itemList[indexValue]
+
+    def __call__(self) -> str:
+        # 返回值: 调用实例时返回的结果
+        return "call result"
+
+
+instanceName = ClassName()
+
+print(repr(instanceName))  # 输出调试表示: ClassName(itemList=['item-1', 'item-2'])
+print(len(instanceName))   # 输出元素数量: 2
+print(instanceName[0])     # 输出下标访问结果: item-1
+print(instanceName())      # 输出调用结果: call result
+```
+
+### 继承
+
+#### 继承的基本形式
+
+继承用于表达“子类是父类的一种特殊形式”。子类会继承父类的属性与方法，也可以扩展或重写父类行为。单继承最常见，多继承也被 Python 支持。
+
+语法：
+
+```python
+class DerivedClassName(BaseClassName):
+    statement
+    
+class DerivedClassName(BaseClassName1, BaseClassName2, BaseClassName3):
+    statement
+```
+
+其中，`BaseClassName` 表示基类或父类，`DerivedClassName` 表示派生类或子类。若子类没有定义某个属性或方法，Python 会沿着继承链向父类查找。
+
+#### `super()` 与 MRO
+
+如果子类没有重写 `__init__()`，实例化子类时会自动继承并调用父类的 `__init__()`；如果子类重写了 `__init__()`，但仍然需要父类初始化逻辑，则应显式调用 `super().__init__()`。`super()` 并不只是“调用父类方法”的简写，它表示按方法解析顺序继续查找下一个实现。
+
+语法：
+
+```python
+super().methodName(argumentList)
+```
+
+在多继承中，Python 会按照 MRO（Method Resolution Order，方法解析顺序）查找属性与方法。现代 Python 使用 C3 线性化算法生成 MRO。查看形式如下：
+
+```python
+ClassName.__mro__
+```
+
+#### mixin
+
+如果一个父类只提供局部辅助能力，而不承载完整业务语义，这种类通常称为 mixin。mixin 常用于给目标类增加某种可复用能力，如序列化、日志、比较等。它更强调“能力拼接”，而不是严格的业务层级。
+
+```python
+class BaseClassName:
+    def __init__(self, baseAttributeValue: str) -> None:
+        # 参数 baseAttributeValue: 用于初始化父类属性
+        # 返回值: None
+        self.baseAttributeName = baseAttributeValue
+
+    def get_base_message(self) -> str:
+        # 返回值: 父类属性对应的字符串
+        return f"baseAttributeName={self.baseAttributeName}"
+
+
+class DerivedClassName(BaseClassName):
+    def __init__(self, baseAttributeValue: str, derivedAttributeValue: int) -> None:
+        # 调用父类初始化逻辑，初始化继承而来的部分
+        super().__init__(baseAttributeValue)
+        self.derivedAttributeName = derivedAttributeValue
+
+    def get_derived_message(self) -> str:
+        # 返回值: 子类扩展属性对应的字符串
+        return f"derivedAttributeName={self.derivedAttributeName}"
+
+
+instanceName = DerivedClassName("base value", 10)
+
+print(instanceName.baseAttributeName)      # 输出继承得到的属性: base value
+print(instanceName.get_base_message())     # 输出父类方法结果: baseAttributeName=base value
+print(instanceName.get_derived_message())  # 输出子类方法结果: derivedAttributeName=10
+print(DerivedClassName.__mro__)            # 输出方法解析顺序
+```
+
+### 多态
+
+多态强调“统一调用方式，不同对象给出不同实现结果”。调用方依赖的是共同接口或共同能力，而不是某个具体类型。在传统面向对象语境中，多态通常来自父类方法被子类重写；在 Python 中，多态还大量来自鸭子类型，也就是对象只要具备调用方所需的方法，就可以被正常使用。
+
+#### 基于继承的多态
+
+基本形式如下：
+
+```python
+class BaseClassName:
+    def methodName(self) -> ReturnType:
+        statement
+        return expression
+
+
+class DerivedClassName(BaseClassName):
+    def methodName(self) -> ReturnType:
+        statement
+        return expression
+```
+
+调用时，若传入的是子类对象，则会优先执行子类重写后的实现。运算符重载同样可以看作多态的一种形式，因为不同对象在面对同一语法时，可以通过对应特殊方法给出不同实现。
+
+#### 鸭子类型
+
+Python 不强制要求对象必须继承自同一个父类。只要对象支持调用方所需的方法，它就可以参与统一调用。这使得 Python 中的多态既可以建立在继承层级上，也可以建立在行为兼容上。
+
+```python
+class BaseClassName:
+    def get_message(self) -> str:
+        # 返回值: 基类默认消息
+        return "base message"
+
+
+class DerivedClassName1(BaseClassName):
+    def get_message(self) -> str:
+        # 返回值: 第一个子类的消息
+        return "derived message 1"
+
+
+class DerivedClassName2(BaseClassName):
+    def get_message(self) -> str:
+        # 返回值: 第二个子类的消息
+        return "derived message 2"
+
+
+def output_message(instanceName: BaseClassName) -> None:
+    # 参数 instanceName: 任意支持 get_message() 的对象
+    # 返回值: None
+    print(instanceName.get_message())
+
+
+output_message(DerivedClassName1())  # 输出子类 1 的实现: derived message 1
+output_message(DerivedClassName2())  # 输出子类 2 的实现: derived message 2
+```
+
+```python
 class Vector:
-   def __init__(self, a, b):
-      self.a = a
-      self.b = b
- 
-   def __str__(self):
-      return 'Vector (%d, %d)' % (self.a, self.b)
-   
-   def __add__(self,other):
-      return Vector(self.a + other.a, self.b + other.b)
- 
-v1 = Vector(2,10)
-v2 = Vector(5,-2)
-print (v1 + v2)
+    def __init__(self, xValue: int, yValue: int) -> None:
+        self.x = xValue
+        self.y = yValue
+
+    def __repr__(self) -> str:
+        return f"Vector(x={self.x}, y={self.y})"
+
+    def __add__(self, otherValue: "Vector") -> "Vector":
+        # 参数 otherValue: 另一个 Vector 对象
+        # 返回值: 新的 Vector 对象
+        return Vector(self.x + otherValue.x, self.y + otherValue.y)
+
+
+leftValue = Vector(2, 10)
+rightValue = Vector(5, -2)
+
+print(leftValue + rightValue)  # 输出加法结果: Vector(x=7, y=8)
 ```
 
-#### 生命周期
+### 抽象
 
-如果在子类中需要父类的构造方法就需要显式地调用父类的构造方法，或者不重写父类的构造方法。
+抽象强调提炼共同能力、隐藏具体实现，让上层代码依赖稳定接口而不是依赖实现细节。抽象的目标是降低耦合、提高可扩展性，而不是单纯增加层级。在 Python 中，抽象常见的表达方式有普通基类、抽象基类 `ABC` 和协议 `Protocol`。
 
-子类不重写 **__init__**，实例化子类时，会自动调用父类定义的 **__init__**。如果重写了**__init__** 时，实例化子类，就不会调用父类已经定义的 **__init__**。
+#### 抽象基类 ABC
 
-python也有简单的析构函数，**`__del__` 不是可靠的资源释放机制**。它什么时候调用，未必完全由你控制。对象被垃圾回收时才可能触发。
+抽象基类（ABC，Abstract Base Class）用于定义“必须在子类中实现的接口”或“必须提供的方法”，通常作为父类存在，不能被实例化。抽象基类声明了一个或多个抽象方法，并要求任何继承该基类的子类必须实现这些方法。抽象基类为面向对象编程提供了结构和约束，强制实现了多态和一致性。
+语法：
 
-| 方式      | 时机   | 稳定性 |
-| --------- | ------ | ------ |
-| __init__  | 构建时 | 推荐   |
-| `__del__` | 不确定 | 不推荐 |
+```python
+from abc import ABC, abstractmethod
+
+
+class AbstractClassName(ABC):
+    @abstractmethod
+    def methodName(self, parameterList) -> ReturnType:
+        statement
+        return expression
+```
+
+#### 协议 Protocol
+
+协议（Protocol）允许我们定义类型结构。与抽象基类不同，协议并不要求子类继承自某个父类，它只关心对象是否实现了某些方法或属性。协议是一种“接口约定”，使得我们可以实现鸭子类型的多态。
+语法：
+
+```python
+from typing import Protocol
+
+
+class ProtocolName(Protocol):
+    def methodName(self, parameterList) -> ReturnType:
+        ...
+```
+
+### 泛型
+
+泛型用于表达“同一个类、函数或接口可以适用于多种类型，同时保持这些类型之间的对应关系”。在 Python 中，泛型主要服务于类型标注、可读性与静态检查。它最常见的价值在于明确容器或接口中元素的类型，以及明确输入类型与输出类型之间的关联关系。
+
+#### 类型变量与泛型类
+
+类型变量通常使用 `TypeVar` 定义；自定义泛型类通常使用 `Generic[T]` 声明。
+
+语法：
+
+```python
+from typing import Generic, TypeVar
+
+T = TypeVar("T")
+
+
+class ClassName(Generic[T]):
+    def __init__(self, value: T) -> None:
+        self.value = value
+```
+
+泛型函数用于表达“输入与输出之间存在类型对应关系”。
+
+语法：
+
+```python
+from typing import TypeVar
+
+T = TypeVar("T")
+
+
+def functionName(value: T) -> T:
+    return value
+```
+
+#### 使用形式
+
+在现代 Python 中，很多内置容器都可以直接写成 `list[int]`、`dict[str, int]`、`tuple[str, int]` 这种形式；对于自定义泛型类，也可以写成 `ClassName[int](expression)`、`ClassName[str](expression)`。
+
+```python
+from typing import Generic, TypeVar
+
+T = TypeVar("T")
+
+
+class Box(Generic[T]):
+    def __init__(self, value: T) -> None:
+        # 参数 value: 初始值，类型与 T 一致
+        # 返回值: None
+        self.value = value
+
+    def get(self) -> T:
+        # 返回值: 当前保存的值，类型与 T 一致
+        return self.value
+
+    def set(self, value: T) -> None:
+        # 参数 value: 与当前泛型参数一致的新值
+        # 返回值: None
+        self.value = value
+
+
+def identity(value: T) -> T:
+    # 参数 value: 任意类型的输入值
+    # 返回值: 与输入值类型相同的结果
+    return value
+
+
+intBoxValue = Box[int](100)
+strBoxValue = Box[str]("example")
+
+print(intBoxValue.get())      # 输出整型盒子中的值: 100
+print(strBoxValue.get())      # 输出字符串盒子中的值: example
+print(identity(10))           # 输出整型: 10
+print(identity("statement"))  # 输出字符串: statement
+```
+
+### 生命周期
+
+#### `__new__()`、`__init__()` 与 `__del__()`
+
+对象生命周期通常包括创建、初始化、使用、结束使用与最终回收几个阶段。在 Python 中，`__new__()` 负责创建实例对象，`__init__()` 负责初始化已创建好的实例；`__del__()` 看起来像析构方法，但它不是可靠的资源释放机制。它的触发时机与垃圾回收、引用关系、解释器退出时机等因素有关，因此不能把关键清理逻辑依赖在 `__del__()` 上。
+
+语法：
+
+```python
+class ClassName:
+    def __new__(cls, parameterList):
+        return super().__new__(cls)
+
+    def __init__(self, parameterList) -> None:
+        statement
+
+    def __del__(self) -> None:
+        statement
+```
+
+绝大多数业务代码只需要重写 `__init__()`，很少直接重写 `__new__()`。
+
+#### 资源释放
+
+Python 中更可靠的资源释放方式通常是显式关闭，或者把资源对象放在 `with` 语句中管理。也就是说，文件、连接、锁等资源更适合在使用完成后主动结束，而不是依赖垃圾回收时机。这里强调的是生命周期中的“资源何时结束使用”，而不是对象协议本身；至于 `with` 背后的 `__enter__()` 与 `__exit__()`，更适合放在前面的“特殊方法与对象协议”中理解。
+
+```python
+class ResourceManager:
+    def __init__(self, resourceName: str) -> None:
+        # 参数 resourceName: 资源名称
+        # 返回值: None
+        self.resourceName = resourceName
+        self.closed = False
+        print(f"initialize: {self.resourceName}")
+
+    def close(self) -> None:
+        # 返回值: None
+        if not self.closed:
+            self.closed = True
+            print(f"close: {self.resourceName}")
+
+    def __del__(self) -> None:
+        # 这里只演示 __del__ 的存在，不应依赖它进行关键资源释放
+        print(f"delete: {self.resourceName}")
+
+
+instanceName = ResourceManager("resource-A")
+instanceName.close()
+
+# 可能输出:
+# initialize: resource-A
+# close: resource-A
+# delete: resource-A
+#
+# 注意: delete 的实际触发时机不应作为可靠行为假设
+```
+
+
 
 ## 并发
 
