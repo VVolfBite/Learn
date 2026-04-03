@@ -14,21 +14,6 @@
     * [高频判断](#高频判断)
     <!-- GFM-TOC -->
 
-## 目录
-
-这篇内容层次较多，先看目录更容易定位复习重点。
-
-- [HTTPS 是什么](#https-是什么)
-- [HTTP 的安全性问题](#http-的安全性问题)
-- [对称加密](#对称加密)
-- [非对称加密](#非对称加密)
-- [HTTPS 采用的加密方式](#https-采用的加密方式)
-- [数字证书](#数字证书)
-- [TLS 握手基础](#tls-握手基础)
-- [为什么 HTTPS 比 HTTP 安全](#为什么-https-比-http-安全)
-- [HTTPS 的缺点](#https-的缺点)
-- [高频判断](#高频判断)
-
 ## HTTPS
 
 **HTTPS（HyperText Transfer Protocol Secure）**是 HTTP 的安全版本，通过在 HTTP 和 TCP 之间加入 SSL/TLS 层来提供安全保障。**HTTPS = HTTP + SSL/TLS**
