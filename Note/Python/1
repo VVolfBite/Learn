@@ -1,0 +1,376 @@
+# 读书笔记管理系统 — FastAPI 练手任务书
+
+> 目标：通过一个完整的后端项目，系统覆盖 Python 语言特性、FastAPI 框架、数据库、测试、部署等核心技能点。
+
+---
+
+## 项目概述
+
+构建一个「读书笔记管理系统」后端 API 服务，支持用户注册登录、书籍管理、笔记管理、标签系统和数据统计。
+
+**技术栈**
+
+| 分类 | 技术 |
+| --- | --- |
+| Web 框架 | FastAPI |
+| 数据库 | PostgreSQL |
+| ORM | SQLAlchemy 2.0（async） |
+| 数据迁移 | Alembic |
+| 数据验证 | Pydantic v2 |
+| 鉴权 | JWT（python-jose） |
+| 密码哈希 | passlib + bcrypt |
+| 测试 | pytest + httpx |
+| 日志 | logging（标准库） |
+| 容器化 | Docker + docker-compose |
+| 包管理 | uv |
+
+---
+
+## 数据模型
+
+```
+User
+  id            UUID, PK
+  username      str, unique
+  email         str, unique
+  password_hash str
+  created_at    datetime
+
+Book
+  id            UUID, PK
+  user_id       FK -> User
+  title         str
+  author        str
+  cover_url     str, nullable
+  status        enum: want / reading / done
+  created_at    datetime
+  updated_at    datetime
+
+Note
+  id            UUID, PK
+  book_id       FK -> Book
+  user_id       FK -> User
+  chapter       str, nullable
+  content       text
+  created_at    datetime
+  updated_at    datetime
+
+Tag
+  id            UUID, PK
+  name          str, unique
+
+BookTag  (多对多)
+  book_id, tag_id
+
+NoteTag  (多对多)
+  note_id, tag_id
+```
+
+---
+
+## API 接口清单
+
+### 用户模块
+```
+POST   /api/v1/auth/register     注册
+POST   /api/v1/auth/login        登录，返回 JWT
+GET    /api/v1/auth/me           获取当前用户信息（需鉴权）
+```
+
+### 书籍模块（需鉴权）
+```
+GET    /api/v1/books             列表（分页、按 status 过滤、关键词搜索）
+POST   /api/v1/books             创建书籍
+GET    /api/v1/books/{id}        详情
+PUT    /api/v1/books/{id}        更新
+DELETE /api/v1/books/{id}        删除
+POST   /api/v1/books/{id}/tags   为书籍打标签
+```
+
+### 笔记模块（需鉴权）
+```
+GET    /api/v1/books/{book_id}/notes        某本书的笔记列表（分页）
+POST   /api/v1/books/{book_id}/notes        创建笔记
+GET    /api/v1/notes/{id}                   笔记详情
+PUT    /api/v1/notes/{id}                   更新笔记
+DELETE /api/v1/notes/{id}                   删除笔记
+GET    /api/v1/notes/search?q=xxx           全文搜索笔记内容
+POST   /api/v1/notes/{id}/tags              为笔记打标签
+```
+
+### 标签模块（需鉴权）
+```
+GET    /api/v1/tags              标签列表
+DELETE /api/v1/tags/{id}         删除标签
+```
+
+### 统计模块（需鉴权）
+```
+GET    /api/v1/stats             返回当前用户统计数据
+  响应示例：
+  {
+    "total_books": 12,
+    "books_by_status": {"want": 3, "reading": 4, "done": 5},
+    "total_notes": 47,
+    "most_used_tags": ["Python", "架构", "算法"]
+  }
+```
+
+---
+
+## 任务列表
+
+### Step 1 — 项目初始化
+
+**目标**：搭建项目骨架，配置依赖和环境变量。
+
+**要求**：
+- 使用 `uv` 初始化项目，生成 `pyproject.toml`
+- 目录结构如下：
+  ```
+  booklog/
+  ├── app/
+  │   ├── main.py           # FastAPI 入口
+  │   ├── config.py         # 配置管理（BaseSettings）
+  │   ├── database.py       # 数据库连接
+  │   ├── models/           # SQLAlchemy 模型
+  │   ├── schemas/          # Pydantic 模型
+  │   ├── routers/          # 路由
+  │   ├── services/         # 业务逻辑
+  │   ├── deps.py           # 依赖注入
+  │   └── utils/            # 工具函数
+  ├── alembic/              # 数据库迁移
+  ├── tests/
+  ├── .env
+  ├── pyproject.toml
+  ├── Dockerfile
+  └── docker-compose.yml
+  ```
+- `.env` 包含 `DATABASE_URL`、`SECRET_KEY`、`ACCESS_TOKEN_EXPIRE_MINUTES`
+- `config.py` 使用 Pydantic `BaseSettings` 读取环境变量
+
+**覆盖知识点**：配置管理、包结构、uv
+
+---
+
+### Step 2 — 数据库建模与迁移
+
+**目标**：用 SQLAlchemy 定义所有模型，Alembic 生成迁移文件。
+
+**要求**：
+- 所有模型继承一个 `Base` 基类，`Base` 中包含 `id`（UUID）、`created_at`、`updated_at` 公共字段
+- 使用 SQLAlchemy 2.0 的 `mapped_column` + `Mapped` 类型注解写法
+- 配置 async engine 和 async session
+- 用 `async with` 上下文管理器管理 session 生命周期
+- Alembic 迁移文件需要能正确 `upgrade` 和 `downgrade`
+
+**必须用到**：
+- `上下文管理器`（async with session）
+- `类型注解`（Mapped[str]、Mapped[UUID] 等）
+- `继承`（所有模型继承 Base）
+
+---
+
+### Step 3 — 用户注册与登录
+
+**目标**：实现注册、登录接口，生成 JWT。
+
+**要求**：
+- 注册时用 `passlib` 对密码做 bcrypt 哈希，禁止明文存储
+- 登录成功返回 `access_token`（JWT），有效期从配置读取
+- Pydantic Schema 分为 `UserCreate`（请求体）、`UserResponse`（响应体），两者字段不同
+- `UserCreate` 中用 `@field_validator` 校验 email 格式和密码长度
+- JWT payload 中包含 `sub`（user_id）、`exp`
+
+**必须用到**：
+- `Pydantic field_validator 装饰器`
+- `类型注解`
+- `异常处理`（用户已存在时抛出 HTTPException 409）
+
+---
+
+### Step 4 — 鉴权中间件与依赖注入
+
+**目标**：实现 JWT 鉴权，保护需要登录的接口。
+
+**要求**：
+- 在 `deps.py` 中实现 `get_current_user` 依赖函数，解析 JWT 获取当前用户
+- 所有需要鉴权的路由通过 `Depends(get_current_user)` 注入
+- 自己实现一个 `require_owner` 装饰器工厂：校验资源归属（书籍/笔记只能由创建者操作）
+- Token 无效或过期时返回 401，资源不属于当前用户时返回 403
+
+**必须用到**：
+- `装饰器`（require_owner）
+- `闭包`（装饰器工厂）
+- `异常处理`（401 / 403）
+- `依赖注入`（FastAPI Depends）
+
+---
+
+### Step 5 — 书籍 CRUD
+
+**目标**：实现书籍的增删改查接口。
+
+**要求**：
+- 列表接口支持分页（`page` + `page_size`）、按 `status` 过滤、按 `title`/`author` 模糊搜索
+- 分页逻辑封装成一个通用 `Paginator` 类，支持泛型 `Paginator[BookResponse]`
+- Service 层和 Router 层分离：Router 只做参数接收和响应返回，业务逻辑全在 Service
+- 删除书籍时级联删除其所有笔记（在模型层配置 `cascade`）
+- 所有数据库操作使用 `async/await`
+
+**必须用到**：
+- `泛型`（Paginator[T]）
+- `asyncio / async await`
+- `Pydantic 响应模型`
+
+---
+
+### Step 6 — 笔记 CRUD 与搜索
+
+**目标**：实现笔记的增删改查，以及全文搜索接口。
+
+**要求**：
+- 创建笔记时校验 `book_id` 对应的书籍属于当前用户
+- 搜索接口 `GET /notes/search?q=xxx` 用 SQL `ILIKE` 在 `content` 和 `chapter` 字段搜索
+- 笔记列表接口实现一个**生成器版本的批量导出**：`GET /notes/export` 返回流式响应，用 `yield` 逐行输出 JSON，使用 FastAPI `StreamingResponse`
+- `content` 字段不能为空，`chapter` 可选
+
+**必须用到**：
+- `生成器`（yield，StreamingResponse 流式导出）
+- `异常处理`
+- `async/await`
+
+---
+
+### Step 7 — 标签系统（多对多）
+
+**目标**：实现标签的创建和关联。
+
+**要求**：
+- 打标签接口：传入标签名列表，不存在的标签自动创建，已存在的直接关联（upsert 语义）
+- 查询书籍详情时 `preload` 关联的标签列表
+- 查询笔记详情时同上
+- 标签名做 `strip().lower()` 标准化处理
+
+**必须用到**：
+- `列表推导式`（处理标签列表）
+- `async/await`
+
+---
+
+### Step 8 — 统计接口
+
+**目标**：返回当前用户的读书统计数据。
+
+**要求**：
+- 书籍总数、各状态数量、笔记总数、最常用的 Top-5 标签，**四个查询并发执行**
+- 使用 `asyncio.gather()` 并发执行四个数据库查询
+- 响应结构用 Pydantic 严格定义，不允许多余字段
+
+**必须用到**：
+- `asyncio.gather`（并发查询）
+- `Pydantic model_config`（禁止额外字段）
+
+---
+
+### Step 9 — 统一错误处理与日志
+
+**目标**：统一 API 错误响应格式，添加结构化日志。
+
+**要求**：
+- 注册全局 `exception_handler`，所有未捕获异常返回统一格式：
+  ```json
+  {"code": 500, "message": "...", "detail": null}
+  ```
+- 用标准库 `logging` 配置结构化日志，区分 DEBUG / INFO / WARNING / ERROR
+- 每个请求记录：method、path、status_code、耗时（用中间件实现）
+- 日志输出到控制台和文件（`logs/app.log`），文件按天滚动（`TimedRotatingFileHandler`）
+
+**必须用到**：
+- `logging 模块`（TimedRotatingFileHandler）
+- `中间件`（FastAPI Middleware）
+- `异常处理`（全局 handler）
+
+---
+
+### Step 10 — 测试
+
+**目标**：对核心接口编写自动化测试。
+
+**要求**：
+- 使用 `pytest` + `httpx.AsyncClient` 做接口测试
+- 测试数据库使用独立的 SQLite（内存），不污染开发库
+- `conftest.py` 中用 `pytest fixture` 提供：测试 client、已注册用户 token、测试书籍数据
+- 必须覆盖：
+  - 注册（成功 / 邮箱重复）
+  - 登录（成功 / 密码错误）
+  - 创建书籍（成功 / 未鉴权）
+  - 删除书籍（成功 / 无权限）
+  - 笔记导出接口
+  - 
+  - 统计接口（验证并发结果正确性）
+- 测试覆盖率不低于 70%（用 pytest-cov 检查）
+
+**必须用到**：
+- pytest fixture
+- syncio（async 测试）
+- 上下文管理器（测试 client 生命周期）
+
+---
+
+### Step 11 — 容器化部署
+
+**目标**：用 Docker 打包服务，docker-compose 一键启动。
+
+**要求**：
+- Dockerfile 基于 python:3.12-slim，使用多阶段构建减小镜像体积
+- docker-compose.yml 包含三个服务：pp（FastAPI）、db（PostgreSQL）、migrate（Alembic 迁移，依赖 db 健康后执行）
+- 环境变量通过 .env 文件注入，不硬编码在镜像中
+- app 服务配置 healthcheck
+- 数据库数据持久化到 volume
+
+---
+
+## 强制覆盖的 Python 知识点汇总
+
+| 知识点 | 出现位置 |
+| --- | --- |
+| sync / await | 全部数据库操作、并发查询 |
+| syncio.gather | Step 8 统计接口 |
+| 装饰器 | Step 3 field_validator、Step 4 require_owner |
+| 装饰器工厂 / 闭包 | Step 4 require_owner |
+| Pydantic BaseModel + validator | Step 3 注册校验 |
+| 泛型 | Step 5 Paginator[T] |
+| 生成器 / yield | Step 6 笔记流式导出 |
+| 上下文管理器 | Step 2 数据库 session、Step 10 测试 client |
+| 类型注解 | 全局，所有函数签名 |
+| 继承 | Step 2 模型 Base 基类 |
+| 列表推导式 | Step 7 标签处理 |
+| 异常处理 | Step 3/4/9 各处 |
+| logging 模块 | Step 9 日志 |
+| pytest fixture | Step 10 测试 |
+| 依赖注入 | Step 4 FastAPI Depends |
+| 枚举 Enum | Book.status 字段 |
+| UUID | 所有模型主键 |
+
+---
+
+## 验收标准
+
+- [ ] 所有接口通过 Swagger UI（/docs）可以正常调用
+- [ ] pytest 全部通过，覆盖率 >= 70%
+- [ ] docker-compose up 一键启动，无需手动配置
+- [ ] 日志文件正常生成，请求日志格式清晰
+- [ ] 代码用 
+- [ ] 代码用 `ruff` 检查无报错
+- [ ] 所有函数有类型注解，mypy 无严重错误
+
+---
+
+## 参考资源
+
+- FastAPI 官方文档：https://fastapi.tiangolo.com
+- SQLAlchemy 2.0 async：https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html
+- Alembic：https://alembic.sqlalchemy.org
+- Pydantic v2：https://docs.pydantic.dev/latest
+- python-jose：https://python-jose.readthedocs.io
