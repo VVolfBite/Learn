@@ -3890,11 +3890,11 @@ func main() {
 
 #### 协程
 
-协程（coroutine）是一种轻量级的线程，或者说是用户态的线程，不受操作系统直接调度，由 Go 语言自身的调度器进行运行时调度，因此上下文切换开销非常小，这也是为什么 Go 的并发性能很不错的原因之一。协程这一概念并非 Go 首次提出，Go 也不是第一个支持协程的语言，但 Go 是第一个能够将协程和并发支持的相当简洁和优雅的语言。
+协程是一种轻量级的线程，或者说是用户态的线程，不受操作系统直接调度，由 Go 语言自身的调度器进行运行时调度，因此上下文切换开销非常小。
 
 在 Go 中，创建一个协程十分的简单，仅需要一个 `go` 关键字，就能够快速开启一个协程，`go` 关键字后面必须是一个函数调用。
 
-1. **创建协程**：`go` 后面必须跟函数调用表达式。
+1. **创建协程**：`go` 后面必须跟函数调用表达式。**不过要注意具有返回值的内置函数不允许跟随在 `go` 关键字后面。但是具有返回值的用户函数允许跟随在`go`关键字后。**
 
 ```go
 go functionName(argumentList)
@@ -3913,62 +3913,7 @@ go func(parameterList) {
 // 返回结果: 启动一个执行匿名函数的 goroutine
 ```
 
-**注意**：具有返回值的内置函数不允许跟随在 `go` 关键字后面，例如下面的错误示范：
-
-```go
-go make([]int, 10)
-// 错误原因: go 后必须是函数调用，且返回值会被直接丢弃
-// 编译错误: go discards result of make([]int, 10) (value of type []int)
-```
-
-下面这三种开启协程的方式都是可以的：
-
-```go
-func hello() {
-    fmt.Println("hello world!")
-}
-
-go fmt.Println("hello world!")
-go hello()
-go func() {
-    fmt.Println("hello world!")
-}()
-```
-
-以上三种开启协程的方式都是可以的，但是其实这个例子执行过后在大部分情况下什么都不会输出，协程是并发执行的，系统创建协程需要时间，而在此之前，主协程早已运行结束，一旦主线程退出，其他子协程也就自然退出了。并且协程的执行顺序也是不确定的，无法预判的。
-
-例如下面的例子：
-
-```go
-func main() {
-    fmt.Println("start")
-
-    for indexValue := 0; indexValue < 10; indexValue++ {
-        go fmt.Println(indexValue)
-    }
-
-    fmt.Println("end")
-}
-
-// 输出可能为:
-// start
-// end
-//
-// 也可能为:
-// start
-// 0
-// 1
-// 5
-// 3
-// 4
-// 6
-// 7
-// end
-```
-
-这是一个在循环体中开启协程的例子，永远也无法精准地预判到它到底会输出什么。可能子协程还没开始运行，主协程就已经结束了；也可能只有一部分子协程在主协程退出前成功运行。
-
-最简单的做法就是让主协程等一会儿，需要使用到 `time` 包下的 `Sleep` 函数，可以使当前协程暂停一段时间。
+协程是并发执行的，系统创建协程需要时间，而在此之前，主协程早已运行结束，一旦主线程退出，其他子协程也就自然退出了。并且协程的执行顺序也是不确定的，无法预判的。最简单的做法就是让主协程等一会儿，需要使用到 `time` 包下的 `Sleep` 函数，可以使当前协程暂停一段时间。
 
 1. **暂停当前协程**：`time.Sleep` 只会暂停当前 goroutine。
 
@@ -3978,96 +3923,9 @@ time.Sleep(durationValue)
 // 返回结果: 当前 goroutine 暂停指定时长
 ```
 
-例子如下：
+但是 `time.Sleep` 并不是一种良好的解决办法，因为并发程序是难以预估执行时间的。
 
-```go
-func main() {
-    fmt.Println("start")
-
-    for indexValue := 0; indexValue < 10; indexValue++ {
-        go fmt.Println(indexValue)
-    }
-
-    time.Sleep(time.Millisecond)
-    fmt.Println("end")
-}
-
-// 输出可能为:
-// start
-// 0
-// 1
-// 5
-// 2
-// 3
-// 4
-// 6
-// 8
-// 9
-// 7
-// end
-```
-
-再次执行可以看到所有的数字都完整输出了，没有遗漏，但是顺序还是乱的，因此让每次循环都稍微地等一下。例子如下：
-
-```go
-func main() {
-    fmt.Println("start")
-
-    for indexValue := 0; indexValue < 10; indexValue++ {
-        go fmt.Println(indexValue)
-        time.Sleep(time.Millisecond)
-    }
-
-    time.Sleep(time.Millisecond)
-    fmt.Println("end")
-}
-
-// 输出可能为:
-// start
-// 0
-// 1
-// 2
-// 3
-// 4
-// 5
-// 6
-// 7
-// 8
-// 9
-// end
-```
-
-现在的输出已经是正常的顺序了。
-
-但是上面的例子中结果输出很完美，那么并发的问题解决了吗？不，一点也没有。对于并发的程序而言，不可控的因素非常多，执行的时机、先后顺序、执行过程的耗时等等，倘若循环中子协程的工作不只是一个简单的输出数字，而是一个非常巨大复杂的任务，耗时是不确定的，那么依旧会重现之前的问题。例如下方代码：
-
-```go
-func main() {
-    fmt.Println("start")
-
-    for indexValue := 0; indexValue < 10; indexValue++ {
-        go hello(indexValue)
-        time.Sleep(time.Millisecond)
-    }
-
-    time.Sleep(time.Millisecond)
-    fmt.Println("end")
-}
-
-func hello(indexValue int) {
-    time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-    fmt.Println(indexValue)
-}
-
-// 输出可能为:
-// start
-// 0
-// 3
-// 4
-// end
-```
-
-这段代码的输出依旧是不确定的。因此 `time.Sleep` 并不是一种良好的解决办法，幸运的是 Go 提供了非常多的并发控制手段，常用的并发控制方法有三种：
+幸运的是 Go 提供了非常多的并发控制手段，常用的并发控制方法有三种：
 
 - `channel`：管道
 - `WaitGroup`：信号量
@@ -4084,7 +3942,9 @@ func hello(indexValue int) {
 
 > Do not communicate by sharing memory; instead, share memory by communicating.
 
-即通过消息来进行内存共享，`channel` 就是为此而生，它是一种在协程间通信的解决方案，同时也可以用于并发控制。先来认识下 `channel` 的基本语法。Go 中通过关键字 `chan` 来代表管道类型，同时也必须声明管道的存储类型，来指定其存储的数据是什么类型，下面的例子是一个普通管道的模样。
+即通过消息来进行内存共享，`channel` 就是为此而生，它是一种在协程间通信的解决方案，同时也可以用于并发控制。Go 中通过关键字 `chan` 来代表管道类型，同时也必须声明管道的存储类型，来指定其存储的数据是什么类型。管道还未初始化，其值为 `nil`，不可以直接使用。
+
+**管道是线程安全的，当读取写入数据时，有且仅有一个线程可以操作；同样当向无剩余缓存的管道读写时会阻塞当前线程；管道只能用`make`创建并且使用完需要关闭，因此一般由信息发送方通过`defer`来结束时关闭。另外管道是一种引用类型。**
 
 ```go
 var channelValue chan ElementType
@@ -4093,11 +3953,9 @@ var channelValue chan ElementType
 // 零值: nil
 ```
 
-这是一个管道的声明语句，此时管道还未初始化，其值为 `nil`，不可以直接使用。
-
 ##### 管道创建
 
-在创建管道时，有且只有一种方法，那就是使用内置函数 `make`。对于管道而言，`make` 函数接收两个参数，第一个是管道的类型，第二个是可选参数，为管道的缓冲大小。
+在创建管道时，**有且只有一种方法**，那就是使用内置函数 `make`。对于管道而言，`make` 函数接收两个参数，第一个是管道的类型，第二个是可选参数，为管道的缓冲大小。
 
 1. **创建无缓冲管道**：缓冲区大小为 0，发送与接收必须同步配对。
 
@@ -4122,18 +3980,6 @@ make(chan ElementType, bufferSize)
 close(channelValue)
 // channelValue: 待关闭管道
 // 返回结果: 关闭该管道
-```
-
-一个关闭管道的例子如下：
-
-```go
-channelValue := make(chan ElementType)
-// do something
-close(channelValue)
-// 说明:
-// 1. 管道创建后才能使用
-// 2. nil 管道不可直接读写
-// 3. 有些时候使用 defer 关闭管道会更方便
 ```
 
 ##### 管道读写
@@ -4184,35 +4030,6 @@ for elementValue := range channelValue {
 
 管道中的数据流动方式与队列一样，即先进先出（FIFO）。协程对于管道的操作是同步的，在某一个时刻，只有一个协程能够对其写入数据，同时也只有一个协程能够读取管道中的数据。
 
-**示例**：创建一个管道，发送数据、接收数据，使用双返回值读取，并通过 `for range` 消费直到关闭。
-
-```go
-channelValue := make(chan int, bufferSize)
-
-channelValue <- elementValue1
-channelValue <- elementValue2
-
-resultValue1 := <-channelValue
-resultValue2, ok := <-channelValue
-
-go func() {
-    for indexValue := 0; indexValue < countValue; indexValue++ {
-        channelValue <- indexValue
-    }
-    close(channelValue)
-}()
-
-for elementValue := range channelValue {
-    statement
-}
-
-// 输出示意:
-// resultValue1 = elementValue1
-// resultValue2 = elementValue2
-// ok = true
-// range 会持续读取，直到发送方关闭管道且数据读完后退出
-```
-
 ##### 缓冲管道
 
 缓冲管道可以继续分为无缓冲和有缓冲两种，它们的差别主要体现在发送和接收的阻塞条件上。
@@ -4222,19 +4039,6 @@ for elementValue := range channelValue {
 ```go
 channelValue := make(chan ElementType)
 // 返回结果: 无缓冲管道
-```
-
-这也解释了为什么下面看起来很正常的代码会发生死锁：
-
-```go
-channelValue := make(chan int)
-channelValue <- elementValue
-resultValue := <-channelValue
-
-// 说明:
-// 1. 这是同步地对无缓冲管道先写后读
-// 2. 发送时没有其他协程接收，因此当前协程会阻塞
-// 3. 结果是死锁
 ```
 
 无缓冲管道不应该同步地使用，正确来说应该开启一个新的协程来发送数据：
@@ -4259,20 +4063,6 @@ channelValue := make(chan ElementType, bufferSize)
 // bufferSize: 缓冲区大小
 // 返回结果: 有缓冲管道
 ```
-
-因此，无缓冲管道中会造成死锁的同步读写例子，在这里可以顺利运行：
-
-```go
-channelValue := make(chan int, 1)
-
-channelValue <- elementValue
-resultValue := <-channelValue
-
-// 输出示意:
-// resultValue = elementValue
-```
-
-尽管可以顺利运行，但这种同步读写的方式依旧是非常危险的，一旦管道缓冲区空了或者满了，将会永远阻塞下去，因为没有其他协程来向管道中写入或读取数据。
 
 3. **查看缓冲区状态**：通过内置函数 `len` 可以访问管道缓冲区中数据的个数，通过 `cap` 可以访问管道缓冲区的大小。
 
@@ -4313,20 +4103,9 @@ statement
 // 2. 写入可视为加锁，读取可视为解锁
 ```
 
-**阻塞场景**：
+**阻塞场景**：**同步读写无缓冲管道，读取空缓冲区的管道，写入满缓冲区的管道，对 nil 管道读写**
 
-*  同步读写无缓冲管道
-* 读取空缓冲区的管道
-* 写入满缓冲区的管道
-* 对 nil 管道读写
-
-**panic 场景**：
-
-* close(nilChannel)
-* 向已关闭的管道写入数据
-* 重复关闭同一个管道
-
-**提示**：关于管道阻塞的条件需要好好掌握和熟悉，大多数情况下这些问题隐藏得十分隐蔽，并不会像例子中那样直观。关于管道关闭的时机，应该尽量在向管道发送数据的那一方关闭管道，而不要在接收方关闭管道，因为大多数情况下接收方只知道接收数据，并不知道该在什么时候关闭管道。
+**panic 场景**：**close(nilChannel)、向已关闭的管道写入数据、重复关闭同一个管道**
 
 ##### 单向 / 双向管道
 
@@ -4369,30 +4148,11 @@ func After(d Duration) <-chan Time
 
 当尝试对只读的管道写入数据时，将无法通过编译；对只写管道读取数据也是同理。双向管道可以转换为单向管道，反过来则不可以。通常情况下，将双向管道传给某个协程或函数，并且不希望它读取或发送数据，就可以用单向管道来限制另一方的行为。
 
-**示例**：使用双向管道配合只写参数和只读接收方。
-
-```go
-func write(sendOnlyValue chan<- int) {
-    sendOnlyValue <- elementValue
-}
-
-channelValue := make(chan int, 1)
-go write(channelValue)
-
-resultValue := <-channelValue
-
-// 输出示意:
-// resultValue = elementValue
-// 说明:
-// 1. write 只能发送，不能读取
-// 2. 双向管道可以传给只写参数
-```
-
-**提示**`chan` 是引用类型，即便 Go 的函数参数是值传递，但其引用依旧是同一个。
-
 #### select 语句
 
-`select` 在 Linux 系统中，是一种 IO 多路复用的解决方案。类似地，在 Go 中，`select` 是一种管道多路复用的控制结构。什么是多路复用，简单地用一句话概括：在某一时刻，同时监测多个元素是否可用，被监测的可以是网络请求、文件 IO 等；而在 Go 中，`select` 监测的元素就是管道，且只能是管道。`select` 的语法与 `switch` 语句类似。
+`select` 在 Linux 系统中，是一种 IO 多路复用的解决方案。类似地，在 Go 中，`select` 是一种管道多路复用的控制结构。什么是多路复用，简单地用一句话概括：在某一时刻，同时监测多个元素是否可用，被监测的可以是网络请求、文件 IO 等；而在 Go 中，**`select` 监测的元素就是管道，且只能是管道。**`select` 的语法与 `switch` 语句类似。
+
+**`select` 本身不是循环，它一次只会选中一个可用分支并执行。若想持续监听多个管道，通常需要与 `for` 一起使用。`select` 也不会保证多个可用分支之间的固定顺序，因此它适合做并发控制，而不适合用来表达严格顺序。**
 
 1. **基本结构**：由多个 `case` 和一个可选的 `default` 组成，每个 `case` 只能操作一个管道，且只能进行一种操作，要么读要么写。
 
@@ -4427,66 +4187,6 @@ default:
 // 3. 有 default 时，可以形成非阻塞收发
 ```
 
-先看一个最基本的 `select` 结构：
-
-```go
-channelValueA := make(chan int)
-channelValueB := make(chan int)
-channelValueC := make(chan int)
-
-defer func() {
-    close(channelValueA)
-    close(channelValueB)
-    close(channelValueC)
-}()
-
-select {
-case resultValue, ok := <-channelValueA:
-    fmt.Println(resultValue, ok)
-case resultValue, ok := <-channelValueB:
-    fmt.Println(resultValue, ok)
-case resultValue, ok := <-channelValueC:
-    fmt.Println(resultValue, ok)
-default:
-    fmt.Println("所有管道都不可用")
-}
-
-// 输出:
-// 所有管道都不可用
-```
-
-由于上例中没有对任何管道写入数据，自然所有 `case` 都不可用，所以最终输出为 `default` 分支的执行结果。稍微修改后如下：
-
-```go
-channelValueA := make(chan int)
-channelValueB := make(chan int)
-channelValueC := make(chan int)
-
-defer func() {
-    close(channelValueA)
-    close(channelValueB)
-    close(channelValueC)
-}()
-
-go func() {
-    channelValueA <- 1
-}()
-
-select {
-case resultValue, ok := <-channelValueA:
-    fmt.Println(resultValue, ok)
-case resultValue, ok := <-channelValueB:
-    fmt.Println(resultValue, ok)
-case resultValue, ok := <-channelValueC:
-    fmt.Println(resultValue, ok)
-}
-
-// 输出:
-// 1 true
-```
-
-上例开启了一个新的协程来向管道 A 写入数据，`select` 由于没有默认分支，所以会一直阻塞等待直到有 `case` 可用。当管道 A 可用时，执行完对应分支后主协程就直接退出了。
-
 3. **持续监测**：如果想一直监测多个管道，通常会把 `select` 放进 `for` 循环中。
 
 ```go
@@ -4505,36 +4205,7 @@ for {
 // 2. 若没有退出条件，可能导致永久阻塞
 ```
 
-例如：
-
-```go
-channelValueA := make(chan int)
-channelValueB := make(chan int)
-channelValueC := make(chan int)
-
-defer func() {
-    close(channelValueA)
-    close(channelValueB)
-    close(channelValueC)
-}()
-
-go send(channelValueA)
-go send(channelValueB)
-go send(channelValueC)
-
-for {
-    select {
-    case resultValue, ok := <-channelValueA:
-        fmt.Println("A", resultValue, ok)
-    case resultValue, ok := <-channelValueB:
-        fmt.Println("B", resultValue, ok)
-    case resultValue, ok := <-channelValueC:
-        fmt.Println("C", resultValue, ok)
-    }
-}
-```
-
-这样确实三个管道都能用上了，但是死循环配合 `select` 会导致主协程永久阻塞，所以通常会加上额外的退出机制，例如超时、取消信号或完成信号。
+死循环配合 `select` 会导致主协程永久阻塞，所以通常会加上额外的退出机制，例如超时、取消信号或完成信号。
 
 4. **超时控制**：`select` 常与 `time.After` 一起使用来实现超时机制。
 
@@ -4566,73 +4237,12 @@ case <-time.After(time.Second):
 // 超时
 ```
 
-如果把 `for`、`select` 和 `time.After` 结合起来，就能实现“持续监听一段时间，超时后退出”的模式。例如：
-
-```go
-channelValueA := make(chan int)
-channelValueB := make(chan int)
-channelValueC := make(chan int)
-doneChannel := make(chan struct{})
-
-defer func() {
-    close(channelValueA)
-    close(channelValueB)
-    close(channelValueC)
-    close(doneChannel)
-}()
-
-go send(channelValueA)
-go send(channelValueB)
-go send(channelValueC)
-
-go func() {
-Loop:
-    for {
-        select {
-        case resultValue, ok := <-channelValueA:
-            fmt.Println("A", resultValue, ok)
-        case resultValue, ok := <-channelValueB:
-            fmt.Println("B", resultValue, ok)
-        case resultValue, ok := <-channelValueC:
-            fmt.Println("C", resultValue, ok)
-        case <-time.After(time.Second):
-            break Loop
-        }
-    }
-
-    doneChannel <- struct{}{}
-}()
-
-<-doneChannel
-
-// 输出示意:
-// C 0 true
-// A 0 true
-// B 0 true
-// ...
-// 超时后退出循环
-```
-
-5. **永久阻塞**：当 `select` 语句中什么都没有时，就会永久阻塞。
+5. **永久阻塞**：当 `select` 语句中什么都没有时会永久阻塞。这种情况一般是有特殊用途，否则很容易形成死锁。
 
 ```go
 select {}
 // 返回结果: 永久阻塞当前 goroutine
 ```
-
-例如：
-
-```go
-fmt.Println("start")
-select {}
-fmt.Println("end")
-
-// 输出:
-// start
-// end 永远不会输出
-```
-
-这种情况一般是有特殊用途，否则很容易形成死锁。
 
 6. **nil 管道行为**：在 `select` 的 `case` 中对值为 `nil` 的管道进行操作时，并不会导致整个 `select` 立即阻塞，而是该 `case` 会被忽略，永远不会被执行。
 
@@ -4651,24 +4261,6 @@ case <-time.After(time.Second):
 // nil 管道相关 case 永远不可用，因此会被忽略
 ```
 
-例如：
-
-```go
-var nilChannel chan int
-
-select {
-case <-nilChannel:
-    fmt.Println("read")
-case nilChannel <- 1:
-    fmt.Println("write")
-case <-time.After(time.Second):
-    fmt.Println("timeout")
-}
-
-// 输出:
-// timeout
-```
-
 7. **非阻塞收发**：通过 `default` 分支配合管道，可以实现非阻塞的发送与接收。
 
 ```go
@@ -4680,39 +4272,6 @@ default:
 }
 // 说明:
 // 若发送不能立即完成，则走 default
-```
-
-```go
-select {
-case resultValue, ok := <-channelValue:
-    statement
-default:
-    statement
-}
-// 说明:
-// 若读取不能立即完成，则走 default
-```
-
-例如：
-
-```go
-func trySend(channelValue chan int, elementValue int) bool {
-    select {
-    case channelValue <- elementValue:
-        return true
-    default:
-        return false
-    }
-}
-
-func tryRecv(channelValue chan int) (int, bool) {
-    select {
-    case elementValue, ok := <-channelValue:
-        return elementValue, ok
-    default:
-        return 0, false
-    }
-}
 ```
 
 同理，也可以用同样的方式非阻塞地判断一个 `context` 是否已经结束：
@@ -4728,13 +4287,11 @@ func isDone(contextValue context.Context) bool {
 }
 ```
 
-提示
-
-`select` 本身不是循环，它一次只会选中一个可用分支并执行。若想持续监听多个管道，通常需要与 `for` 一起使用。`select` 也不会保证多个可用分支之间的固定顺序，因此它适合做并发控制，而不适合用来表达严格顺序。
-
 #### WaitGroup 同步
 
 `sync.WaitGroup` 是 `sync` 包下提供的一个结构体，`WaitGroup` 即等待执行，使用它可以很轻易地实现等待一组协程的效果。它的核心用途是：在主协程中等待多个子协程执行完成后再继续往下执行。该结构体只对外暴露三个方法。
+
+**waitGroup本质是信号量，使用Add增加，使用Done减少，使用Wait等待阻塞并归零；不过要注意一个细节，waitGroup本身是结构体，而非引用类型，因此传参需要传递指针，否则会出现死锁。**
 
 1. **Add**：用于指明还要等待多少个协程或任务。
 
@@ -4761,105 +4318,9 @@ func (waitGroupPointer *WaitGroup) Wait()
 // 返回结果: 阻塞直到计数归零
 ```
 
-`WaitGroup` 使用起来十分简单，属于开箱即用。其内部的实现可以理解为“计数器 + 唤醒机制”：程序开始时调用 `Add` 初始化计数，每当一个协程执行完毕时调用 `Done`，计数就减 1，直到减为 0，而在此期间，主协程调用 `Wait` 会一直阻塞直到全部计数减为 0，然后才会被唤醒。
+`WaitGroup` 使用起来十分简单，属于开箱即用。其内部的实现可以理解为“计数器 + 唤醒机制”：程序开始时调用 `Add` 初始化计数，每当一个协程执行完毕时调用 `Done`，计数就减 1，直到减为 0，而在此期间，主协程调用 `Wait` 会一直阻塞直到全部计数减为 0，然后才会被唤醒。针对协程介绍中最开始的例子，可以使用 `sync.WaitGroup` 替代原先的 `time.Sleep`。这样做的重点不是“让主协程等一会儿”，而是“明确等待这些子协程执行结束”。
 
-**示例**：等待一个子协程执行完毕。
-
-```go
-var waitGroupValue sync.WaitGroup
-
-waitGroupValue.Add(1)
-
-go func() {
-    fmt.Println(1)
-    waitGroupValue.Done()
-}()
-
-waitGroupValue.Wait()
-fmt.Println(2)
-
-// 输出:
-// 1
-// 2
-```
-
-这段代码永远都是先输出 `1` 再输出 `2`，主协程会等待子协程执行完毕后再退出。
-
-针对协程介绍中最开始的例子，可以使用 `sync.WaitGroup` 替代原先的 `time.Sleep`。这样做的重点不是“让主协程等一会儿”，而是“明确等待这些子协程执行结束”。
-
-如果只是想等待一组协程全部执行完成，通常可以直接给总协程数计数，然后每个子协程结束时各自 `Done` 一次。
-
-```go
-var waitGroupValue sync.WaitGroup
-
-waitGroupValue.Add(taskCountValue)
-
-for indexValue := 0; indexValue < taskCountValue; indexValue++ {
-    currentValue := indexValue
-
-    go func() {
-        defer waitGroupValue.Done()
-        fmt.Println(currentValue)
-    }()
-}
-
-waitGroupValue.Wait()
-fmt.Println("end")
-
-// 输出示意:
-// 会等待全部 goroutine 结束后再输出 end
-// 若任务内部执行顺序不受控制，数字顺序依旧可能不固定
-```
-
-如果希望像原例那样在循环中把顺序也控制住，可以在每轮中额外等待当前那一个协程先执行完毕，再进入下一轮。
-
-**示例**：替代 `time.Sleep`，并让输出顺序保持可控。
-
-```go
-var totalWaitGroup sync.WaitGroup
-var currentWaitGroup sync.WaitGroup
-
-totalWaitGroup.Add(10)
-
-fmt.Println("start")
-
-for indexValue := 0; indexValue < 10; indexValue++ {
-    currentValue := indexValue
-
-    currentWaitGroup.Add(1)
-
-    go func() {
-        fmt.Println(currentValue)
-        currentWaitGroup.Done()
-        totalWaitGroup.Done()
-    }()
-
-    currentWaitGroup.Wait()
-}
-
-totalWaitGroup.Wait()
-fmt.Println("end")
-
-// 输出:
-// start
-// 0
-// 1
-// 2
-// 3
-// 4
-// 5
-// 6
-// 7
-// 8
-// 9
-// end
-```
-
-这里使用了 `sync.WaitGroup` 替代了原先的 `time.Sleep`，协程并发执行的顺序更加可控，不管执行多少次，输出都可以保持一致。
-
-`WaitGroup` 通常适用于可动态调整协程数量的时候，例如事先知晓协程的数量，又或者在运行过程中需要动态调整。它最常见的场景就是：主协程等待一组子协程执行完毕。
-
-需要特别注意的是：`WaitGroup` 的值不应该被复制，复制后的值也不应该继续使用。尤其是将其作为函数参数传递时，应该传递指针而不是值。倘若使用复制的值，计数完全无法作用到真正的 `WaitGroup` 上，这可能会导致主协程一直阻塞等待，程序将无法正常运行。
+`WaitGroup` 通常适用于可动态调整协程数量的时候，例如事先知晓协程的数量，又或者在运行过程中需要动态调整。它最常见的场景就是：主协程等待一组子协程执行完毕。需要特别注意的是：`WaitGroup` 的值不应该被复制，复制后的值也不应该继续使用。尤其是将其作为函数参数传递时，应该传递指针而不是值。倘若使用复制的值，计数完全无法作用到真正的 `WaitGroup` 上，这可能会导致主协程一直阻塞等待，程序将无法正常运行。
 
 1. **错误传值**：按值传递会复制 `WaitGroup`，导致 `Done` 不作用于原对象。
 
@@ -4883,53 +4344,13 @@ func functionName(waitGroupPointer *sync.WaitGroup) {
 // Done 会作用到真正的计数对象
 ```
 
-**示例**：按值传递导致死锁，按指针传递才正确。
-
-```go
-func helloWrong(waitGroupValue sync.WaitGroup) {
-    fmt.Println("hello")
-    waitGroupValue.Done()
-    // 输出:
-    // hello
-    // 但不会真正减少外部 WaitGroup 的计数
-}
-
-func helloRight(waitGroupPointer *sync.WaitGroup) {
-    fmt.Println("hello")
-    waitGroupPointer.Done()
-    // 输出:
-    // hello
-    // 会正确减少外部 WaitGroup 的计数
-}
-
-var waitGroupValue sync.WaitGroup
-waitGroupValue.Add(1)
-
-go helloRight(&waitGroupValue)
-// 如果改为 go helloWrong(waitGroupValue)
-// 则主协程会一直阻塞等待，最终形成死锁
-
-waitGroupValue.Wait()
-fmt.Println("end")
-
-// 正确输出:
-// hello
-// end
-//
-// 错误写法可能导致:
-// hello
-// fatal error: all goroutines are asleep - deadlock!
-```
-
-**提示**当计数变为负数，或者计数数量大于实际能够完成 `Done` 的协程数量时，将会引发 `panic`。因此 `Add`、`Done`、`Wait` 三者之间的对应关系一定要保持准确。
-
 #### Context
 
-`Context` 来自标准库 `context` 包，是 Go 提供的一种并发控制与流程管理机制。它主要用于在多个协程之间传递取消信号、超时截止时间以及请求范围内的数据，尤其适合管理父子协程、孙协程这类层级更深的并发流程。相比单纯使用管道或 `WaitGroup`，`Context` 更强调“由上向下”地统一控制一组相关任务的生命周期。
+`Context` 来自标准库 `context` 包，是 Go 提供的一种并发控制与流程管理机制。它主要用于在多个协程之间传递取消信号、超时截止时间以及请求范围内的数据，尤其适合管理父子孙协程这类层级更深的并发流程。相比单纯使用管道或 `WaitGroup`，`Context` 更强调“由上向下”地统一控制一组相关任务的生命周期。
 
 从使用方式上看，`Context` 一般不是拿来直接“同步计数”的，而是更常用于**通知、取消、超时控制、请求链路传值**。在实际代码里，通常会把 `ctx.Done()` 返回的只读管道放进 `select` 中，通过阻塞等待它被关闭，从而得知“当前任务该结束了”。因此，`Context` 可以理解为一种面向并发流程的上下文机制：它不负责具体业务逻辑，但负责告诉各层协程“什么时候该停、为什么停、还携带了哪些上下文数据”。
 
-`Context` 译为上下文，是 Go 提供的一种并发控制的解决方案。相比于管道和 `WaitGroup`，它可以更好地控制子孙协程以及层级更深的协程。`Context` 本身是一个接口，只要实现了该接口都可以称之为上下文，例如著名 Web 框架 `Gin` 中的 `gin.Context`。`context` 标准库也提供了几个实现，分别是：
+`Context` 本身是一个接口，只要实现了该接口都可以称之为上下文，`context` 标准库也提供了几个实现，分别是：
 
 - `emptyCtx`
 - `cancelCtx`
@@ -4988,27 +4409,11 @@ Value(key any) any
 // 2. 不存在或不支持时返回 nil
 ```
 
-![](D:\Learn\Learn\Note\Go\assets\context_1.png)
+![img](./assets/context_1-1775202647717-1.png)
 
 ##### emptyCtx 实现
 
-顾名思义，`emptyCtx` 就是空的上下文。`context` 包下所有的具体实现都不对外暴露，但是提供了对应函数来创建上下文。`emptyCtx` 可以通过 `context.Background` 和 `context.TODO` 创建。
-
-1. **Background**：通常作为最顶层的根上下文。
-
-```go
-func Background() Context
-// 返回结果: 根上下文
-```
-
-2. **TODO**：用于暂时不知道该传什么上下文时占位使用。
-
-```go
-func TODO() Context
-// 返回结果: 占位上下文
-```
-
-可以看到它们本质上都是返回 `emptyCtx`。`emptyCtx` 没法被取消，没有 `deadline`，也不能取值，实现的方法基本都是返回零值。
+顾名思义，`emptyCtx` 就是空的上下文。`context` 包下所有的具体实现都不对外暴露，但是提供了对应函数来创建上下文。可以看到它们本质上都是返回 `emptyCtx`。`emptyCtx` 没法被取消，没有 `deadline`，也不能取值，实现的方法基本都是返回零值。
 
 ```go
 type emptyCtx int
@@ -5030,11 +4435,27 @@ func (*emptyCtx) Value(key any) any {
 }
 ```
 
-`emptyCtx` 通常是用来当作最顶层的上下文，在创建其他三种上下文时作为父上下文传入。
+`emptyCtx` 通常是用来当作最顶层的上下文，在创建其他三种上下文时作为父上下文传入。`emptyCtx` 可以通过 `context.Background` 和 `context.TODO` 创建。
+
+1. **Background**：通常作为最顶层的根上下文。
+
+```go
+func Background() Context
+// 返回结果: 根上下文
+```
+
+2. **TODO**：用于暂时不知道该传什么上下文时占位使用。
+
+```go
+func TODO() Context
+// 返回结果: 占位上下文
+```
 
 ##### valueCtx 实现
 
-`valueCtx` 的作用是携带键值对，常用于在多级协程中向下传递一些请求范围内的数据。它的实现比较简单，内部只包含一对键值对，以及一个内嵌的父上下文字段。
+`valueCtx` 的作用是携带键值对，常用于在多级协程中向下传递一些请求范围内的数据。`valueCtx` 多用于在多级协程中传递一些数据，无法被取消，因此 `ctx.Done()` 往往不会触发，若父级也是不可取消上下文，则它返回的通知通道也没有实际取消效果。
+
+它的实现比较简单，内部只包含一对键值对，以及一个内嵌的父上下文字段。
 
 1. **创建带值上下文**：通过 `WithValue` 创建。
 
@@ -5056,38 +4477,11 @@ ctx.Value(key)
 // 2. 否则继续向父上下文查找
 ```
 
-`valueCtx` 多用于在多级协程中传递一些数据，无法被取消，因此 `ctx.Done()` 往往不会触发，若父级也是不可取消上下文，则它返回的通知通道也没有实际取消效果。
-
-**示例**：在协程中读取上下文值。
-
-```go
-ctx := context.WithValue(context.Background(), keyValue, valueValue)
-
-go func(contextValue context.Context) {
-    for {
-        select {
-        case <-contextValue.Done():
-            return
-        default:
-            fmt.Println(contextValue.Value(keyValue))
-        }
-        time.Sleep(time.Millisecond * 100)
-    }
-}(ctx)
-
-// 输出示意:
-// valueValue
-// valueValue
-// valueValue
-// ...
-// 说明:
-// 1. valueCtx 主要用于传值
-// 2. 若父级不可取消，则 Done 分支通常不会执行
-```
-
 ##### cancelCtx 实现
 
-`cancelCtx` 是可取消的上下文。它可以在外部主动调用取消函数，从而通知当前上下文以及它的子上下文全部结束。相比 `valueCtx`，它更适合做取消传播。
+`cancelCtx` 是可取消的上下文。它可以在外部主动调用取消函数，从而通知当前上下文以及它的子上下文全部结束。相比 `valueCtx`，它更适合做取消传播。同样的，我们本身并无法直接调用`cancel`函数，只能通过创建方法返回的函数来取消该上下文。
+
+**`cancelCtx` 的核心特点是：一旦调用 `cancel()`，当前上下文的 `Done` 管道会被关闭，它的任何子级上下文也会随之取消。**
 
 1. **创建可取消上下文**：通过 `WithCancel` 创建。
 
@@ -5099,45 +4493,7 @@ func WithCancel(parent Context) (ctx Context, cancel CancelFunc)
 // 返回结果: 一个可取消上下文和对应取消函数
 ```
 
-`cancelCtx` 的核心特点是：一旦调用 `cancel()`，当前上下文的 `Done` 管道会被关闭，它的任何子级上下文也会随之取消。
-
-**示例**：手动取消一个上下文。
-
-```go
-var waitGroupValue sync.WaitGroup
-
-parentContext := context.Background()
-cancelContext, cancelFunc := context.WithCancel(parentContext)
-
-waitGroupValue.Add(1)
-
-go func(contextValue context.Context) {
-    defer waitGroupValue.Done()
-
-    for {
-        select {
-        case <-contextValue.Done():
-            fmt.Println(contextValue.Err())
-            return
-        default:
-            fmt.Println("等待取消中...")
-        }
-        time.Sleep(time.Millisecond * 200)
-    }
-}(cancelContext)
-
-time.Sleep(time.Second)
-cancelFunc()
-waitGroupValue.Wait()
-
-// 输出示意:
-// 等待取消中...
-// 等待取消中...
-// ...
-// context canceled
-```
-
-再来一个层级嵌套深一点的示例。父上下文一旦取消，子上下文也会随之取消，因此它很适合控制一整棵协程树。
+父上下文一旦取消，子上下文也会随之取消，因此它很适合控制一整棵协程树。
 
 ```go
 func httpHandler(contextValue context.Context) {
@@ -5187,7 +4543,15 @@ func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc)
 
 `timerCtx` 会在时间到期后自动取消当前上下文，取消流程除了要额外处理内部定时器之外，整体逻辑与 `cancelCtx` 相近。
 
-**示例**：使用 `WithDeadline` 创建超时上下文。
+`WithTimeout` 与 `WithDeadline` 用法基本一致，它的实现也只是稍微封装了一下并调用 `WithDeadline`。
+
+```go
+func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc) {
+    return WithDeadline(parent, time.Now().Add(timeout))
+}
+```
+
+使用 `WithDeadline` 创建超时上下文。
 
 ```go
 var waitGroupValue sync.WaitGroup
@@ -5224,45 +4588,19 @@ waitGroupValue.Wait()
 // 上下文取消 context deadline exceeded
 ```
 
-`WithTimeout` 与 `WithDeadline` 用法基本一致，它的实现也只是稍微封装了一下并调用 `WithDeadline`。
-
-```go
-func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc) {
-    return WithDeadline(parent, time.Now().Add(timeout))
-}
-```
-
-提示
-
 尽管上下文到期会自动取消，但是为了保险起见，在相关流程结束后，最好手动调用取消函数。就跟内存分配后不回收会造成内存泄漏一样，上下文也是一种资源，如果创建了但从来不取消，一样会造成上下文泄露，所以最好避免此种情况的发生。
 
 #### 锁
 
-Go 中 `sync` 包下的 `Mutex` 与 `RWMutex` 提供了互斥锁与读写锁两种实现，且提供了非常简单易用的 API。加锁只需要 `Lock()`，解锁也只需要 `Unlock()`。需要注意的是，Go 所提供的锁都是非递归锁，也就是不可重入锁，所以重复加锁或重复解锁都会导致 `fatal`。锁的意义在于保护不变量，加锁是希望数据不会被其他协程修改，如下：
+Go 中 `sync` 包下的 `Mutex` 与 `RWMutex` 提供了互斥锁与读写锁两种实现，且提供了非常简单易用的 API。加锁只需要 `Lock()`，解锁也只需要 `Unlock()`。**需要注意的是，Go 所提供的锁都是非递归锁，也就是不可重入锁，所以重复加锁或重复解锁都会导致 `fatal`。**
+
+锁的意义在于保护不变量，加锁是希望数据不会被其他协程修改，如下：
 
 ```go
 lockValue.Lock()
 // 在这个过程中，数据不会被其他协程修改
 lockValue.Unlock()
 ```
-
-倘若是递归锁的话，就可能会发生如下情况：
-
-```go
-func doSomething() {
-    lockValue.Lock()
-    doOther()
-    lockValue.Unlock()
-}
-
-func doOther() {
-    lockValue.Lock()
-    statement
-    lockValue.Unlock()
-}
-```
-
-`DoSomthing` 函数显然不知道 `DoOther` 函数可能会对数据做点什么，从而修改了数据，比如再开几个子协程破坏了不变量。这在 Go 中是行不通的，一旦加锁以后就必须保证不变量的不变性，此时重复加锁解锁都会导致死锁。所以在编写代码时应该避免上述情况，必要时在加锁的同时立即使用 `defer` 语句解锁。
 
 ##### 互斥锁
 
@@ -5292,55 +4630,6 @@ mutexValue.Unlock()
 // mutexValue: 互斥锁
 // 返回结果: 释放互斥锁
 ```
-
-使用互斥锁可以非常完美地解决上述问题，例子如下：
-
-```go
-var waitGroupValue sync.WaitGroup
-var sharedValue = 0
-var mutexValue sync.Mutex
-
-func main() {
-    waitGroupValue.Add(10)
-
-    for indexValue := 0; indexValue < 10; indexValue++ {
-        go func(dataPointer *int) {
-            mutexValue.Lock()
-            defer mutexValue.Unlock()
-
-            time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-
-            tempValue := *dataPointer
-
-            time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-
-            answerValue := 1
-            *dataPointer = tempValue + answerValue
-
-            fmt.Println(*dataPointer)
-            waitGroupValue.Done()
-        }(&sharedValue)
-    }
-
-    waitGroupValue.Wait()
-    fmt.Println("最终结果", sharedValue)
-}
-
-// 输出示意:
-1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-最终结果 10
-```
-
-每一个协程在访问数据前，都先上锁，更新完成后再解锁，其他协程想要访问就必须要先获得锁，否则就阻塞等待。如此一来，就不存在上述问题了。
 
 ##### 读写锁
 
@@ -5395,88 +4684,6 @@ func (rw *RWMutex) Unlock()
 
 其中 `TryRLock` 与 `TryLock` 两个尝试加锁的操作是非阻塞式的，成功加锁会返回 `true`，无法获得锁时并不会阻塞而是返回 `false`。读写互斥锁内部实现依旧是互斥锁，并不是说分读锁和写锁就有两个锁，从始至终都只有一个锁。
 
-下面来看一个读写互斥锁的使用案例：
-
-```go
-var waitGroupValue sync.WaitGroup
-var sharedValue = 0
-var readWriteMutex sync.RWMutex
-
-func main() {
-    waitGroupValue.Add(12)
-
-    go func() {
-        for indexValue := 0; indexValue < 3; indexValue++ {
-            go writeValue(&sharedValue)
-        }
-        waitGroupValue.Done()
-    }()
-
-    go func() {
-        for indexValue := 0; indexValue < 7; indexValue++ {
-            go readValue(&sharedValue)
-        }
-        waitGroupValue.Done()
-    }()
-
-    waitGroupValue.Wait()
-    fmt.Println("最终结果", sharedValue)
-}
-
-func readValue(dataPointer *int) {
-    time.Sleep(time.Millisecond * time.Duration(rand.Intn(500)))
-
-    readWriteMutex.RLock()
-    fmt.Println("拿到读锁")
-
-    time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-    fmt.Println("释放读锁", *dataPointer)
-
-    readWriteMutex.RUnlock()
-    waitGroupValue.Done()
-}
-
-func writeValue(dataPointer *int) {
-    time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-
-    readWriteMutex.Lock()
-    fmt.Println("拿到写锁")
-
-    tempValue := *dataPointer
-    time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-    *dataPointer = tempValue + 1
-
-    fmt.Println("释放写锁", *dataPointer)
-    readWriteMutex.Unlock()
-    waitGroupValue.Done()
-}
-
-// 输出示意:
-拿到读锁
-拿到读锁
-拿到读锁
-拿到读锁
-释放读锁 0
-释放读锁 0
-释放读锁 0
-释放读锁 0
-拿到写锁
-释放写锁 1
-拿到读锁
-拿到读锁
-拿到读锁
-释放读锁 1
-释放读锁 1
-释放读锁 1
-拿到写锁
-释放写锁 2
-拿到写锁
-释放写锁 3
-最终结果 3
-```
-
-该例开启了 3 个写协程，7 个读协程。在读数据的时候都会先获得读锁，读协程之间可以同时获得读锁，但是会阻塞写协程；获得写锁的时候，则会同时阻塞读协程和写协程，直到释放写锁。如此一来实现了读协程与写协程互斥，保证了数据的正确性。
-
 **注意：对于锁而言，不应该将其作为值传递和存储，应该永远使用指针。**
 
 ##### 条件变量
@@ -5514,93 +4721,6 @@ func (condPointer *Cond) Broadcast()
 // 返回结果: 唤醒全部等待中的协程
 ```
 
-条件变量使用起来非常简单，将上面的读写互斥锁例子稍微修改即可：
-
-```go
-var waitGroupValue sync.WaitGroup
-var sharedValue = 0
-var readWriteMutex sync.RWMutex
-var condValue = sync.NewCond(readWriteMutex.RLocker())
-
-func main() {
-    waitGroupValue.Add(12)
-
-    go func() {
-        for indexValue := 0; indexValue < 3; indexValue++ {
-            go writeValue(&sharedValue)
-        }
-        waitGroupValue.Done()
-    }()
-
-    go func() {
-        for indexValue := 0; indexValue < 7; indexValue++ {
-            go readValue(&sharedValue)
-        }
-        waitGroupValue.Done()
-    }()
-
-    waitGroupValue.Wait()
-    fmt.Println("最终结果", sharedValue)
-}
-
-func readValue(dataPointer *int) {
-    time.Sleep(time.Millisecond * time.Duration(rand.Intn(500)))
-
-    readWriteMutex.RLock()
-    fmt.Println("拿到读锁")
-
-    for *dataPointer < 3 {
-        condValue.Wait()
-    }
-
-    time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-    fmt.Println("释放读锁", *dataPointer)
-
-    readWriteMutex.RUnlock()
-    waitGroupValue.Done()
-}
-
-func writeValue(dataPointer *int) {
-    time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-
-    readWriteMutex.Lock()
-    fmt.Println("拿到写锁")
-
-    tempValue := *dataPointer
-    time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-    *dataPointer = tempValue + 1
-
-    fmt.Println("释放写锁", *dataPointer)
-    readWriteMutex.Unlock()
-
-    condValue.Broadcast()
-    waitGroupValue.Done()
-}
-
-// 输出示意:
-拿到读锁
-拿到读锁
-拿到读锁
-拿到读锁
-拿到写锁
-释放写锁 1
-拿到读锁
-拿到写锁
-释放写锁 2
-拿到读锁
-拿到读锁
-拿到写锁
-释放写锁 3
-释放读锁 3
-释放读锁 3
-释放读锁 3
-释放读锁 3
-释放读锁 3
-释放读锁 3
-释放读锁 3
-最终结果 3
-```
-
 在创建条件变量时，因为这里条件变量作用的是读协程，所以将读锁作为 `Locker` 传入。如果直接传入读写互斥锁，会导致写协程重复解锁的问题。这里传入的是 `sync.RLocker`，通过 `RWMutex.RLocker` 方法获得。
 
 ```go
@@ -5631,9 +4751,7 @@ for !conditionValue {
 
 #### Once 机制
 
-`Once` 来自标准库 `sync` 包，用于保证某段初始化逻辑在并发条件下只执行一次。
-
-当在使用一些数据结构时，如果这些数据结构太过庞大，可以考虑采用懒加载的方式，即真正要用到它的时候才会初始化该数据结构。顾名思义，`Once` 译为一次，`sync.Once` 保证了在并发条件下指定操作只会执行一次。它的使用非常简单，只对外暴露了一个 `Do` 方法。
+`Once` 来自标准库 `sync` 包，用于保证某段初始化逻辑在并发条件下只执行一次。当在使用一些数据结构时，如果这些数据结构太过庞大，可以考虑采用懒加载的方式，即真正要用到它的时候才会初始化该数据结构。顾名思义，`Once` 译为一次，`sync.Once` 保证了在并发条件下指定操作只会执行一次。它的使用非常简单，只对外暴露了一个 `Do` 方法。
 
 1. **Do**：保证传入的初始化逻辑在并发条件下只执行一次。
 
@@ -5644,59 +4762,7 @@ func (oncePointer *Once) Do(functionValue func())
 // 返回结果: 保证 functionValue 只执行一次
 ```
 
-在使用时，只需要将初始化操作传入 `Do` 方法即可，如下：
-
-```go
-var waitGroupValue sync.WaitGroup
-
-type MySlice struct {
-    sliceValue []int
-    onceValue  sync.Once
-}
-
-func (receiverPointer *MySlice) Get(indexValue int) (int, bool) {
-    if receiverPointer.sliceValue == nil {
-        return 0, false
-    }
-    return receiverPointer.sliceValue[indexValue], true
-}
-
-func (receiverPointer *MySlice) Add(elementValue int) {
-    receiverPointer.onceValue.Do(func() {
-        fmt.Println("初始化")
-        if receiverPointer.sliceValue == nil {
-            receiverPointer.sliceValue = make([]int, 0, 10)
-        }
-    })
-
-    receiverPointer.sliceValue = append(receiverPointer.sliceValue, elementValue)
-}
-
-func (receiverPointer *MySlice) Len() int {
-    return len(receiverPointer.sliceValue)
-}
-
-func main() {
-    var sliceValue MySlice
-
-    waitGroupValue.Add(4)
-    for indexValue := 0; indexValue < 4; indexValue++ {
-        go func() {
-            sliceValue.Add(1)
-            waitGroupValue.Done()
-        }()
-    }
-
-    waitGroupValue.Wait()
-    fmt.Println(sliceValue.Len())
-}
-
-// 输出:
-// 初始化
-// 4
-```
-
-从输出结果中可以看到，所有的数据都正常添加进切片，初始化操作只执行了一次。其实 `sync.Once` 的实现相当简单，其原理就是锁加原子操作。
+其实 `sync.Once` 的实现相当简单，其原理就是锁加原子操作。
 
 ```go
 type Once struct {
@@ -5753,51 +4819,11 @@ New func() any
 // 返回结果: 创建一个新的池对象
 ```
 
-下面用一个例子演示：
-
-```go
-var waitGroupValue sync.WaitGroup
-var poolValue sync.Pool
-var objectCountValue atomic.Int64
-
-type BigMemData struct {
-    messageValue string
-}
-
-func main() {
-    poolValue.New = func() any {
-        objectCountValue.Add(1)
-        return BigMemData{messageValue: "大内存"}
-    }
-
-    waitGroupValue.Add(1000)
-
-    for indexValue := 0; indexValue < 1000; indexValue++ {
-        go func() {
-            objectValue := poolValue.Get()
-            _ = objectValue.(BigMemData)
-            poolValue.Put(objectValue)
-            waitGroupValue.Done()
-        }()
-    }
-
-    waitGroupValue.Wait()
-    fmt.Println(objectCountValue.Load())
-}
-
-// 输出示意:
-// 5
-```
-
-例子中开启了 1000 个协程不断地在池中申请和释放对象。如果不采用对象池，那么 1000 个协程都需要各自实例化对象，并且这些对象在使用完毕后都需要由 GC 来释放内存。如果有几十万个协程，或者创建该对象的成本十分高昂，这种情况下就会占用很大的内存并且给 GC 带来非常大的压力。
-
-采用对象池后，可以复用对象减少实例化的频率，比如上述例子里，即便开启了 1000 个协程，整个过程中也可能只创建了 5 个对象。如果不采用对象池的话，1000 个协程将会创建 1000 个对象，这种优化带来的提升是显而易见的，尤其是在并发量特别大和实例化对象成本特别高的时候更能体现出优势。
-
 在使用 `sync.Pool` 时需要注意几个点：
 
 - 临时对象：`sync.Pool` 只适合存放临时对象，池中的对象可能会在没有任何通知的情况下被 GC 移除，所以并不建议将网络连接、数据库连接这类对象存入 `sync.Pool` 中。
 - 不可预知：`sync.Pool` 在申请对象时，无法预知这个对象是新创建的还是复用的，也无法知晓池中有几个对象。
-- 并发安全：官方保证 `sync.Pool` 一定是并发安全，但并不保证用于创建对象的 `New` 函数就一定是并发安全的，`New` 函数是由使用者传入的，所以 `New` 函数的并发安全性要由使用者自己来维护，这也是为什么上例中对象计数要用到原子值的原因。
+- 并发安全：官方保证 `sync.Pool` 一定是并发安全，但并不保证用于创建对象的 `New` 函数就一定是并发安全的，`New` 函数是由使用者传入的，所以 `New` 函数的并发安全性要由使用者自己来维护。
 
 **提示：最后需要注意的是，当使用完对象后，一定要释放回池中，如果用了不释放，那么对象池的使用将毫无意义。**
 
@@ -5892,35 +4918,6 @@ func (mapPointer *Map) LoadAndDelete(key any) (value any, loaded bool)
 func (mapPointer *Map) Range(functionValue func(key, value any) bool)
 // functionValue: 遍历回调
 // 返回结果: 遍历 map
-```
-
-下面用一个简单的示例来演示 `sync.Map` 的基本使用：
-
-```go
-func main() {
-    var syncMapValue sync.Map
-
-    syncMapValue.Store("a", 1)
-    syncMapValue.Store("a", "a")
-
-    fmt.Println(syncMapValue.Load("a"))
-    fmt.Println(syncMapValue.LoadAndDelete("a"))
-    fmt.Println(syncMapValue.LoadOrStore("a", "hello world"))
-
-    syncMapValue.Store("b", "goodbye world")
-
-    syncMapValue.Range(func(keyValue, valueValue any) bool {
-        fmt.Println(keyValue, valueValue)
-        return true
-    })
-}
-
-// 输出示意:
-// a true
-// a true
-// hello world false
-// a hello world
-// b goodbye world
 ```
 
 为了并发安全肯定需要做出一定的牺牲，`sync.Map` 的性能通常会比普通 `map` 更低，因此它更适合明确需要并发安全且使用模式合适的场景。
@@ -9260,231 +8257,66 @@ go list ./...
 
 #### 模块
 
-每一个现代语言都会有属于自己的一个成熟的依赖管理工具，例如 Java 的 Gradle，Python 的 Pip，NodeJs 的 Npm 等，一个好的依赖管理工具可以为开发者省去不少时间并且可以提升开发效率。然而 Go 在早期并没有一个成熟的依赖管理解决方案，那时所有的代码都存放在 GOPATH 目录下，对于工程项目而言十分的不友好，版本混乱，依赖难以管理。为了解决这个问题，各大社区开发者百家争鸣，局面一时间混乱了起来，期间也不乏出现了一些佼佼者例如 Vendor。直到 Go 1.11，官方终于推出了 Go Mod 这款官方的依赖管理工具，结束了先前的混乱局面，并在后续的更新中不断完善，淘汰掉了曾经老旧的工具。
-
-时至今日，Go Mod 已经是 Go 项目的事实标准，因此这一节主要围绕 Go Mod 展开。官方对于 Go 模块也编写了非常细致的文档：Go Modules Reference。
+ Go 在早期并没有一个成熟的依赖管理解决方案，那时所有的代码都存放在 GOPATH 目录下，对于工程项目而言十分的不友好，版本混乱，依赖难以管理。直到 Go 1.11，官方终于推出了 Go Mod 这款官方的依赖管理工具，结束了先前的混乱局面，并在后续的更新中不断完善，淘汰掉了曾经老旧的工具。时至今日，Go Mod 已经是 Go 项目的事实标准。
 
 ##### 模块编写
 
-**基本前提**
+Go Module 本质上是基于 VCS（版本控制系统）的。当你在下载依赖时，实际上执行的是 VCS 命令，比如 `git`。所以你只需要正常使用 VCS 开发，并为你的特定版本打上符合标准的 Tag，其它人就可以通过模块名来下载你所编写的库。下面将通过示例来演示模块开发的几个步骤。
 
-Go Module 本质上是基于 VCS（版本控制系统）的。当你在下载依赖时，实际上执行的是 VCS 命令，比如 `git`。所以如果你想要分享你编写的库，通常只需要满足以下几个条件：
-
-- 源代码仓库可公开访问，且 VCS 属于以下的其中之一
-  - git
-  - hg（Mercurial）
-  - bzr（Bazaar）
-  - svn
-  - fossil
-- 是一个符合规范的 Go Mod 项目
-- 符合语义化版本规范
-
-所以你只需要正常使用 VCS 开发，并为你的特定版本打上符合标准的 Tag，其它人就可以通过模块名来下载你所编写的库。下面将通过示例来演示模块开发的几个步骤。
-
-示例仓库：`github.com/246859/hello`
-
-**准备环境**
-
-在开始之前，确保你的版本足以完全支持 Go Mod（通常建议 `go >= 1.17`），并且启用了 Go Module。可以先通过下面的命令查看是否开启：
-
-1. 查看是否启用 Go Module
+* **准备环境**：在开始之前，确保你的版本足以完全支持 Go Mod（通常建议 `go >= 1.17`），并且启用了 Go Module。可以先通过下面的命令查看是否开启。
 
 ```bash
 go env GO111MODULE
 # 输出示例:
 # on
-```
 
-如果未开启，可以通过如下命令开启 Go Module：
-
-2. 开启 Go Module
-
-```bash
 go env -w GO111MODULE=on
 # 作用: 持久化开启 Go Module
 ```
 
-**创建模块**
-
-首先你需要一个可公网访问的源代码仓库，这个有很多选择，比较常见的是 GitHub。在上面创建一个新项目，将其取名为 `hello`。仓库名虽然没有什么特别限制，但建议还是不要使用特殊字符，因为这会影响到模块名。
-
-![img](C:/Users/Administrator/Downloads/assets/202404071341749.png)
-
-创建完成后，可以看到仓库的 URL 是 `https://github.com/246859/hello`，对应的 Go 模块名就是 `github.com/246859/hello`。
-
-![img](C:/Users/Administrator/Downloads/assets/md_1.png)
-
-然后将其克隆到本地，通过 `go mod init` 命令初始化模块。
-
-1. 克隆仓库
-
-```bash
-git clone git@github.com:246859/hello.git
-# 输出示例:
-# Cloning into 'hello'...
-```
-
-2. 进入目录并初始化模块
+* **创建模块**：首先你需要一个可公网访问的源代码仓库，这个有很多选择，比较常见的是 GitHub。仓库名虽然没有什么特别限制，但建议还是不要使用特殊字符，因为这会影响到模块名。比如创建完成后，仓库的 URL 是 `https://github.com/mymodule`，对应的 Go 模块名就是 `github.com/mymodule`。然后将其克隆到本地，通过 `go mod init` 命令初始化模块。进入目录并初始化模块
 
 ```bash
 cd hello
-go mod init github.com/246859/hello
-# 输出示例:
-# go: creating new go.mod: module github.com/246859/hello
+go mod init github.com/mymodule
 ```
 
-**编写代码**
+* **编写代码**：编写代码的部分不再描述。
 
-然后就可以进行开发工作了。它的功能非常简单，只有一个函数：
-
-```go
-package hello
-
-import "fmt"
-
-// Hello returns hello message
-func Hello(name string) string {
-    if name == "" {
-        name = "world"
-    }
-    return fmt.Sprintf("hello %s!", name)
-}
-```
-
-顺便写一个测试文件进行单元测试：
-
-```go
-package hello_test
-
-import (
-    "fmt"
-    "testing"
-
-    "github.com/246859/hello"
-)
-
-func TestHello(t *testing.T) {
-    data := "jack"
-    expected := fmt.Sprintf("hello %s!", data)
-    result := hello.Hello(data)
-
-    if result != expected {
-        t.Fatalf("expected result %s, but got %s", expected, result)
-    }
-}
-```
-
-接下来继续编写一个命令行程序用于输出 hello。对于命令行程序而言，按照规范通常是在项目 `cmd/app_name/` 中进行创建，所以 hello 命令行程序的文件一般存放在 `cmd/hello/` 目录下，然后在其中编写相关代码。
-
-```go
-package main
-
-import (
-    "flag"
-    "os"
-
-    "github.com/246859/hello"
-)
-
-var name string
-
-func init() {
-    flag.StringVar(&name, "name", "world", "name to say hello")
-}
-
-func main() {
-    flag.Parse()
-
-    msg := hello.Hello(name)
-    _, err := os.Stdout.WriteString(msg)
-    if err != nil {
-        _, _ = os.Stderr.WriteString(err.Error())
-    }
-}
-```
-
-**测试与运行**
-
-编写完后，通常会先对源代码进行格式化、静态检查和测试。
-
-1. 格式化代码
+* **测试与运行**：编写完后，通常会先对源代码进行格式化、静态检查和测试。
 
 ```bash
 go fmt ./...
 # 作用: 格式化当前模块下的 Go 源码
-```
 
-2. 静态检查
-
-```bash
 go vet ./...
 # 作用: 检查代码中常见的可疑问题
-```
 
-3. 运行测试
-
-```bash
 go test -v .
 # 输出示例:
 # === RUN   TestHello
 # --- PASS: TestHello (0.00s)
 # PASS
-```
 
-4. 运行命令行程序
-
-```bash
 go run ./cmd/hello -name jack
 # 输出:
 # hello jack!
 ```
 
-**补全文档**
+* **补全文档**：编写简洁明了的 `README`。
 
-最后的最后，需要为这个库编写简洁明了的 `README`，让其它开发者看一眼就知道怎么使用。这类文档不一定很长，但最好能说明安装方式和基本示例。
-
-常见的安装命令通常有两种。
-
-1. 引入库依赖
-
-```bash
-go get github.com/246859/hello@latest
-# 作用: 在当前项目中添加该模块依赖
-```
-
-2. 安装命令行程序
-
-```bash
-go install github.com/246859/hello/cmd/hello@latest
-# 作用: 安装 hello 命令
-```
-
-README 的具体内容可以根据项目复杂度自行丰富。
-
-**上传与发布**
-
-当一切代码都编写并测试完毕过后，就可以将修改提交并推送到远程仓库。通常流程就是提交、打 Tag、推送代码与标签。
-
-1. 提交改动
+* **上传与发布**：当一切代码都编写并测试完毕过后，就可以将修改提交并推送到远程仓库。通常流程就是提交、打 Tag、推送代码与标签。
 
 ```bash
 git add .
 git commit -m "feat: complete hello module"
 # 作用: 提交当前模块代码
-```
 
-2. 创建 Tag
-
-```bash
 git tag v1.0.0
 git tag -l
 # 输出示例:
 # v1.0.0
-```
 
-3. 推送代码和标签
-
-```bash
 git push
 git push --tags
 # 作用: 推送分支和版本标签到远程仓库
@@ -9492,13 +8324,7 @@ git push --tags
 
 如果使用的是 GitHub，推送完毕后还可以进一步为其创建一个 Release。严格来说，Go 模块真正依赖的是 Tag，Release 更多是平台层面的展示和补充说明。
 
-![img](C:/Users/Administrator/Downloads/assets/md_2.png)
-
-如此一来，模块的编写就完成了。以上就是模块开发的一个基本流程，其它开发者便可以通过模块名来引入代码或安装命令行工具。
-
-**引用模块**
-
-通过模块名，其他开发者就可以直接使用你发布的模块。
+* **引用模块**通过模块名，其他开发者就可以直接使用你发布的模块。
 
 1. 作为库引入
 
@@ -9526,26 +8352,16 @@ go run -mod=mod github.com/246859/hello/cmd/hello -name jack
 
 当一个库被引用过后，Go Package 之类的服务通常会为其创建一个页面，这个过程是自动完成的，不需要开发者做什么额外工作。
 
-![img](C:/Users/Administrator/Downloads/assets/md_3.png)
-
 ##### 模块代理设置
-
-**代理的作用**
-
-Go 虽然没有像 Maven Repo、PyPi、NPM 这样类似的中央仓库，但是有一个官方的代理仓库，它会根据版本及模块名缓存开发者下载过的模块。不过由于其服务器部署在国外，访问速度对于国内的用户不甚友好，所以通常会修改默认的模块代理地址。
 
 目前国内常见的代理有以下几家：
 
 - goproxy.io
 - goproxy.cn
 
-![img](C:/Users/Administrator/Downloads/assets/md_4.png)
-
 **设置方式**
 
 这里以七牛云的代理为例，执行如下命令来修改 Go 代理。其中的 `direct` 表示代理下载失败后，绕过代理缓存直接访问源代码仓库。
-
-1. 设置代理
 
 ```bash
 go env -w GOPROXY=https://goproxy.cn,direct
@@ -9564,65 +8380,19 @@ go env -w GOPROXY=https://goproxy.cn,direct
 
 以著名的 Web 框架 Gin 为例。只要拿到模块路径，就可以在当前项目中通过 `go get` 引入。
 
-![img](C:/Users/Administrator/Downloads/assets/md_5.png)
-
-![img](C:/Users/Administrator/Downloads/assets/md_6.png)
-
-![img](C:/Users/Administrator/Downloads/assets/md_7.png)
-
-1. 下载依赖
+![img](./assets/md_7-1775206001088-4.png)
 
 ```bash
 go get github.com/gin-gonic/gin
 # 作用: 将 gin 及其依赖加入当前模块
-```
 
-过程中会下载很多依赖，只要没有报错，一般就说明下载成功。
-
-2. 查看 `go.mod`
-
-```bash
 cat go.mod
 # 作用: 查看当前模块及依赖信息
 ```
 
-完成后目录下通常也会多出一个 `go.sum` 文件。
-
-3. 查看目录文件
-
-```bash
-ls
-# 输出示例:
-# go.mod  go.sum  main.go
-```
-
-这时，如果把代码改成真正 import 并使用 Gin，例如：
-
-```go
-package main
-
-import "github.com/gin-gonic/gin"
-
-func main() {
-    gin.Default().Run()
-}
-```
-
-再次运行项目：
-
-4. 运行项目
-
-```bash
-go run .
-# 输出示例:
-# [GIN-debug] Listening and serving HTTP on :8080
-```
-
-于是，通过几行代码就运行起了一个最简单的 Web 服务器。
+过程中会下载很多依赖，只要没有报错，一般就说明下载成功。完成后目录下通常也会多出一个 `go.sum` 文件。
 
 当不再需要某一个依赖时，也可以使用 `go get` 删除该依赖，这里以删除 Gin 为例：
-
-5. 删除依赖
 
 ```bash
 go get github.com/gin-gonic/gin@none
@@ -9630,9 +8400,7 @@ go get github.com/gin-gonic/gin@none
 # go: removed github.com/gin-gonic/gin v1.9.0
 ```
 
-在依赖地址后面加上 `@none` 即可删除该依赖。此时再次查看 `go.mod` 文件，就会发现没有了 Gin 依赖。
-
-6. 升级依赖
+同样还有升级依赖：
 
 ```bash
 go get -u github.com/gin-gonic/gin@latest
@@ -9643,31 +8411,23 @@ go get -u github.com/gin-gonic/gin@latest
 
 `go install` 命令会将第三方依赖下载到本地并编译成二进制文件。得益于 Go 的编译速度，这一过程通常不会花费太多时间，然后 Go 会将其存放在 `$GOPATH/bin` 或者 `$GOBIN` 目录下，以便在全局执行该二进制文件。
 
-需要注意的是，在安装远程命令行工具时，通常必须显式指定版本号。
-
-1. 安装命令行工具
+需要注意的是，在安装远程命令行工具时，通常必须显式指定版本号。如果系统提示找不到命令，一般说明 bin 目录还没有加入环境变量。
 
 ```bash
 go install github.com/go-delve/delve/cmd/dlv@latest
 # 作用: 安装 delve 调试器
-```
 
-2. 运行命令确认是否可用
-
-```bash
 dlv version
 # 输出示例:
 # Delve Debugger
 # Version: ...
 ```
 
-如果系统提示找不到命令，一般说明 bin 目录还没有加入环境变量。
-
 ##### 模块管理
 
 **版本规则**
 
-上述所有的内容都只是在讲述 Go Mod 的基本使用，但事实上要学会 Go Mod，仅仅只有这些是完全不够的。官方对于模块的定义为：一组被版本标记的包集合。这里的“包”是我们熟悉的 Go package，而“版本”通常要遵循语义化版本号，即：
+官方对于模块的定义为：一组被版本标记的包集合。这里的“包”是我们熟悉的 Go package，而“版本”通常要遵循语义化版本号，即：
 
 ```text
 v(major).(minor).(patch)
@@ -9681,76 +8441,21 @@ v(major).(minor).(patch)
 
 **常用命令**
 
-下面是一些最常用的模块管理命令。
-
-1. 初始化模块
-
-```bash
-go mod init module/path
-# 作用: 在当前目录初始化 go.mod
-```
-
-2. 清理和补全依赖
-
-```bash
-go mod tidy
-# 作用: 删除未使用依赖，补全缺失依赖
-```
-
-3. 下载依赖
-
-```bash
-go mod download
-# 作用: 下载当前项目的依赖包
-```
-
-4. 编辑 `go.mod`
-
-```bash
-go mod edit
-# 作用: 通过命令修改 go.mod 文件
-```
-
-5. 输出依赖图
-
-```bash
-go mod graph
-# 作用: 输出模块依赖图
-```
-
-6. 验证依赖合法性
-
-```bash
-go mod verify
-# 作用: 验证项目依赖是否合法
-```
-
-7. 解释依赖来源
-
-```bash
-go mod why github.com/gin-gonic/gin
-# 作用: 解释项目哪些地方用到了该依赖
-```
-
-8. 清空模块缓存
-
-```bash
-go clean -modcache
-# 作用: 删除本地模块缓存
-```
-
-9. 列出模块
-
-```bash
-go list -m all
-# 作用: 列出当前模块及所有依赖模块
-```
+| 命令                 | 说明                       |
+| -------------------- | -------------------------- |
+| `go mod download`    | 下载当前项目的依赖包       |
+| `go mod edit`        | 编辑 go.mod 文件           |
+| `go mod graph`       | 输出模块依赖图             |
+| `go mod init`        | 在当前目录初始化 go mod    |
+| `go mod tidy`        | 清理项目模块               |
+| `go mod verify`      | 验证项目的依赖合法性       |
+| `go mod why`         | 解释项目哪些地方用到了依赖 |
+| `go clean -modcache` | 用于删除项目模块依赖缓存   |
+| `go list -m`         | 列出模块                   |
 
 **模块存储**
 
 当使用 Go Mod 进行项目管理时，模块缓存默认存放在 `$GOPATH/pkg/mod` 目录下，也可以通过 `GOMODCACHE` 来指定另外一个位置。
-
-1. 修改缓存目录
 
 ```bash
 go env -w GOMODCACHE=/your/mod/cache/path
@@ -9759,53 +8464,16 @@ go env -w GOMODCACHE=/your/mod/cache/path
 
 同一台机器上的所有 Go Module 项目共享该目录下的缓存，缓存没有大小限制且不会自动删除。在缓存中解压的依赖源文件通常是只读的。想要清空缓存可以执行：
 
-2. 清空缓存
-
 ```bash
 go clean -modcache
 # 作用: 删除本地所有模块缓存
 ```
 
-在 `$GOMODCACHE/cache/download` 目录下存放着依赖的原始文件，包括哈希文件、原始压缩包等。例如：
-
-3. 查看原始下载文件
-
-```bash
-ls $(go env GOMODCACHE)/cache/download/github.com/246859/hello/@v -1
-# 输出示例:
-# list
-# v1.0.0.info
-# v1.0.0.lock
-# v1.0.0.mod
-# v1.0.0.zip
-# v1.0.0.ziphash
-```
-
-解压过后的依赖组织形式如下所示，就是指定模块的源代码：
-
-4. 查看解压后的模块源码
-
-```bash
-ls $(go env GOMODCACHE)/github.com/246859/hello@v1.0.0 -1
-# 输出示例:
-# LICENSE
-# README.md
-# cmd/
-# example/
-# go.mod
-# hello.go
-# hello_test.go
-```
+在 `$GOMODCACHE/cache/download` 目录下存放着依赖的原始文件，包括哈希文件、原始压缩包等。
 
 **版本选择**
 
-Go 在依赖版本选择时，遵循**最小版本选择原则**。简单来说，不是无脑选择最新版本，而是在满足依赖图要求的前提下，选择每个模块所需的最小可行版本集合。
-
-下面这张图保留原位置说明这一原则：
-
-![img](C:/Users/Administrator/Downloads/assets/md_8.svg)
-
-理解最小版本选择原则，有助于解释为什么某些依赖版本最后不是你直觉里“最新的那个版本”。
+Go 在依赖版本选择时，遵循**最小版本选择原则**。简单来说，是在满足依赖图要求的前提下，选择每个模块所需的最小可行版本集合。
 
 **go.mod**
 
@@ -9830,65 +8498,23 @@ require (
 
 下面是 `go.mod` 中几项最重要的指令。
 
-1. **module**
+* **module**：`module` 关键字声明了当前项目的模块名，一个 `go.mod` 文件中只能出现一个 `module` 指令。通常推荐模块名格式为：`域名/用户/仓库名`。有一个需要注意的点是，当主版本大于 1 时，主版本号要体现在模块名中。
 
-```go
-module github.com/gin-gonic/gin
-```
+* **go**：`go` 关键字表示当前项目所用到的 Go 版本。根据 Go 版本的不同，Go Mod 也会表现出不同的行为。
 
-`module` 关键字声明了当前项目的模块名，一个 `go.mod` 文件中只能出现一个 `module` 指令。通常推荐模块名格式为：`域名/用户/仓库名`。
+* **require**：`require` 表示引用了一个外部依赖，格式是：`require 模块名 版本号`。有多个引用时可以用括号括起来。带有 `// indirect` 注释的表示该依赖没有被当前项目直接引用，而是间接依赖。
 
-有一个需要注意的点是，当主版本大于 1 时，主版本号要体现在模块名中，例如：
-
-```go
-module github.com/my/example/v2
-```
-
-这是为了区分不兼容的主版本变化。
-
-2. **go**
-
-```go
-go 1.20
-```
-
-`go` 关键字表示当前项目所用到的 Go 版本。根据 Go 版本的不同，Go Mod 也会表现出不同的行为。
-
-3. **require**
-
-```go
-require github.com/gin-gonic/gin v1.9.0
-```
-
-`require` 表示引用了一个外部依赖，格式是：`require 模块名 版本号`。有多个引用时可以用括号括起来。带有 `// indirect` 注释的表示该依赖没有被当前项目直接引用，而是间接依赖。
-
-4. **伪版本**
-
-在 `go.mod` 文件中，有些依赖包的版本并不是标准语义化版本，而是一串较长的字符串，例如：
+* **伪版本**：在 `go.mod` 文件中，有些依赖包的版本并不是标准语义化版本，而是一串较长的字符串。这就是伪版本。它通常用来表示某个具体 Commit，而不是某个正式发布的 Release 版本。
 
 ```go
 github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311
 ```
 
-这就是伪版本。它通常用来表示某个具体 Commit，而不是某个正式发布的 Release 版本。
+* **exclude**：`exclude` 表示不加载指定版本的依赖。该指令仅在主模块中生效。
 
-5. **exclude**
+* **replace**:`replace` 会将指定版本的依赖替换掉，可以替换成另外一个模块，也可以替换成本地路径。这在本地调试 fork 或联调本地模块时非常常见。
 
-```go
-exclude golang.org/x/net v1.2.3
-```
-
-`exclude` 表示不加载指定版本的依赖。该指令仅在主模块中生效。
-
-6. **replace**
-
-```go
-replace golang.org/x/net => ./fork/net
-```
-
-`replace` 会将指定版本的依赖替换掉，可以替换成另外一个模块，也可以替换成本地路径。这在本地调试 fork 或联调本地模块时非常常见。
-
-7. **retract**
+* **retract**:`retract` 表示某个版本或某个版本范围不应该再被依赖。例如某个版本发布后发现了严重问题，就可以用这个指令将其撤回。
 
 ```go
 retract (
@@ -9897,11 +8523,9 @@ retract (
 )
 ```
 
-`retract` 表示某个版本或某个版本范围不应该再被依赖。例如某个版本发布后发现了严重问题，就可以用这个指令将其撤回。
-
 **go.sum**
 
-`go.sum` 文件在创建项目之初并不会存在，只有在真正引用了外部依赖后，才会生成该文件。它并不适合人类阅读，也不建议手动修改。它的作用主要是解决一致性构建问题，也就是说：不同的人在不同环境中构建同一个项目时，所使用的依赖包必须是完全相同的。
+`go.sum` 文件在创建项目之初并不会存在，只有在真正引用了外部依赖后，才会生成该文件。它并不适合人类阅读，也不建议手动修改。它的作用主要是解决一致性构建问题，也就是说：不同的人在不同环境中构建同一个项目时，所使用的依赖包必须是完全相同的。**或者说Go Sum是Go Modules Sumcheck的意思。**
 
 通常可以这样理解：
 
@@ -9933,21 +8557,21 @@ Go Mod 大多数工具都是针对开源项目而言的，不过 Go 也对私有
 
 最常见的做法通常如下。
 
-1. 设置私有模块前缀
+* 设置私有模块前缀
 
 ```bash
 go env -w GOPRIVATE=github.com/your-org/*
 # 作用: 告诉 Go，这些模块属于私有模块
 ```
 
-2. 设置私有模块不走代理
+* 设置私有模块不走代理
 
 ```bash
 go env -w GONOPROXY=github.com/your-org/*
 # 作用: 私有模块直接访问 VCS，不通过 GOPROXY
 ```
 
-3. 设置私有模块不走公共校验
+* 设置私有模块不走公共校验
 
 ```bash
 go env -w GONOSUMDB=github.com/your-org/*
@@ -10022,42 +8646,15 @@ go run ./auth/example
 
 **常用命令**
 
-下面是一些工作区常用命令。
+下面是一些工作区的命令
 
-1. 初始化工作区
-
-```bash
-go work init ./auth ./user
-# 作用: 创建 go.work，并纳入指定模块
-```
-
-2. 添加模块到工作区
-
-```bash
-go work use ./another-module
-# 作用: 往 go.work 中加入新的本地模块
-```
-
-3. 同步工作区依赖
-
-```bash
-go work sync
-# 作用: 把工作区解析出的依赖同步回各模块
-```
-
-4. 编辑工作区文件
-
-```bash
-go work edit
-# 作用: 通过命令方式编辑 go.work
-```
-
-5. 生成 vendor 依赖
-
-```bash
-go work vendor
-# 作用: 将依赖按照 vendor 格式复制
-```
+| 命令   | 介绍                           |
+| ------ | ------------------------------ |
+| edit   | 编辑`go.work`                  |
+| init   | 初始化一个新的工作区           |
+| sync   | 同步工作区的模块依赖           |
+| use    | 往`go.work`中添加一个新模块    |
+| vendor | 将依赖按照 vendor 格式进行复制 |
 
 **常见指令**
 
@@ -10096,8 +8693,7 @@ gorm 当然也有一些缺点，比如几乎所有的方法参数都是空接口
 
 作为替代的有两个 orm 可以试一试，第一个是 `aorm`，刚开源不久，它不再需要去自己手写表的字段名，大多情况下都是链式操作，基于反射实现，由于 star 数目不多，可以再观望下。第二个就是 `ent`，是 `facebook` 开源的 orm，它同样支持链式操作，并且大多数情况下不需要自己去手写 SQL，它的设计理念上是基于图（数据结构里面的那个图），实现上基于代码生成而非反射（比较认同这个），但是文档是全英文的，有一定的上手门槛。
 
-
-##### 特点
+**特点**
 
 - 全功能 ORM
 - 关联（拥有一个，拥有多个，属于，多对多，多态，单表继承）
@@ -10114,7 +8710,7 @@ gorm 当然也有一些缺点，比如几乎所有的方法参数都是空接口
 - 每个特性都经过了测试的重重考验
 - 开发者友好
 
-##### 安装与连接
+##### 安装与入门
 
 gorm 目前支持以下几种数据库：
 
@@ -10125,66 +8721,98 @@ gorm 目前支持以下几种数据库：
 - TIDB：`gorm.io/driver/mysql`，TIDB 兼容 mysql 协议
 - ClickHouse：`gorm.io/driver/clickhouse`
 
-除此之外，还有一些其它的数据库驱动是由第三方开发者提供的，比如 oracle 的驱动 `CengSin/oracle`。本文接下来将使用 MySQL 来进行演示，使用的什么数据库，就需要安装什么驱动。
-
 **安装命令**
 
-安装 gorm 库：
+安装 gorm 库和 Mysql 驱动：
 
 ```bash
 go get -u gorm.io/gorm
-```
-
-安装 Mysql 驱动：
-
-```bash
 go get -u gorm.io/driver/mysql
 ```
 
-**连接方式**
-
-然后使用 dsn（data source name）连接到数据库，驱动库会自行将 dsn 解析为对应的配置。
+以下是一个入门示例，即使有所忘记也应该能看懂Gorm大体使用方法：
 
 ```go
 package main
 
 import (
-    "gorm.io/driver/mysql"
-    "gorm.io/gorm"
-    "log/slog"
+	"fmt"
+
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
+// 定义Person结构体
+type Person struct {
+	ID   uint   `gorm:"primaryKey;autoIncrement"`
+	Name string `gorm:"type:varchar(100);not null"`
+}
+
 func main() {
-    dsn := "root:123456@tcp(192.168.48.138:3306)/hello?charset=utf8mb4&parseTime=True&loc=Local"
-    db, err := gorm.Open(mysql.Open(dsn))
-    if err != nil {
-        slog.Error("db connect error", err)
-        return
-    }
-    _ = db
-    slog.Info("db connect success")
+	// 数据库连接字符串
+	dsn := "root:Helloworld1!@tcp(localhost:3306)/mydatabase?charset=utf8mb4&parseTime=True&loc=Local"
+	
+	// 连接数据库
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		panic("连接数据库失败: " + err.Error())
+	}
+	
+	fmt.Println("数据库连接成功！")
+	
+	// 数据库迁移
+	err = db.AutoMigrate(&Person{})
+	if err != nil {
+		panic("迁移失败: " + err.Error())
+	}
+	fmt.Println("数据库迁移成功！")
+	
+	// 写入两条记录
+	fmt.Println("\n写入记录...")
+	persons := []Person{
+		{Name: "张三"},
+		{Name: "李四"},
+	}
+	
+	result := db.Create(&persons)
+	if result.Error != nil {
+		panic("创建记录失败: " + result.Error.Error())
+	}
+	fmt.Printf("成功创建 %d 条记录\n", result.RowsAffected)
+	
+	// 查询所有记录
+	fmt.Println("\n查询结果:")
+	var allPersons []Person
+	db.Find(&allPersons)
+	for _, p := range allPersons {
+		fmt.Printf("ID: %d, Name: %s\n", p.ID, p.Name)
+	}
+}
+
+```
+
+##### 数据库连接与配置
+
+**数据库连接**
+
+* 使用 dsn（data source name）连接到数据库，驱动库会自行将 dsn 解析为对应的配置。其中分别需要填入：`user`,`password`,`ip:port`,`database`。后边的字符集和时间设置一般不用动。
+
+```go
+dsn := "user:password@tcp(ip:port)/database?charset=utf8mb4&parseTime=True&loc=Local"
+db, err := gorm.Open(mysql.Open(dsn))
+if err != nil {
+    slog.Error("db connect error", err)
+    return
 }
 ```
 
-或者手动传入配置：
+* 手动传入配置：
 
 ```go
-package main
-
-import (
-    "gorm.io/driver/mysql"
-    "gorm.io/gorm"
-    "log/slog"
-)
-
-func main() {
-    db, err := gorm.Open(mysql.New(mysql.Config{}))
-    if err != nil {
-        slog.Error("db connect error", err)
-        return
-    }
-    _ = db
-    slog.Info("db connect success")
+db, err := gorm.Open(mysql.New(mysql.Config{}))
+if err != nil {
+    slog.Error("db connect error", err)
+    return
 }
 ```
 
@@ -10275,7 +8903,9 @@ type Person struct {
 
 结构体的内部可以由基本数据类型与实现了 `sql.Scanner` 和 `sql.Valuer` 接口的类型组成。在默认情况下，`Person` 结构体所映射的表名为 `persons`，其为蛇形复数风格，以下划线分隔。列名同样是以蛇形风格，比如 `Id` 对应列名 `id`，gorm 同样也提供了一些方式来对其进行配置。
 
-**表名、列名与命名**
+关于表名，默认来说表名应该是结构体名的复数形式，不过实际可能比较难预测，比如`Person`在数据库里可能是`people`，也可能是`persons`。建议对于有自己复数形式的表名自己使用`TableName()` 定义。
+
+**指定列名**
 
 通过结构体标签，我们可以对结构体字段指定列名，这样在实体映射的时候，gorm 就会使用指定的列名。
 
@@ -10288,6 +8918,8 @@ type Person struct {
     Dad     string
 }
 ```
+
+**指定表名**
 
 通过实现 `TableName()` 方法，就可以指定表名。
 
@@ -10323,18 +8955,6 @@ type Person struct {
 }
 ```
 
-例如：
-
-```go
-db.Create(&Person{
-    Name:    "jack",
-    Address: "usa",
-    Mom:     "lili",
-    Dad:     "tom",
-})
-// INSERT INTO `person` (`name`,`address`,`mom`,`dad`,`created_at`,`updated_at`) VALUES (...)
-```
-
 gorm 也支持时间戳追踪：
 
 ```go
@@ -10349,9 +8969,9 @@ type Person struct {
 }
 ```
 
-在实际情况中，如果有时间追踪的需要，我更推荐后端存储时间戳，在跨时区的情况下，处理更为简单。
+在实际情况中，如果有时间追踪的需要，更推荐后端存储时间戳，在跨时区的情况下，处理更为简单。
 
-gorm 提供了一个预设的 `Model` 结构体，它包含 ID 主键，以及两个时间追踪字段，和一个软删除记录字段。
+gorm 提供了一个预设的 `Model` 结构体，它包含 ID 主键，以及两个时间追踪字段和一个软删除记录字段。
 
 ```go
 type Model struct {
@@ -10375,26 +8995,38 @@ type Order struct {
 
 **主键、索引、外键**
 
-在默认情况下，名为 `Id` 的字段就是主键，使用结构体标签可以指定主键字段，也可以定义联合主键。
+在默认情况下，名为 `Id` 的字段就是主键，使用结构体标签可以指定主键字段，多个主键字段意味着联合主键。
 
 ```go
 type Person struct {
-    Id        uint   `gorm:"primaryKey;"`
-    Name      string `gorm:"primaryKey;"`
-    Address   string `gorm:"index:idx_addr,unique;"`
-    School    string `gorm:"index:idx_addr,unique;"`
-    Mom       string
-    Dad       string
-    CreatedAt uint64 `gorm:"autoCreateTime:nano;"`
-    UpdatedAt uint64 `gorm:"autoUpdateTime:milli;"`
+  Id      uint `gorm:"primaryKey;"`
+  Name    string
+  Address string
+  Mom     string
+  Dad     string
+
+  CreatedAt sql.NullTime
+  UpdatedAt sql.NullTime
 }
 ```
 
-上面的结构体中：
+通过`index`结构体标签可以指定列索引，两个字段使用同一个名字的索引就会创建复合索引。
 
-- `Id` 和 `Name` 共同组成联合主键
-- `Address` 和 `School` 使用同一个索引名，因此会形成复合索引
-- `Address` 和 `School` 上的索引都带了 `unique`
+```go
+type Person struct {
+    Id      uint   `gorm:"primaryKey;"`
+    Name    string `gorm:"index:idx_name,unique;"`
+    Address string `gorm:"index:idx_addr,unique;"`
+    School  string `gorm:"index:idx_addr,unique;"`
+    Mom     string
+    Dad     string
+
+    // nanoseconds
+    CreatedAt uint64 `gorm:"autoCreateTime:nano;"`
+    // milliseconds
+    UpdatedAt uint64 `gorm:"autoUpdateTime;milli;"`
+}
+```
 
 在结构体中定义外键关系，是通过嵌入结构体的方式来进行的，比如：
 
@@ -10452,12 +9084,7 @@ type Mom struct {
 
 **钩子与标签**
 
-一个实体模型可以自定义钩子：
-
-- 创建
-- 更新
-- 删除
-- 查询
+一个实体模型可以自定义钩子：创建、更新、删除、查询
 
 对应的接口分别如下：
 
@@ -10567,66 +9194,46 @@ db.Set("gorm:table_options", " comment 'person table'").Migrator().CreateTable(P
 
 需要注意的是如果使用的是 `AutoMigrate()` 方法来进行迁移，且结构体之间具引用关系，gorm 会进行递归先创建引用表，这就会导致被引用表和引用表的注释都是重复的，所以推荐使用 `CreateTable` 方法来创建。
 
-提示：在创建表时 `CreateTable` 方法需要保证被引用表比引用表先创建，否则会报错，而 `AutoMigrate` 方法则不需要，因为它会顺着关系引用关系递归创建。
+在创建表时 `CreateTable` 方法需要保证被引用表比引用表先创建，否则会报错，而 `AutoMigrate` 方法则不需要，因为它会顺着关系引用关系递归创建。
 
 ##### 记录操作
 
 ###### 记录创建
 
-**创建记录**
-
-在创建新的记录时，大多数情况都会用到 `Create` 方法：
+* **Create**：在创建新的记录时，大多数情况都会用到 `Create` 方法：
 
 ```go
 func (db *DB) Create(value interface{}) (tx *DB)
-```
 
-创建一条记录：
-
-```go
 type Person struct {
     Id   uint `gorm:"primaryKey;"`
     Name string
 }
 
-user := Person{Name: "jack"}
-
-db = db.Create(&user)
-err := db.Error
-affected := db.RowsAffected
-```
-
-创建完成后，gorm 会将主键写入 `user` 结构体中，所以这也是为什么必须得传入指针。如果传入的是一个切片，就会批量创建：
-
-```go
 users := []Person{
     {Name: "jack"},
     {Name: "mike"},
     {Name: "lili"},
 }
 
-db = db.Create(&users)
+db = db.Create(&user)
+err := db.Error
+affected := db.RowsAffected
 ```
 
-同样的，gorm 也会将主键写入切片中。当数据量过大时，也可以使用 `CreateInBatches` 方法分批次创建：
+* **CreateInBatches**：同样的，gorm 也会将主键写入切片中。当数据量过大时，也可以使用 `CreateInBatches` 方法分批次创建：
 
 ```go
 db = db.CreateInBatches(&users, 50)
 ```
 
-除此之外，`Save` 方法也可以创建记录，它的作用是当主键匹配时就更新记录，否则就插入。
-
-```go
-func (db *DB) Save(value interface{}) (tx *DB)
-```
+* **Save**：除此之外，`Save` 方法也可以创建记录，它的作用是当主键匹配时就更新记录，否则就插入。
 
 ```go
 db = db.Save(&users)
 ```
 
-**Upsert**
-
-`Save` 方法只能是匹配主键，我们可以通过构建 `Clause` 来完成更加自定义的 upsert。比如下面这行代码：
+* **Upsert**:`Save` 方法只能是匹配主键，我们可以通过构建 `Clause` 来完成更加自定义的 upsert。比如下面这行代码,它的作用是当字段 `name` 冲突后，更新字段 `address` 的值，不冲突的话就会创建一个新的记录：
 
 ```go
 db.Clauses(clause.OnConflict{
@@ -10637,80 +9244,54 @@ db.Clauses(clause.OnConflict{
 }).Create(&p)
 ```
 
-它的作用是当字段 `name` 冲突后，更新字段 `address` 的值，不冲突的话就会创建一个新的记录。也可以在冲突的时候什么都不做：
-
-```go
-db.Clauses(clause.OnConflict{
-    Columns:   []clause.Column{{Name: "name"}},
-    DoNothing: true,
-}).Create(&p)
-```
-
-或者直接更新所有字段：
-
-```go
-db.Clauses(clause.OnConflict{
-    Columns:   []clause.Column{{Name: "name"}},
-    UpdateAll: true,
-}).Create(&p)
-```
-
-在使用 upsert 之前，记得给冲突字段添加索引。
-
 ###### 记录查询
 
 **查询记录**
 
-gorm 对于查询而言，提供了相当多的方法可用。最常见的单条查询有：
+* **First**：`First` 按照主键升序查找第一条记录，`Take` 与 `First` 类似，区别就是不会根据主键排序。
 
 ```go
 func (db *DB) First(dest interface{}, conds ...interface{}) (tx *DB)
-func (db *DB) Take(dest interface{}, conds ...interface{}) (tx *DB)
-```
 
-`First` 按照主键升序查找第一条记录，`Take` 与 `First` 类似，区别就是不会根据主键排序。
-
-```go
 var person Person
 result := db.First(&person)
 err := result.Error
 affected := result.RowsAffected
-
-result = db.Take(&person)
-err = result.Error
-affected = result.RowsAffected
 ```
 
-批量查询最常用的是 `Find` 方法：
+* **Take**:`Take`方法与`First`类似，区别就是不会根据主键排序。
+
+```go
+func (db *DB) Take(dest interface{}, conds ...interface{}) (tx *DB)
+
+var person Person
+result := db.Take(&person)
+err := result.Error
+affected := result.RowsAffected
+```
+
+* **Find**:批量查询最常用的是 `Find` 方法，也可以通过 `Table` 和 `Model` 方法指定查询表。
 
 ```go
 func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB)
-```
 
-```go
 var ps []Person
 db.Find(&ps)
 // SELECT * FROM `person`
-```
 
-也可以通过 `Table` 和 `Model` 方法指定查询表：
-
-```go
 db.Table("person").Find(&p)
 db.Model(Person{}).Find(&p)
 ```
 
-提示：如果传入的指针元素包含实体模型，比如结构体指针，或者是结构体切片的指针，那么就不需要手动使用指定查哪个表，这个规则适用于所有的增删改查操作。
+如果传入的指针元素包含实体模型，比如结构体指针，或者是结构体切片的指针，那么就不需要手动使用指定查哪个表，这个规则适用于所有的增删改查操作。
 
 **字段选择与聚合**
 
-`Pluck` 方法用于批量查询一个表的单列，查询结果可以收集到一个指定类型的切片中。
+* **Pluck**：`Pluck` 方法用于批量查询一个表的单列，查询结果可以收集到一个指定类型的切片中。
 
 ```go
 func (db *DB) Pluck(column string, dest interface{}) (tx *DB)
-```
 
-```go
 var adds []string
 db.Model(Person{}).
     Where("name IN ?", []string{"jack", "lili"}).
@@ -10718,26 +9299,22 @@ db.Model(Person{}).
 // SELECT `address` FROM `person` WHERE name IN ('jack','lili')
 ```
 
-`Count` 方法用于统计实体记录的数量：
+* **Count：**`Count` 方法用于统计实体记录的数量：
 
 ```go
 func (db *DB) Count(count *int64) (tx *DB)
-```
 
-```go
 var count int64
 db.Model(Person{}).Count(&count)
 // SELECT count(*) FROM `person`
 ```
 
-gorm 在默认情况下是查询所有字段，我们可以通过 `Select` 方法来指定字段，也可以通过 `Omit` 方法来忽略字段。
+* **Select 与 Omit：**gorm 在默认情况下是查询所有字段，我们可以通过 `Select` 方法来指定字段，也可以通过 `Omit` 方法来忽略字段。
 
 ```go
 func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB)
 func (db *DB) Omit(columns ...string) (tx *DB)
-```
 
-```go
 db.Select("address", "name").First(&p)
 // SELECT `address`,`name` FROM `person` ORDER BY `person`.`id` LIMIT 1
 
@@ -10749,15 +9326,13 @@ db.Omit("address").Where("id IN ?", []int{1, 2, 3, 4}).Find(&ps)
 
 **条件、排序、分页与分组**
 
-条件查询会用到 `Where` 方法：
+* **Where：**条件查询会用到 `Where` 方法。对于 `IN` 条件，可以直接在 `Where` 方法里面传入切片。多列 `IN` 条件需要使用 `[][]any` 类型来承载参数。
 
 ```go
 func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB)
 func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB)
 func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB)
-```
 
-```go
 db.Where("id = ?", 1).First(&p)
 
 db.Where("id = ?", 1).
@@ -10775,27 +9350,15 @@ db.Where("id = ?", 1).
     Not("name = ?", "mike").
     Where("address = ?", "usa").
     First(&p)
-```
 
-对于 `IN` 条件，可以直接在 `Where` 方法里面传入切片：
-
-```go
 db.Where("address IN ?", []string{"cn", "us"}).Find(&ps)
-```
 
-多列 `IN` 条件需要使用 `[][]any` 类型来承载参数：
-
-```go
 db.Where("(id, name, address) IN ?", [][]any{
     {1, "jack", "uk"},
     {2, "mike", "usa"},
 }).Find(&ps)
 // SELECT * FROM `person` WHERE (id, name, address) IN ((1,'jack','uk'),(2,'mike','usa'))
-```
 
-gorm 支持 where 分组使用：
-
-```go
 db.Where(
     db.Where("name IN ?", []string{"cn", "uk"}).Where("id IN ?", []uint{1, 2}),
 ).Or(
@@ -10804,7 +9367,7 @@ db.Where(
 // SELECT * FROM `person` WHERE (name IN ('cn','uk') AND id IN (1,2)) OR (name IN ('usa','jp') AND id IN (3,4))
 ```
 
-排序、分页和分组相关方法也很常用：
+* **Group**：
 
 ```go
 func (db *DB) Order(value interface{}) (tx *DB)
@@ -10813,9 +9376,8 @@ func (db *DB) Offset(offset int) (tx *DB)
 func (db *DB) Group(name string) (tx *DB)
 func (db *DB) Having(query interface{}, args ...interface{}) (tx *DB)
 func (db *DB) Distinct(args ...interface{}) (tx *DB)
-```
 
-```go
+
 db.Order("name ASC, id DESC").Find(&ps)
 // SELECT * FROM `person` ORDER BY name ASC, id DESC
 
@@ -10840,24 +9402,16 @@ db.Where("address IN ?", []string{"cn", "us"}).Distinct("name").Find(&ps)
 ```go
 db.Where("id > (?)", db.Model(Person{}).Select("AVG(id)")).Find(&ps)
 // SELECT * FROM `person` WHERE id > (SELECT AVG(id) FROM `person`)
-```
 
-from 子查询：
-
-```go
 db.Table("(?) as p", db.Model(Person{}).Where("address IN ?", []string{"cn", "uk"})).Find(&ps)
 // SELECT * FROM (SELECT * FROM `person` WHERE address IN ('cn','uk')) as p
 ```
 
-通过 `Rows` 方法可以获取一个迭代器：
+通过 `Rows` 方法可以获取一个迭代器，通过遍历迭代器，使用 `ScanRows` 方法可以将每一行的结果扫描到结构体中。
 
 ```go
 func (db *DB) Rows() (*sql.Rows, error)
-```
 
-通过遍历迭代器，使用 `ScanRows` 方法可以将每一行的结果扫描到结构体中。
-
-```go
 rows, err := db.Model(Person{}).Rows()
 if err != nil {
     return
@@ -10876,25 +9430,12 @@ for rows.Next() {
 
 **修改与删除**
 
-在创建的时候提到过 `Save` 方法，它也可以用来更新记录，并且它会更新所有字段，即便有些结构体的字段是零值，不过如果主键匹配不到的话就会进行插入操作了。
-
-```go
-var p Person
-db.First(&p)
-
-p.Address = "poland"
-db.Save(&p)
-// UPDATE `person` SET `name`='json',`address`='poland' WHERE `id` = 2
-```
-
-所以大多数情况下，建议使用 `Update` 和 `Updates` 方法。
+* **Update：**在创建的时候提到过 `Save` 方法，不过如果主键匹配不到的话就会进行插入操作了。所以大多数情况下，建议使用 `Update` 和 `Updates` 方法。`Updates` 接收结构体和 map 作为参数，并且当结构体字段为零值时，会忽略该字段，但在 map 中不会。
 
 ```go
 func (db *DB) Update(column string, value interface{}) (tx *DB)
 func (db *DB) Updates(values interface{}) (tx *DB)
-```
 
-```go
 db.Model(Person{}).Where("id = ?", p.Id).Update("address", "poland")
 // UPDATE `person` SET `address`='poland' WHERE id = 2
 
@@ -10905,15 +9446,11 @@ db.Model(p).Updates(map[string]any{"name": "jojo", "address": "poland"})
 // UPDATE `person` SET `address`='poland',`name`='jojo' WHERE `id` = 2
 ```
 
-`Updates` 接收结构体和 map 作为参数，并且当结构体字段为零值时，会忽略该字段，但在 map 中不会。
-
-有些时候，常常会需要对字段进行一些自增或者自减等与自身进行运算的操作，一般是先查再计算然后更新，或者是使用 SQL 表达式：
+* **Expr**：有些时候，常常会需要对字段进行一些自增或者自减等与自身进行运算的操作，一般是先查再计算然后更新，或者是使用 SQL 表达式：
 
 ```go
 func Expr(expr string, args ...interface{}) clause.Expr
-```
 
-```go
 db.Model(p).Updates(map[string]any{
     "name": "jojo",
     "age":  gorm.Expr("age + age"),
@@ -10921,13 +9458,11 @@ db.Model(p).Updates(map[string]any{
 // UPDATE `person` SET `age`=age + age,`name`='jojo' WHERE `id` = 2
 ```
 
-在 gorm 中，删除记录会用到 `Delete` 方法，它可以直接传实体结构，也可以传条件。
+* **Delete**：在 gorm 中，删除记录会用到 `Delete` 方法，它可以直接传实体结构，也可以传条件。
 
 ```go
 func (db *DB) Delete(value interface{}, conds ...interface{}) (tx *DB)
-```
 
-```go
 db.Delete(&p)
 // DELETE FROM `person` WHERE `person`.`id` = 2
 
@@ -10941,7 +9476,7 @@ db.Delete(&Person{}, []uint{1, 2, 3})
 // DELETE FROM `person` WHERE `person`.`id` IN (1,2,3)
 ```
 
-如果你的实体模型使用了软删除，那么在删除时，默认进行更新操作，若要永久删除的话可以使用 `Unscoped` 方法：
+* **Unscoped**：如果你的实体模型使用了软删除，那么在删除时，默认进行更新操作，若要永久删除的话可以使用 `Unscoped` 方法：
 
 ```go
 db.Unscoped().Delete(&Person{}, []uint{1, 2, 3})
@@ -11213,7 +9748,7 @@ db.Preload("Persons").
 
 ##### 锁
 
-**锁**
+###### **锁**
 
 gorm 使用 `clause.Locking` 子句来提供锁的支持：
 
@@ -11236,9 +9771,7 @@ gorm 默认开启事务，任何插入和更新操作失败后都会回滚，可
 
 ```go
 func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err error)
-```
 
-```go
 db.Transaction(func(tx *gorm.DB) error {
     if err := tx.Create(&ps).Error; err != nil {
         return err
@@ -11310,42 +9843,30 @@ tx.Commit()
 ```
 
 
-##### 总结
-
-如果你阅读完了上面的所有内容，并动手敲了代码，那么你就可以使用 gorm 进行对数据库进行增删改查了。gorm 除了这些操作以外，还有其它许多功能，更多细节可以前往官方文档了解。
-
-
 #### MySQL
 
-Mysql 是当下最流行的开源关系型数据库之一。这里不再展开 SQL 本身的语法知识，默认你已经知道 `SELECT`、`INSERT`、`UPDATE`、`DELETE`、事务等基础内容。本节重点不是“如何写 SQL”，而是“如何在 Go 中接入并操作 MySQL”。
+Mysql 是当下最流行的开源关系型数据库之一。这里不再展开 SQL 本身的语法知识，默认你已经知道 `SELECT`、`INSERT`、`UPDATE`、`DELETE`、事务等基础内容。
 
-在 Go 中，如果不使用 ORM，最常见的做法就是基于标准库 `database/sql` 进行数据库交互。这里使用的则是它的增强库 `sqlx`，它来自 `github.com/jmoiron/sqlx`，相比标准库补充了结构体映射、命名参数等更方便的能力，但整体仍然保持了“SQL 由开发者自己掌控”的风格。MySQL 驱动则来自 `github.com/go-sql-driver/mysql`。
+在 Go 中，如果不使用 ORM，最常见的做法就是基于标准库 `database/sql` 进行数据库交互。这里使用的则是它的增强库 `sqlx`，它来自 `github.com/jmoiron/sqlx`，相比标准库补充了结构体映射、命名参数等更方便的能力，但整体仍然保持了“SQL 由开发者自己掌控”的风格。
 
-##### 基础说明
+##### 安装与入门
 
-**依赖安装**
-
-安装 `sqlx`：
+安装 `sqlx`和Mysql驱动：
 
 ```bash
 go get github.com/jmoiron/sqlx
-```
-
-安装 MySQL 驱动：
-
-```bash
 go get github.com/go-sql-driver/mysql
-```
 
-`sqlx` 或者标准库 `database/sql` 支持的并不只有 MySQL。任何实现了 `driver.Driver` 接口的数据库驱动都可以接入，例如 PostgreSQL、SQLite、MariaDB、Oracle 等。通常第三方驱动库在导入时就会自动完成注册，因此大多数情况下不需要手动调用 `sql.Register`。
-
-```go
 func Register(name string, driver driver.Driver)
 ```
 
-**DSN 格式**
+通常第三方驱动库在导入时就会自动完成注册，因此大多数情况下不需要手动调用 `sql.Register`。
 
-连接数据库时需要传入 DSN（Data Source Name）。对于 MySQL，常见写法如下：
+##### 连接
+
+在 Go 中，通常不会为每条 SQL 单独创建一次连接，而是通过 `sqlx.DB` 持有一个数据库句柄，由它在内部维护连接池。因此，正确的做法通常是：程序启动时初始化数据库句柄，之后在整个应用生命周期内复用它。
+
+**DSN 格式**：连接数据库时需要传入 DSN（Data Source Name）。对于 MySQL，常见写法如下：
 
 ```go
 root:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=True&loc=Local
@@ -11358,19 +9879,13 @@ root:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=True&loc=Local
 - 数据库名
 - 字符集、时间解析、本地时区等参数
 
-##### 连接与连接池
-
-在 Go 中，通常不会为每条 SQL 单独创建一次连接，而是通过 `sqlx.DB` 持有一个数据库句柄，由它在内部维护连接池。因此，正确的做法通常是：程序启动时初始化数据库句柄，之后在整个应用生命周期内复用它。
-
-**常用方法**
-
-`sqlx.Open` 用于创建数据库句柄：
+**数据库连接**：`sqlx.Open` 用于创建数据库句柄：
 
 ```go
 func Open(driverName, dataSourceName string) (*DB, error)
 ```
 
-示例：
+比如：
 
 ```go
 db, err := sqlx.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=True&loc=Local")
@@ -11400,333 +9915,128 @@ db.SetConnMaxLifetime(time.Hour)
 
 实际项目中通常都需要配置连接池，否则在高并发下容易出现连接不足、连接泄漏、连接长期不释放、服务端主动断开老连接等问题。
 
-**连接初始化示例**
+##### CRUD
 
-文件名：`main.go`
+其实CRUD围绕着查与增删改展开，由于查需要存储信息所以使用类似`GET`,`Select`展开，而增删改只需要一个是否成功的结果，所以用`Exec`就可以了。
 
-```go
-package main
-
-import (
-	"fmt"
-	"time"
-
-	"github.com/jmoiron/sqlx"
-	_ "github.com/go-sql-driver/mysql"
-)
-
-func main() {
-	dsn := "root:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=True&loc=Local"
-
-	db, err := sqlx.Open("mysql", dsn)
-	if err != nil {
-		fmt.Println("open mysql failed:", err)
-		return
-	}
-	defer db.Close()
-
-	if err = db.Ping(); err != nil {
-		fmt.Println("ping mysql failed:", err)
-		return
-	}
-
-	db.SetMaxOpenConns(20)
-	db.SetMaxIdleConns(10)
-	db.SetConnMaxLifetime(time.Hour)
-
-	fmt.Println("mysql connect success")
-}
-```
-
-运行命令：
-
-```bash
-go run .
-```
-
-示例输出：
-
-```text
-mysql connect success
-```
-
-##### 库、表与测试数据
-
-这一部分只保留一套后续示例要用到的数据结构，后面的查询、写入、事务示例都会基于它展开。
-
-**建库与建表**
+**数据准备**
 
 ```sql
-CREATE DATABASE IF NOT EXISTS test DEFAULT CHARACTER SET utf8mb4;
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
 
-USE test;
-
+-- ----------------------------
+-- Table structure for user
+-- ----------------------------
 DROP TABLE IF EXISTS `user`;
-CREATE TABLE `user` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(100) NOT NULL,
-  `age` TINYINT UNSIGNED NOT NULL,
-  `address` VARCHAR(255) DEFAULT '',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE `user`  (
+  `id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL,
+  `age` tinyint(0) NULL DEFAULT NULL,
+  `address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL,
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_bin ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of user
+-- ----------------------------
+INSERT INTO `user` VALUES ('12132', '张三', 35, '北京市');
+INSERT INTO `user` VALUES ('16162', '王五', 22, '上海市');
+
+SET FOREIGN_KEY_CHECKS = 1;
 ```
 
-**测试数据**
-
-```sql
-INSERT INTO `user` (`name`, `age`, `address`) VALUES
-('张三', 35, '北京市'),
-('王五', 22, '上海市');
-```
-
-**Go 中的结构体映射**
-
-文件名：`model.go`
+###### 查询
 
 ```go
-package main
+var db *sqlx.DB
 
-type User struct {
-	ID      uint64 `db:"id"`
-	Name    string `db:"name"`
-	Age     uint8  `db:"age"`
-	Address string `db:"address"`
+type Person struct {
+   UserId   string `db:"id"`
+   Username string `db:"name"`
+   Age      int    `db:"age"`
+   Address  string `db:"address"`
+}
+
+func query() {
+   var person Person
+   //查询一个是Get，多个是Select
+   err := db.Get(&person, "select * from user where id = ?", "12132")
+   if err != nil {
+      fmt.Println("query failed:", err)
+      return
+   }
+   fmt.Printf("query succ:%+v", person)
+}
+
+func list() {
+  var perons []Person
+  err := db.Select(&perons, "select * from user")
+  if err != nil {
+    fmt.Println("list err", err)
+    return
+  }
+  fmt.Printf("list succ,%+v", perons)
 }
 ```
 
-##### 用户与权限管理
-
-这一部分属于 MySQL 基础运维中很常见的内容。即使本文重点是 Go 接入，也最好具备最基本的用户与权限概念。实际生产环境中，不建议应用直接使用 `root` 账户连接数据库，因为 `root` 权限过大，一旦泄露或者程序误操作，影响会非常严重。
-
-**常见权限命令**
-
-创建用户：
-
-```sql
-CREATE USER 'app'@'%' IDENTIFIED BY '123456';
-```
-
-授权：
-
-```sql
-GRANT SELECT, INSERT, UPDATE, DELETE ON test.* TO 'app'@'%';
-```
-
-查看权限：
-
-```sql
-SHOW GRANTS FOR 'app'@'%';
-```
-
-撤权：
-
-```sql
-REVOKE INSERT, UPDATE ON test.* FROM 'app'@'%';
-```
-
-删除用户：
-
-```sql
-DROP USER 'app'@'%';
-```
-
-如果只是本地开发环境，使用高权限账户问题不大；但在线上环境，通常都会为每个应用单独创建用户，并只授予该应用真正需要的最小权限。
-
-##### 基本查询
-
-查询这一块重点关注的是：如何把 SQL 结果映射到 Go 变量、结构体、切片以及如何安全传参，而不是重复讲 SQL 语法本身。
-
-**Get 与 Select**
-
-`Get` 常用于读取单条记录，`Select` 常用于读取多条记录。
-
-文件名：`query.go`
+###### 增加
 
 ```go
-package main
-
-import (
-	"fmt"
-
-	"github.com/jmoiron/sqlx"
-)
-
-func queryOne(db *sqlx.DB, id uint64) {
-	var user User
-	err := db.Get(&user, "SELECT id, name, age, address FROM user WHERE id = ?", id)
-	if err != nil {
-		fmt.Println("query one failed:", err)
-		return
-	}
-	fmt.Printf("query one success: %+v\n", user)
-}
-
-func queryList(db *sqlx.DB) {
-	var users []User
-	err := db.Select(&users, "SELECT id, name, age, address FROM user")
-	if err != nil {
-		fmt.Println("query list failed:", err)
-		return
-	}
-	fmt.Printf("query list success: %+v\n", users)
+func insert() {
+   result, err := db.Exec("insert into user value (?,?,?,?)", "120230", "李四", 12, "广州市")
+   if err != nil {
+      fmt.Println("insert err:", err)
+      return
+   }
+   id, err := result.LastInsertId()
+   if err != nil {
+      fmt.Println("insert err:", err)
+      return
+   }
+   fmt.Println("insert succ:", id)
 }
 ```
 
-这里的 `?` 是占位符参数，参数值会单独传入，这比字符串拼接更安全，也更不容易产生 SQL 注入问题。
-
-**Queryx 与手动扫描**
-
-有些场景下，不一定适合直接映射到结构体，比如你想手动处理每一行结果，或者只取部分列，这时可以使用 `Queryx`。
+###### 更新
 
 ```go
-rows, err := db.Queryx("SELECT id, name FROM user WHERE age > ?", 18)
-if err != nil {
-	return
-}
-defer rows.Close()
-
-for rows.Next() {
-	var id uint64
-	var name string
-	if err := rows.Scan(&id, &name); err != nil {
-		return
-	}
-	fmt.Println(id, name)
+func update() {
+   res, err := db.Exec("update user set name = ? where id = ?", "赵六", "120230")
+   if err != nil {
+      fmt.Println("update err:", err)
+      return
+   }
+   eff, err := res.RowsAffected()
+   if err != nil || eff == 0 {
+      fmt.Println("update err:", err)
+      return
+   }
+   fmt.Println("Update succ")
 }
 ```
 
-`Queryx` 更适合你想手动控制扫描过程的情况，而 `Get`、`Select` 更适合标准结构体映射。
-
-##### 基本写入
-
-写入操作通常统一围绕 `Exec` 展开，区别只是 SQL 语句不同。对 Go 来说，重点是如何执行、如何拿到受影响行数，以及在插入时如何获取新记录主键。
-
-**Exec**
+###### 删除
 
 ```go
-func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error)
-```
-
-`Exec` 适用于不直接返回结果集的 SQL，例如新增、更新、删除。
-
-**新增 / 更新 / 删除**
-
-文件名：`write.go`
-
-```go
-package main
-
-import (
-	"fmt"
-
-	"github.com/jmoiron/sqlx"
-)
-
-func insertUser(db *sqlx.DB) {
-	result, err := db.Exec(
-		"INSERT INTO user(name, age, address) VALUES (?, ?, ?)",
-		"李四", 18, "广州市",
-	)
-	if err != nil {
-		fmt.Println("insert failed:", err)
-		return
-	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		fmt.Println("get last insert id failed:", err)
-		return
-	}
-
-	fmt.Println("insert success, id =", id)
+func delete() {
+   res, err := db.Exec("delete from user where id = ?", "120230")
+   if err != nil {
+      fmt.Println("delete err:", err)
+      return
+   }
+   eff, err := res.RowsAffected()
+   if err != nil || eff == 0 {
+      fmt.Println("delete err:", err)
+      return
+   }
+   fmt.Println("delete succ")
 }
-
-func updateUser(db *sqlx.DB, id uint64) {
-	result, err := db.Exec(
-		"UPDATE user SET name = ? WHERE id = ?",
-		"赵六", id,
-	)
-	if err != nil {
-		fmt.Println("update failed:", err)
-		return
-	}
-
-	affected, _ := result.RowsAffected()
-	fmt.Println("update success, rows =", affected)
-}
-
-func deleteUser(db *sqlx.DB, id uint64) {
-	result, err := db.Exec("DELETE FROM user WHERE id = ?", id)
-	if err != nil {
-		fmt.Println("delete failed:", err)
-		return
-	}
-
-	affected, _ := result.RowsAffected()
-	fmt.Println("delete success, rows =", affected)
-}
-```
-
-这里常见的两个结果方法是：
-
-```go
-result.LastInsertId()
-result.RowsAffected()
-```
-
-- `LastInsertId`：常用于插入自增主键记录后获取 ID
-- `RowsAffected`：常用于判断更新或删除到底影响了多少行
-
-##### 预处理与命名参数
-
-如果同一条 SQL 会被多次重复执行，或者你希望让参数绑定更清晰，就可以考虑预处理语句或者命名参数。
-
-###### 预处理
-
-预处理适合“同一条 SQL 多次执行，只是参数不同”的场景。这样可以减少重复 SQL 解析，也能让代码结构更明确。
-
-```go
-stmt, err := db.Preparex("SELECT id, name, age, address FROM user WHERE id = ?")
-if err != nil {
-	return
-}
-defer stmt.Close()
-
-var user User
-err = stmt.Get(&user, 1)
-```
-
-###### 命名参数
-
-命名参数在参数比较多、结构体字段与 SQL 占位关系复杂时会更清晰。相比位置参数，它减少了“第几个参数对应哪个字段”的记忆负担，也减少了重复拼接 SQL 的麻烦。
-
-```go
-u := User{
-	Name:    "小明",
-	Age:     20,
-	Address: "深圳市",
-}
-
-_, err := db.NamedExec(
-	"INSERT INTO user(name, age, address) VALUES (:name, :age, :address)",
-	u,
-)
-```
-
-查询时也可以使用 `NamedQuery`：
-
-```go
-rows, err := db.NamedQuery(
-	"SELECT id, name, age, address FROM user WHERE name = :name",
-	map[string]any{"name": "张三"},
-)
 ```
 
 ##### 事务
 
 事务是数据库交互中非常重要的一部分。Go 里最需要注意的一点不是 SQL 本身，而是：**一旦开启事务，后续操作必须使用 `tx`，而不是继续使用外部的 `db`**。否则这些操作根本不在同一个事务里。
-
-**常用方法**
 
 ```go
 func (db *DB) Begin() (*Tx, error)
@@ -11742,68 +10052,6 @@ defer tx.Rollback()
 
 这样即便中途返回或者报错，也能保证事务被正确回滚；如果后面已经 `Commit()` 成功，这句回滚自然不会再产生实际影响。
 
-**事务示例：转账**
-
-文件名：`transaction.go`
-
-```go
-package main
-
-import (
-	"fmt"
-
-	"github.com/jmoiron/sqlx"
-)
-
-func transfer(db *sqlx.DB, fromID, toID uint64, amount int) error {
-	tx, err := db.Beginx()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	_, err = tx.Exec("UPDATE account SET balance = balance - ? WHERE id = ?", amount, fromID)
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec("UPDATE account SET balance = balance + ? WHERE id = ?", amount, toID)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
-func mustWriteInTx(db *sqlx.DB) {
-	tx, err := db.Beginx()
-	if err != nil {
-		fmt.Println("begin tx failed:", err)
-		return
-	}
-	defer tx.Rollback()
-
-	_, err = tx.Exec("INSERT INTO user(name, age, address) VALUES (?, ?, ?)", "事务用户", 30, "杭州")
-	if err != nil {
-		fmt.Println("insert in tx failed:", err)
-		return
-	}
-
-	_, err = tx.Exec("UPDATE user SET address = ? WHERE name = ?", "南京", "事务用户")
-	if err != nil {
-		fmt.Println("update in tx failed:", err)
-		return
-	}
-
-	if err = tx.Commit(); err != nil {
-		fmt.Println("commit failed:", err)
-		return
-	}
-
-	fmt.Println("transaction success")
-}
-```
-
 ##### 存储过程与触发器
 
 这里把“存储过程”和“钩子”合并在一起说明。需要注意的是，在 MySQL 语境中，这里的“钩子”更准确地说应该叫**触发器（Trigger）**。
@@ -11812,26 +10060,6 @@ func mustWriteInTx(db *sqlx.DB) {
 
 存储过程本质上是保存在数据库中的一组 SQL 逻辑，可以通过 `CALL proc_name(...)` 执行。它适合把某些固定的数据库侧逻辑封装起来。
 
-**定义示例**
-
-```sql
-DELIMITER $$
-
-CREATE PROCEDURE sp_add_user(
-    IN p_name VARCHAR(100),
-    IN p_age TINYINT,
-    IN p_address VARCHAR(255)
-)
-BEGIN
-    INSERT INTO user(name, age, address)
-    VALUES (p_name, p_age, p_address);
-END $$
-
-DELIMITER ;
-```
-
-**Go 中调用**
-
 ```go
 _, err := db.Exec("CALL sp_add_user(?, ?, ?)", "存储过程用户", 26, "成都市")
 if err != nil {
@@ -11839,196 +10067,29 @@ if err != nil {
 }
 ```
 
-###### 触发器
-
-触发器会在指定表发生某类事件时自动执行，例如 `BEFORE INSERT`、`AFTER UPDATE`、`BEFORE DELETE` 等。它更像是数据库层的事件钩子。
-
-**定义示例**
-
-下面这个触发器会在插入用户前，把 `name` 自动转成大写：
-
-```sql
-DELIMITER $$
-
-CREATE TRIGGER trg_user_before_insert
-BEFORE INSERT ON user
-FOR EACH ROW
-BEGIN
-    SET NEW.name = UPPER(NEW.name);
-END $$
-
-DELIMITER ;
-```
-
-之后如果 Go 代码里执行：
-
-```go
-_, err := db.Exec("INSERT INTO user(name, age, address) VALUES (?, ?, ?)", "jack", 20, "shenzhen")
-```
-
-那么真正写入数据库的 `name` 就会是大写形式。也就是说，触发器的逻辑是在数据库里自动生效的，并不需要 Go 再额外显式调用。
-
-##### 完整示例
-
-最后给出一个完整示例，把前面的核心流程串起来：建立连接、配置连接池、查询一条数据、插入一条数据、开启事务执行更新、调用存储过程，并观察触发器的效果。
-
-文件名：`main.go`
-
-```go
-package main
-
-import (
-	"fmt"
-	"time"
-
-	"github.com/jmoiron/sqlx"
-	_ "github.com/go-sql-driver/mysql"
-)
-
-type User struct {
-	ID      uint64 `db:"id"`
-	Name    string `db:"name"`
-	Age     uint8  `db:"age"`
-	Address string `db:"address"`
-}
-
-func main() {
-	dsn := "root:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=True&loc=Local"
-
-	db, err := sqlx.Open("mysql", dsn)
-	if err != nil {
-		fmt.Println("open mysql failed:", err)
-		return
-	}
-	defer db.Close()
-
-	if err = db.Ping(); err != nil {
-		fmt.Println("ping mysql failed:", err)
-		return
-	}
-
-	db.SetMaxOpenConns(20)
-	db.SetMaxIdleConns(10)
-	db.SetConnMaxLifetime(time.Hour)
-
-	var user User
-	err = db.Get(&user, "SELECT id, name, age, address FROM user WHERE id = ?", 1)
-	if err != nil {
-		fmt.Println("query failed:", err)
-		return
-	}
-	fmt.Printf("query success: %+v\n", user)
-
-	result, err := db.Exec(
-		"INSERT INTO user(name, age, address) VALUES (?, ?, ?)",
-		"jack", 20, "深圳市",
-	)
-	if err != nil {
-		fmt.Println("insert failed:", err)
-		return
-	}
-	newID, _ := result.LastInsertId()
-	fmt.Println("insert success, id =", newID)
-
-	tx, err := db.Beginx()
-	if err != nil {
-		fmt.Println("begin tx failed:", err)
-		return
-	}
-	defer tx.Rollback()
-
-	_, err = tx.Exec("UPDATE user SET address = ? WHERE id = ?", "杭州市", newID)
-	if err != nil {
-		fmt.Println("update in tx failed:", err)
-		return
-	}
-
-	if err = tx.Commit(); err != nil {
-		fmt.Println("commit failed:", err)
-		return
-	}
-	fmt.Println("transaction success")
-
-	_, err = db.Exec("CALL sp_add_user(?, ?, ?)", "procedure_user", 25, "苏州市")
-	if err != nil {
-		fmt.Println("call procedure failed:", err)
-		return
-	}
-	fmt.Println("procedure call success")
-
-	var inserted User
-	err = db.Get(&inserted, "SELECT id, name, age, address FROM user WHERE id = ?", newID)
-	if err != nil {
-		fmt.Println("requery failed:", err)
-		return
-	}
-	fmt.Printf("requery success: %+v\n", inserted)
-}
-```
-
-运行命令：
-
-```bash
-go run .
-```
-
-示例输出：
-
-```text
-query success: {ID:1 Name:张三 Age:35 Address:北京市}
-insert success, id = 3
-transaction success
-procedure call success
-requery success: {ID:3 Name:JACK Age:20 Address:杭州市}
-```
-
-这里最后的 `Name:JACK` 就说明如果你前面创建了 `BEFORE INSERT` 触发器，那么它已经在插入阶段自动生效了。
-
-这一节的核心其实只有一句话：**在 Go 中操作 MySQL，重点不是背 SQL，而是掌握连接、映射、参数传递、结果处理、事务边界以及数据库侧能力（如存储过程、触发器）如何与 Go 代码配合。**
-
 #### Redis
 
-##### 基础说明
-
-Redis 是一个开源的键值数据库，既可以作为 NoSQL 数据库使用，也经常被当作缓存、计数器、排行榜、简单消息队列等基础组件。本文不展开讲 Redis 本身的命令设计与数据结构原理，而是重点说明 **如何在 Go 中接入并操作 Redis**。
+Redis 是一个开源的键值数据库，既可以作为 NoSQL 数据库使用，也经常被当作缓存、计数器、排行榜、简单消息队列等基础组件。
 
 在 Go 中，常用的 Redis 客户端之一是 `go-redis`。不同 Redis 版本通常对应不同的大版本客户端：
 
 - Redis 6 常见写法：`github.com/go-redis/redis/v8`
 - Redis 7 常见写法：`github.com/go-redis/redis/v9`
 
-本节下面的示例以主流的 `go-redis` 用法为主，核心思路在不同版本之间差异并不大。
+##### 安装与入门
 
-官方文档：[Golang Redis client (uptrace.dev)](https://redis.uptrace.dev/)
-
-官方仓库：[go-redis/redis: Type-safe Redis client for Golang (github.com)](https://github.com/go-redis/redis)
-
-##### 环境与依赖
-
-安装 Redis 客户端时，需要根据自己使用的 Redis 版本与客户端版本选择对应依赖。
-
-如果使用 Redis 6，可以安装：
+安装 Redis 客户端时，需要根据自己使用的 Redis 版本与客户端版本选择对应依赖。如果使用 Redis 6或7，可以安装：
 
 ```bash
 go get github.com/go-redis/redis/v8
-```
-
-如果使用 Redis 7，可以安装：
-
-```bash
 go get github.com/go-redis/redis/v9
 ```
 
 导入方式如下，例如：
 
 ```go
-import "github.com/go-redis/redis/v9"
-```
-
-或者 v8：
-
-```go
 import "github.com/go-redis/redis/v8"
+import "github.com/go-redis/redis/v9"
 ```
 
 ##### 连接
@@ -17292,3 +15353,734 @@ go run . version --help
 
 ### 部署与交付
 
+
+
+
+
+## 原理基础
+
+### 错误处理
+
+#### nil
+
+`nil`是Go中引用类型的默认零值，不过不同引用类型的零值具体语义上有所不同：
+
+* **切片**：当切片为`nil`的时候，可以访问它的长度和容量，也可以对其添加元素
+
+```go
+func main() {
+  var s []int
+  fmt.Println(len(s))
+  fmt.Println(cap(s))
+  s = append(s, 1)
+}
+```
+
+* **映射表**：当 map 为`nil`的时候，还可以对其进行访问，但是会返回`error`；但是`nil`的 map 是只读的，一旦尝试写入就会引发panic
+
+```go
+func main() {
+  var s map[string]int
+  i, ok := s[""]
+  fmt.Println(i, ok)
+  fmt.Println(len(s))
+
+  // 尝试写入时，会引发panic
+  s["a"] = 1 // panic: assignment to entry in nil map
+
+}
+```
+
+* **接口**：接口时由类型和值组成的，只有当类型为`untype`以及值为`nil`时，它才应当被视为空值。因此对接口做判断时，最好通过反射来判断值。
+
+```go
+func main() {
+  var p *int
+  fmt.Println(p)
+  fmt.Println(p == nil)
+  fmt.Println(reflect.TypeOf(p))
+  var pa any
+  pa = p
+  fmt.Println(pa)
+  fmt.Println(pa == nil)
+  fmt.Println(reflect.TypeOf(pa))
+}
+
+// <nil>
+// true
+// *int
+// <nil>
+// false
+// *int
+```
+
+* **结构体**：当结构体的接收者为指针接收者时，`nil`是可用的。本质上类似传入了一个零值结构体并对其进行操作。
+
+```go
+type test struct {
+	t int
+}
+
+func (t *test) getT() int {
+	return t.t
+}
+
+func main() {
+	var t test
+	fmt.Println(t.getT())
+}
+```
+
+这些有关于`nil`的特性可能会让人比较困惑，尤其是对于 go 的初学者而言，`nil`代表着上面几种类型的零值，也就是默认值，默认值应当表现出默认的行为，这也正是 go 的设计者所希望看到的：让`nil`变得更有用，而不是直接抛出空指针错误。
+
+#### defer
+
+`defer`在 go 的日常开发中是一个出现频率非常高的关键字，它会以先进后出的方式来执行`defer`关联的函数，很多时候我们利用这种机制来进行一些资源的释放操作，比如文件关闭之类的操作。如此高频出现的关键字，使得我们有必要去了解一下它背后的结构。
+
+`defer`关键字对应`runtime._defer`结构体，它的结构并不复杂
+
+```go
+type g struct {
+    ...
+  _panic    *_panic // innermost panic - offset known to liblink
+  _defer    *_defer // innermost defer
+    ...
+}
+
+type _defer struct {
+  started bool
+  heap    bool
+  openDefer bool
+  sp        uintptr // sp at time of defer
+  pc        uintptr // pc at time of defer
+  fn        func()  // can be nil for open-coded defers
+  _panic    *_panic // panic that is running defer
+  link      *_defer // next defer on G; can point to either heap or stack!
+  fd   unsafe.Pointer // funcdata for the function associated with the frame
+  varp uintptr        // value of varp for the stack frame
+  framepc uintptr
+}
+```
+
+其中的`fn`字段是`defer`关键字对应的函数，`link`表示下一个链接的`defer`，`sp`和`pc`记录了调用方的函数信息，用于判断`defer`属于哪一个函数。defer 在运行时以链表的形式存在，链表的头部就在协程 G 上，所以`defer`实际上是与协程直接关联的。
+
+当协程执行函数时，就会按照顺序将函数中的`defer`从链表的头部加入
+
+```
+defer fn1()
+defer fn2()
+defer fn3()
+```
+
+上面那段代码就对应这幅图
+
+![img](./assets/202401271603913.png)
+
+除了协程之外，P 也跟`defer`有一定的关联，在 P 的结构体中，有一个`deferpool`字段。`deferpool`中存放着预分配好的`defer`结构，用于给与 P 关联的协程 G 分配新的`defer`结构，可以减少开销。
+
+```go
+type p struct {
+  ...
+  deferpool    []*_defer // pool of available defer structs (see panic.go)
+  deferpoolbuf [32]*_defer
+    ...
+}
+```
+
+##### 分配
+
+**defer通常来说由deferpool分配，若pool中无可用defer那么就会手动分配；在栈上分配的defer效率更高且会直接创建结构体，而在堆上分配的defer一般来说效率慢一些且用`new`来产生。**
+
+在语法上对`defer`关键字的使用，编译器会将其转为为对`runtime.deferproc`函数的调用。所以实际上`defer`传入的函数是没有参数也没有返回值的。
+
+```go
+defer fn1(x, y)
+// 编译后实际上的代码是这样的
+deferproc(func(){
+  fn1(x, y)
+})
+```
+
+`deferproc`的函数负责创建`defer`结构并将其加入协程 G 链表的头部，其中的`runtime.newdefer`函数就会尝试从 P 中的`deferpool`来获取预分配的`defer`结构。
+
+```go
+func deferproc(fn func()) {
+  gp := getg()
+  d := newdefer()
+  d.link = gp._defer
+  gp._defer = d
+  d.fn = fn
+  d.pc = getcallerpc()
+  d.sp = getcallersp()
+  return0()
+}
+```
+
+它首先会从全局的`sched.deferpool`向局部的`deferpool`装填一半的`defer`结构，然后再从 P 中的`deferpool`尝试去获取,最后实在找不到才会使用手动分配的方式。
+
+```go
+if len(pp.deferpool) == 0 && sched.deferpool != nil {
+    lock(&sched.deferlock)
+    for len(pp.deferpool) < cap(pp.deferpool)/2 && sched.deferpool != nil {
+        d := sched.deferpool
+        sched.deferpool = d.link
+        d.link = nil
+        pp.deferpool = append(pp.deferpool, d)
+    }
+    unlock(&sched.deferlock)
+}
+
+if n := len(pp.deferpool); n > 0 {
+    d = pp.deferpool[n-1]
+    pp.deferpool[n-1] = nil
+    pp.deferpool = pp.deferpool[:n-1]
+}
+
+if d == nil {
+    // Allocate new defer.
+    d = new(_defer)
+}
+d.heap = true
+```
+
+其中`d.heap = true`表示`defer`在堆上分配，相应的当其为`false`时，就会在栈上分配，栈上分配的内存会在返回时自动回收，其内存管理效率要比在堆上更高，而决定是否在栈上分配的因素就是循环层数，这部分逻辑可以追溯到`cmd/compile/ssagen`中的`escape.goDeferStmt`方法的这一小段。
+
+```go
+func (e *escape) goDeferStmt(n *ir.GoDeferStmt) {
+  ...
+  if n.Op() == ir.ODEFER && e.loopDepth == 1 {
+    k = e.later(e.discardHole())
+    n.SetEsc(ir.EscNever)
+  }
+    ...
+}
+```
+
+`e.loopDepth`表示的就是当前语句的循环层数，如果当前`defer`语句不在循环中，就会将其分配到栈上。如果是在栈上分配的话，就会直接在栈上创建`defer`结构体，最终会由`runtime.deferprocStack`函数来完成`defer`结构的创建。`deferprocStack`函数的签名如下
+
+```go
+func deferprocStack(d *_defer)
+```
+
+其具体的创建逻辑与`deferproc`并无太大区别，主要的区别在于，在栈上分配时是`defer`结构的来源是直接创建的结构体，在堆上分配的`defer`来源是`new`函数。
+
+##### 执行
+
+当函数将要返回或者发生`panic`时，便会进入`runtime.deferreturn`函数，它负责从协程的链表中取出`defer`并执行。
+
+```
+func deferreturn() {
+  gp := getg()
+  for {
+    d := gp._defer
+    sp := getcallersp()
+    if d.sp != sp {
+      return
+    }
+    fn := d.fn
+    d.fn = nil
+    gp._defer = d.link
+    freedefer(d)
+    fn()
+  }
+}
+```
+
+首先会通过`getcallersp()`获取当前函数的栈帧并与`defer`结构中的`sp`做比较来判断`defer`是否属于当前函数，然后将`defer`结构从链表头部取出，并使用`gp._defer = d.link`执行下一个`defer`，再通过`runtuime.freedefer`函数将`defer`结构释放回池中，最后再调用`fn`执行，就这样一直循环到执行完属于当前函数的所有`defer`结束为止。
+
+##### 特性
+
+这里主要说明一下使用`defer`的特点：
+
+* 多个`defer`调用按照先进后出的顺序调用。
+* `defer`作用域仅限当前函数，不同函数的`defer`不会互相产生影响。
+* `defer`后的函数参数在声明时得到固定，这意味着`defer`只是推迟函数执行，而非推迟函数调用。
+
+```go
+func (){
+    num := 0
+    defer func(n int){
+        fmt.Println("defer:",n)
+    }(num)
+    num = 10
+}
+// defer : 0
+```
+
+* `defer`的执行在`return`后，然后函数返回返回值。
+
+```go
+res := func ()(num int){
+    num = 10
+    defer func(){
+        num +=5
+    }()
+    return 2
+}
+// 7
+
+```
+
+* `panic`时只有已声明的`defer`会出栈并执行。
+
+```go
+func non(n int) {
+	fmt.Println(n)
+}
+func main() {
+	res := func() {
+		defer non(1)
+		defer non(2)
+		panic("panic")
+		defer non(3)
+	}
+	res()
+}
+// 2
+// 1
+// panic:panic
+```
+
+#### panic
+
+`panic`是 go 的内置函数，当遇到不可恢复的错误时，程序往往就会抛出`panic`。在一些情况下，我们也会手动调用`panic`函数来让程序退出，从而避免更严重的后果。平时也会用另一个内置函数`recover`来捕获`panic`，并配合`defer`使用。那么为什么`recover`函数一定要在`defer`里面使用，`recover`做了些什么工作？
+
+**简单来说，就是因为panic与defer都是链表顺序执行，而defer先于panic执行，在触发panic到panic生效期间，只有defer流程能够介入恢复，也就因此recover必须配合defer完成。当panic触发时，gp._panic被赋值，而其他时候该值为nil。**
+
+`panic`在运行时也有对应的结构进行表示，那就是`runtime._panic`，其结构并不复杂，如下。
+
+```go
+type _panic struct {
+  argp      unsafe.Pointer // pointer to arguments of deferred call run during panic; cannot move - known to liblink
+  arg       any            // argument to panic
+  link      *_panic        // link to earlier panic
+  pc        uintptr        // where to return to in runtime if this panic is bypassed
+  sp        unsafe.Pointer // where to return to in runtime if this panic is bypassed
+  recovered bool           // whether this panic is over
+  aborted   bool           // the panic was aborted
+  goexit    bool
+}
+```
+
+它的结构与`defer`非常类似，
+
+- `link`指向下一个`_panic`结构，
+- `pc`和`sp`指向调用函数的执行现场便于日后恢复，
+- `arg`就是`panic`函数的参数，
+- `argp`指向`defer`的参数，`panic`发生后便会触发`defer`的执行
+- `aborted`表示其是否被强制停止
+
+`panic`跟`defer`一样，也是以链表的形式存在于协程中
+
+```go
+type g struct {
+  _panic    *_panic // innermost panic - offset known to liblink
+  _defer    *_defer // innermost defer
+}
+```
+
+![img](./assets/impl_panic_1.png)
+
+##### 执行
+
+无论是我们主动调用`panic`函数，抑或是程序发生的`panic`，最终都会走入`runtime.gopanic`函数中
+
+```go
+func gopanic(e any)
+```
+
+在开始时，首先会检测参数是否为`nil`，如果是`nil`的话就会 new 一个`runtime.PanicNilError`类型的错误
+
+```go
+if e == nil {
+    if debug.panicnil.Load() != 1 {
+        e = new(PanicNilError)
+    } else {
+        panicnil.IncNonDefault()
+    }
+}
+```
+
+然后将当前的`panic`加入协程的链表头部
+
+```go
+var p _panic
+p.arg = e
+p.link = gp._panic
+gp._panic = (*_panic)(noescape(unsafe.Pointer(&p)))
+```
+
+随后进入`for`循环开始逐个处理当前协程的`defer`链表
+
+```go
+for {
+    d := gp._defer
+    if d == nil {
+      break
+    }
+
+    if d.started {
+      if d._panic != nil {
+        d._panic.aborted = true
+      }
+      d._panic = nil
+    }
+    d.started = true
+        d._panic = (*_panic)(noescape(unsafe.Pointer(&p)))
+    ...
+}
+```
+
+如果当前的`defer`已经被其它的`panic`触发了，即`_defer.started == true`，那么较早的`panic`将不会执行。然后再执行`defer`对应的函数
+
+```go
+p.argp = unsafe.Pointer(getargp())
+d.fn()
+p.argp = nil
+d._panic = nil
+
+d.fn = nil
+gp._defer = d.link
+freedefer(d)
+```
+
+执行完后回收当前的`defer`结构，继续执行下一个`defer`，当执行完全部的`defer`结构后且期间没有被恢复，就会进入`runtime.fatalpanic`函数，该函数是`unrecoverable`即不可恢复的
+
+```go
+func fatalpanic(msgs *_panic) {
+  pc := getcallerpc()
+  sp := getcallersp()
+  gp := getg()
+  var docrash bool
+  systemstack(func() {
+    if startpanic_m() && msgs != nil {
+      runningPanicDefers.Add(-1)
+      printpanics(msgs)
+    }
+
+    docrash = dopanic_m(gp, pc, sp)
+  })
+
+  if docrash {
+    crash()
+  }
+
+  systemstack(func() {
+    exit(2)
+  })
+
+  *(*int)(nil) = 0 // not reached
+}
+```
+
+在这期间会让`printpanics`打印`panic`的信息，我们通常看到的调用栈信息就是由它输出的，最后由`runtime.exit`函数通过系统调用`_ExitProcess`退出程序。
+
+##### 恢复
+
+通过调用内置函数`recover`，编译期间会变为对`runtime.gorecover`函数的调用
+
+```go
+func gorecover(argp uintptr) any {
+  gp := getg()
+  p := gp._panic
+  if p != nil && !p.goexit && !p.recovered && argp == uintptr(p.argp) {
+    p.recovered = true
+    return p.arg
+  }
+  return nil
+}
+```
+
+它的实现非常简单，只干了`p.recovered = true`这么一件事，而真正负责处理恢复逻辑的代码实际上在`gopanic`函数里
+
+```go
+for {
+    ...
+      d.fn()
+      ...
+    if p.recovered {
+      ...
+    }
+}
+```
+
+恢复的逻辑在`defer`执行后，到这里也就明白了为什么`recover`函数只能在`defer`中使用，如果在`defer`之外使用`recover`函数的话`gp._panic`就等于`nil`，自然`p.recovered`就不会被设置为`true`，那么在`gopanic`函数中也就不会走到恢复这部分逻辑里面来。
+
+```go
+if p.recovered {
+    gp._panic = p.link
+    for gp._panic != nil && gp._panic.aborted {
+      gp._panic = gp._panic.link
+    }
+    if gp._panic == nil {
+      gp.sig = 0
+    }
+
+    gp.sigcode0 = uintptr(sp)
+    gp.sigcode1 = pc
+    mcall(recovery)
+    throw("recovery failed")
+}
+```
+
+恢复时会清理链表中那些已经被强制停止的`panic`，然后进入`runtime.recovery`函数中，由`runtime.gogo`回到用户函数的正常逻辑流程中
+
+```go
+func recovery(gp *g) {
+  // Info about defer passed in G struct.
+  sp := gp.sigcode0
+  pc := gp.sigcode1
+
+  gp.sched.sp = sp
+  gp.sched.pc = pc
+  gp.sched.lr = 0
+  gp.sched.ret = 1
+  gogo(&gp.sched)
+}
+```
+
+然后有一个重点需要注意的是这行代码
+
+```go
+gp.sched.ret = 1
+```
+
+它将`ret`值设置成为了 1，从`runtime.deferproc`的函数注释中可以看代码下面这些内容
+
+```go
+func deferproc(fn func()) {
+    ...
+  // deferproc returns 0 normally.
+  // a deferred func that stops a panic
+  // makes the deferproc return 1.
+  // the code the compiler generates always
+  // checks the return value and jumps to the
+  // end of the function if deferproc returns != 0.
+  return0()
+}
+```
+
+编译器生成的中间代码会检查该值是否为 1，如果是的话就会直接执行`runtime.deferreturn`函数，通常该函数只有在函数返回之前才会执行，这也说明了为什么`recover`过后函数会直接返回。
+
+### 数据结构
+
+#### slice
+
+切片应该是 go 语言中最最常用的数据结构，没有之一（实际上内置的数据结构也没几个），几乎在任何地方都能看到它的身影。有关切片的实现，其源代码位于`runtime/slice.go`文件中。在运行时，切片以一个结构体的形式而存在，其类型为`runtime.slice`，如下所示。
+
+```
+type slice struct {
+  array unsafe.Pointer
+  len   int
+  cap   int
+}
+```
+
+这个结构体只有三个字段
+
+- `array`，指向底层数组的指针
+- `len`，切片的长度，指的是数组中已有的元素数量
+- `cap`，切片的容量，指的是数组能容纳元素的总数
+
+从上面的信息可以得知，**切片的底层实现还是依赖于数组**，在平时它只是一个结构体，只持有对数组的引用，以及容量和长度的记录。这样一来传递切片的成本就会非常低，只需要复制其数据的引用，并不用复制所有数据，并且在使用`len`和`cap`获取切片的长度和容量时，就等于是在获取其字段值，不需要去遍历数组。
+
+**后文内容总结来说就是： 切片底层实现依赖于数组，当修改会变更到底层数组上；当发生扩容时，底层数组会被复制所有值到新的更大空间的位置；这时指针指向新的底层数组。切片的很多功能依赖于len与cap来判别是否需要扩容，然后决定是否分配新的底层数组空间。而大多数的复制都是按照内存块分配的而非元素逐个复制。**
+
+![img](./assets/impl_slice_1.png)
+
+**对于一个切片而言，它能访问和修改的起始位置取决于对数组的引用位置，偏移量取决于结构体中记录的长度。**结构体中的指针除了可以指向开头，也可以数组的中间，就像下面这张图一样。
+
+![img](./assets/202310101017354.png)
+
+一个底层数组可以被很多个切片所引用，且引用的位置和范围可以不同，就像上图一样，这种情况一般出现在对切片进行切割的时候，类似下面的代码
+
+```
+s := make([]int, 0, 10)
+s1 := s[:4]
+s2 := s[4:6]
+s3 := s[7:]
+```
+
+**在切割时，生成的新切片的容量等于数组长度减去新切片引用的起始位置。**例如`s[4:6]`生成的新切片容量就是`6 = 10 - 4`。当然，切片引用的范围也不一定非得相邻，也可以相互交错，不过这会产生非常大的麻烦，可能当前切片的数据在不知情的情况下就被别的切片修改了，比如上图中的紫色切片，如果在后续过程中使用`append`添加元素，就有可能会把绿色切片和蓝色切片的数据覆盖。为了避免这种情况，go 允许在切割时设置容量范围，语法如下。
+
+```
+s4 = s[4:6:6]
+```
+
+在这种情况下，它的容量就被限制到了 2，那么添加元素就会触发扩容，扩容后就是一个新数组了，与源数组就没有关系了，就不会有影响。
+
+##### 创建
+
+在运行时，使用`make`函数创建切片的工作由`runtime.makeslice`，来完成，它的逻辑比较简单，它接收三个参数，元素类型，长度，容量，完成后返回一个指向底层数组的指针，它的代码如下：
+
+```go
+func makeslice(et *_type, len, cap int) unsafe.Pointer {
+    // 计算需要的总内存，如果太大会导致数值溢出
+    // mem = sizeof(et) * cap
+  mem, overflow := math.MulUintptr(et.Size_, uintptr(cap))
+  if overflow || mem > maxAlloc || len < 0 || len > cap {
+        // mem = sizeof(et) * len
+    mem, overflow := math.MulUintptr(et.Size_, uintptr(len))
+    if overflow || mem > maxAlloc || len < 0 {
+      panicmakeslicelen()
+    }
+    panicmakeslicecap()
+  }
+
+    // 没问题的话就分配内存
+  return mallocgc(mem, et, true)
+}
+```
+
+可以看到逻辑非常简单，总共就做了两件事
+
+- 计算所需内存
+- 分配内存空间
+
+如果条件检查失败了，就会直接`panic`
+
+- 内存计算时数值溢出了
+- 计算结果大于可分配的最大内存
+- 长度与容量不合法
+
+如果计算得到内存大于`32KB`，就会将其分配到堆上，完事之后就会返回一个指向底层数组的指针，构建`runtime.slice`结构体的工作并不由`makeslice`函数来完成。实际上，构建结构体的工作是编译期间完成的，运行时的`makeslice`函数只负责分配内存。
+
+使用数组来创建切片的话，这个过程就类似下面的代码：
+
+```go
+var arr [5]int
+s := arr[:]
+
+var arr [5]int
+var s runtime.slice
+s.array = &arr
+s.len = len
+s.cap = cap
+```
+
+go 会直接将该数组作为切片的底层数组，所以修改切片中的数据也会影响到数组的数据。在使用数组创建切片时，长度大小等于`hight-low`，容量等于`max-low`，其中`max`默认为数组长度，或者也可以在切割的时候手动指定容量。
+
+![img](./assets/202310101017354-1775330924543-10.png)
+
+##### 访问
+
+切片的访问操作是在编译期间就已经完成了，实际上是和C语言类似的，通过移动指针操作来访问对应下标元素的，在通过`len`和`cap`函数访问切片的长度和容量时，也是同样的道理。对应`cmd/compile/internal/ssagen.exprCheckPtr`函数中的如下部分代码：
+
+```go
+case ir.OINDEX:
+    n := n.(*ir.IndexExpr)
+    switch {
+    case n.X.Type().IsSlice():
+        // 偏移指针
+        p := s.addr(n)
+        return s.load(n.X.Type().Elem(), p)
+case ir.OLEN, ir.OCAP:
+    n := n.(*ir.UnaryExpr)
+    switch {
+    case n.X.Type().IsSlice():
+        op := ssa.OpSliceLen
+        if n.Op() == ir.OCAP {
+            op = ssa.OpSliceCap
+        }
+        return s.newValue1(op, types.Types[types.TINT], s.expr(n.X))
+```
+
+在实际生成的代码中，通过移动指针来访问切片结构体中的`len`字段。倘若能在编译期间推断出它的长度和容量，就不会在运行时偏移指针来获取值，比如下面这种情况就不需要移动指针。
+
+```go
+s := make([]int, 10, 20)
+l := len(s)
+c := cap(s)
+```
+
+变量 `l`和`s`的值会被直接替换成`10`和`20`。
+
+##### 写入
+
+###### 修改
+
+通过索引下标修改切片的值时，代码访问切片长度以检查下标是否合法，最后通过移动指针来存储元素。
+
+###### 添加
+
+通过`append`函数可以向切片添加元素，添加元素后，它会返回一个新的切片结构体，如果没有扩容的话相较于源切片只是更新了长度，否则会的话会指向一个新的数组。在运行时，并没有类似`runtime.appendslice`这样的函数与之对应，添加元素的工作实际上在编译期就已经做好了，`append`函数会被展开对应的中间代码,判断的代码在`cmd/compile/internal/walk/assign.go walkassign`函数中，
+
+```go
+case ir.OAPPEND:
+    // x = append(...)
+    call := as.Y.(*ir.CallExpr)
+    if call.Type().Elem().NotInHeap() {
+       base.Errorf("%v can't be allocated in Go; it is incomplete (or unallocatable)", call.Type().Elem())
+    }
+    var r ir.Node
+    switch {
+    case isAppendOfMake(call):
+       // x = append(y, make([]T, y)...)
+       r = extendSlice(call, init)
+    case call.IsDDD:
+       r = appendSlice(call, init) // also works for append(slice, string).
+    default:
+       r = walkAppend(call, init, as)
+    }
+```
+
+可以看到分成三种情况
+
+- 添加若干个元素
+- 添加一个切片
+- 添加一个临时创建的切片
+
+**添加元素：**首先计算出待添加元素数量，然后判断是否需要扩容，最后再一个个赋值。
+
+```go
+s = append(s, x, y, z)
+```
+
+**添加切片：**如果是直接添加一个切片，还是跟之前一样，计算新长度，判断是否需要扩容，不同的是 go 并不会一个个去添加源切片的元素，而是选择直接复制内存。
+
+```go
+s = append(s, s1...)
+```
+
+**添加临时切片**：如果是添加一个临时创建的切片，go 会获取临时切片的长度，如果当前切片的容量不足以足以容纳，就会尝试扩容，完事后还会清除对应部分的内存。
+
+```go
+s = append(s, make([]T, l2)...)
+```
+
+##### 扩容
+
+切片的底层依旧是一个数组，数组是一个长度固定的数据结构，但切片长度是可变的。切片在数组容量不足时，会申请一片更大的内存空间来存放数据，也就是一个新的数组，再将旧数据拷贝过去，然后切片的引用就会指向新数组，这个过程就被称为扩容。扩容的工作在运行时由`runtime.growslice`函数来完成，其函数签名如下
+
+```go
+func growslice(oldPtr unsafe.Pointer, newLen, oldCap, num int, et *_type) slice
+```
+
+参数的简单解释
+
+- `oldPtr`，指向旧数组的指针
+- `newLen`，新数组的长度，`newLen = oldLen + num`
+- `oldCap`，旧切片的容量，也就等于旧数组的长度
+- `et`，元素类型
+
+它的返回值返回了一个新的切片，新切片跟原来的切片毫不相干，唯一共同点就是保存的数据是一样的。在使用`append`添加元素时，会要求将其返回值覆盖原切片，如果发生了扩容的话，返回的就是一个新切片了。对于容量小于 256 的切片，容量增长一倍，而容量大于等于 256 的切片，则至少会是原容量的 1.25 倍，当前切片较小时，每次都直接增大一倍，可以避免频繁的扩容，当切片较大时，扩容的倍率就会减小，避免申请过多的内存而造成浪费。
+
+##### 拷贝
+
+在复制切片的时候并不是一个个遍历元素去复制的，而是选择了直接把底层数组的内存整块复制过去，当切片很大时拷贝内存带来性能的影响并不小。
+
+##### 清空
+
+在版本`go1.21`中，新增了内置函数`clear`函数可以用于清空切片的内容，或者说是将所有元素都置为零值。编译器会在编译期间由`cmd/compile/internal/walk.arrayClear`函数展开成：首先判断切片长度是否为 0，然后计算需要清理的字节数，再根据元素是否是指针分成两种情况来处理，但最终都会用到`memclrNoHeapPointers`函数，其签名如下。
+
+```
+func memclrNoHeapPointers(ptr unsafe.Pointer, n uintptr)
+```
+
+它接收两个参数，一个是指向起始地址的真，另一个就是偏移量，也就是要清理的字节数。内存起始地址为切片所持有的引用的地址，偏移量`n = sizeof(et) * len`，该函数是由汇编实现，感兴趣可以去`runtime/memclr_amd64.s`查看细节。
+
+##### 遍历
+
+在使用`for range`遍历切片时，会由`cmd/compile/internal/walk/range.go`中的`walkRange`函数展开。`for range`的实现依旧是通过移动指针来遍历元素的。为了避免在遍历时切片被更新，事先拷贝了一份结构体`hs`，为了避免遍历结束后指针指向越界的内存，`hu`使用的`uinptr`类型来存放地址，在需要访问元素的时候才转换成`unsafe.Pointer`。
+
+####
