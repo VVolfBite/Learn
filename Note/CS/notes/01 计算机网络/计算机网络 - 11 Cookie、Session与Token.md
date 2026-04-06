@@ -21,7 +21,7 @@
         * [Token 的优势](#token-的优势)
     * [几者对比](#几者对比)
     * [高频判断](#高频判断)
-<!-- GFM-TOC -->
+    <!-- GFM-TOC -->
 
 ## Cookie
 
@@ -103,8 +103,6 @@ Cookie: user_id=12345; session_token=abc123xyz
 ```
 
 ### Cookie 的分类
-
-这里真正要说明的是“Cookie 的分类”为什么值得单独拿出来讲。把它放回“计算机网络 - 12 Cookie、Session与Token”这张卡片的上下文里看，后面的分点会更容易读顺。
 
 **1. 会话期 Cookie（Session Cookie）**
 - 浏览器关闭后自动删除
@@ -337,8 +335,6 @@ TTL: 3600 秒（1 小时）
 
 ### Session 的安全性
 
-这一节主要把“Session 的安全性”放回“计算机网络 - 12 Cookie、Session与Token”这张卡片的主线里看。先抓住它在整个计算机网络知识体系中的位置，再看后面的分点和对比，会更容易把零散结论串起来。
-
 **1. Session ID 的安全性**
 - Session ID 必须足够随机，不能被猜测
 - 使用加密算法生成（如 UUID、随机字符串）
@@ -481,8 +477,6 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjM0NSwidXNlcm5hbWUiOiJhbGl
 ```
 
 ### Token 的优势
-
-读到“Token 的优势”时，先别急着记结论。更稳的方式是先弄清它在“计算机网络 - 12 Cookie、Session与Token”这张卡片里到底想解决什么问题，这样后面的分类和判断就不会显得太散。
 
 **1. 无状态**
 - 服务器不需要保存 Token
