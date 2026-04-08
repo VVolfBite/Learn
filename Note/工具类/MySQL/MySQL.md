@@ -1631,5 +1631,596 @@ MySQL 是这样做的，进⼊到 young 区域条件增加了⼀个停留在 old
 - MySQL 认为空闲时，后台线程会定期将适量的脏页刷⼊到磁盘；
 - MySQL 正常关闭之前，会把所有的脏页刷⼊到磁盘；
 
-## MySql语句使用
+## MySql 使用
+
+### MySQL 数据类型
+
+MySQL 中定义数据字段的类型对你数据库的优化是非常重要的。
+
+MySQL 支持多种类型，大致可以分为三类：数值、日期/时间和字符串(字符)类型。
+
+#### 数值类型
+
+MySQL 支持所有标准 SQL 数值数据类型。
+
+这些类型包括严格数值数据类型(INTEGER、SMALLINT、DECIMAL 和 NUMERIC)，以及近似数值数据类型(FLOAT、REAL 和 DOUBLE PRECISION)。
+
+关键字INT是INTEGER的同义词，关键字DEC是DECIMAL的同义词。
+
+BIT数据类型保存位字段值，并且支持 MyISAM、MEMORY、InnoDB 和 BDB表。
+
+作为 SQL 标准的扩展，MySQL 也支持整数类型 TINYINT、MEDIUMINT 和 BIGINT。下面的表显示了需要的每个整数类型的存储和范围。
+
+| 类型         | 大小                                     | 范围（有符号）                                               | 范围（无符号）                                               | 用途            |
+| :----------- | :--------------------------------------- | :----------------------------------------------------------- | :----------------------------------------------------------- | :-------------- |
+| TINYINT      | 1 Bytes                                  | (-128，127)                                                  | (0，255)                                                     | 小整数值        |
+| SMALLINT     | 2 Bytes                                  | (-32 768，32 767)                                            | (0，65 535)                                                  | 大整数值        |
+| MEDIUMINT    | 3 Bytes                                  | (-8 388 608，8 388 607)                                      | (0，16 777 215)                                              | 大整数值        |
+| INT或INTEGER | 4 Bytes                                  | (-2 147 483 648，2 147 483 647)                              | (0，4 294 967 295)                                           | 大整数值        |
+| BIGINT       | 8 Bytes                                  | (-9,223,372,036,854,775,808，9 223 372 036 854 775 807)      | (0，18 446 744 073 709 551 615)                              | 极大整数值      |
+| FLOAT        | 4 Bytes                                  | (-3.402 823 466 E+38，-1.175 494 351 E-38)，0，(1.175 494 351 E-38，3.402 823 466 351 E+38) | 0，(1.175 494 351 E-38，3.402 823 466 E+38)                  | 单精度 浮点数值 |
+| DOUBLE       | 8 Bytes                                  | (-1.797 693 134 862 315 7 E+308，-2.225 073 858 507 201 4 E-308)，0，(2.225 073 858 507 201 4 E-308，1.797 693 134 862 315 7 E+308) | 0，(2.225 073 858 507 201 4 E-308，1.797 693 134 862 315 7 E+308) | 双精度 浮点数值 |
+| DECIMAL      | 对DECIMAL(M,D) ，如果M>D，为M+2否则为D+2 | 依赖于M和D的值                                               | 依赖于M和D的值                                               | 小数值          |
+
+#### 日期和时间类型
+
+表示时间值的日期和时间类型为DATETIME、DATE、TIMESTAMP、TIME和YEAR。
+
+每个时间类型有一个有效值范围和一个"零"值，当指定不合法的MySQL不能表示的值时使用"零"值。
+
+TIMESTAMP类型有专有的自动更新特性，将在后面描述。
+
+| 类型      | 大小 ( bytes) | 范围                                                         | 格式                | 用途                     |
+| :-------- | :------------ | :----------------------------------------------------------- | :------------------ | :----------------------- |
+| DATE      | 3             | 1000-01-01/9999-12-31                                        | YYYY-MM-DD          | 日期值                   |
+| TIME      | 3             | '-838:59:59'/'838:59:59'                                     | HH:MM:SS            | 时间值或持续时间         |
+| YEAR      | 1             | 1901/2155                                                    | YYYY                | 年份值                   |
+| DATETIME  | 8             | '1000-01-01 00:00:00' 到 '9999-12-31 23:59:59'               | YYYY-MM-DD hh:mm:ss | 混合日期和时间值         |
+| TIMESTAMP | 4             | '1970-01-01 00:00:01' UTC 到 '2038-01-19 03:14:07' UTC结束时间是第 **2147483647** 秒，北京时间 **2038-1-19 11:14:07**，格林尼治时间 2038年1月19日 凌晨 03:14:07 | YYYY-MM-DD hh:mm:ss | 混合日期和时间值，时间戳 |
+
+#### 字符串类型
+
+字符串类型指CHAR、VARCHAR、BINARY、VARBINARY、BLOB、TEXT、ENUM和SET。该节描述了这些类型如何工作以及如何在查询中使用这些类型。
+
+| 类型       | 大小                  | 用途                            |
+| :--------- | :-------------------- | :------------------------------ |
+| CHAR       | 0-255 bytes           | 定长字符串                      |
+| VARCHAR    | 0-65535 bytes         | 变长字符串                      |
+| TINYBLOB   | 0-255 bytes           | 不超过 255 个字符的二进制字符串 |
+| TINYTEXT   | 0-255 bytes           | 短文本字符串                    |
+| BLOB       | 0-65 535 bytes        | 二进制形式的长文本数据          |
+| TEXT       | 0-65 535 bytes        | 长文本数据                      |
+| MEDIUMBLOB | 0-16 777 215 bytes    | 二进制形式的中等长度文本数据    |
+| MEDIUMTEXT | 0-16 777 215 bytes    | 中等长度文本数据                |
+| LONGBLOB   | 0-4 294 967 295 bytes | 二进制形式的极大文本数据        |
+| LONGTEXT   | 0-4 294 967 295 bytes | 极大文本数据                    |
+
+**注意**：char(n) 和 varchar(n) 中括号中 n 代表字符的个数，并不代表字节个数，比如 CHAR(30) 就可以存储 30 个字符。
+
+CHAR 和 VARCHAR 类型类似，但它们保存和检索的方式不同。它们的最大长度和是否尾部空格被保留等方面也不同。在存储或检索过程中不进行大小写转换。
+
+BINARY 和 VARBINARY 类似于 CHAR 和 VARCHAR，不同的是它们包含二进制字符串而不要非二进制字符串。也就是说，它们包含字节字符串而不是字符字符串。这说明它们没有字符集，并且排序和比较基于列值字节的数值值。
+
+BLOB 是一个二进制大对象，可以容纳可变数量的数据。有 4 种 BLOB 类型：TINYBLOB、BLOB、MEDIUMBLOB 和 LONGBLOB。它们区别在于可容纳存储范围不同。
+
+有 4 种 TEXT 类型：TINYTEXT、TEXT、MEDIUMTEXT 和 LONGTEXT。对应的这 4 种 BLOB 类型，可存储的最大长度不同，可根据实际情况选择。
+
+#### 枚举与集合类型（Enumeration and Set Types）
+
+- **ENUM**: 枚举类型，用于存储单一值，可以选择一个预定义的集合。
+- **SET**: 集合类型，用于存储多个值，可以选择多个预定义的集合。
+
+#### 空间数据类型（Spatial Data Types）
+
+GEOMETRY, POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, GEOMETRYCOLLECTION: 用于存储空间数据（地理信息、几何图形等）。
+
+### MySql 语言 
+
+### DQL：查询数据
+
+#### 基础查询
+
+```sql
+SELECT *
+FROM table_name;
+```
+
+**指定字段查询：**
+
+```sql
+SELECT column_name1, column_name2
+FROM table_name;
+```
+
+**使用别名：**
+
+```sql
+SELECT column_name1 AS alias_name1, column_name2 AS alias_name2
+FROM table_name;
+```
+
+**去重查询：**
+
+```sql
+SELECT DISTINCT column_name1
+FROM table_name;
+# DISTINCT 需要加在前边而不是后边
+```
+
+**分页查询：**
+
+```sql
+SELECT *
+FROM table_name
+LIMIT 10;
+
+SELECT *
+FROM table_name
+LIMIT 20, 10;
+# 其中 LIMIT 为 LIMIT NUM, OFFSET 
+```
+
+#### 条件过滤
+
+```sql
+SELECT *
+FROM table_name
+WHERE column_name1 = 1;
+```
+
+**逻辑运算：**
+
+```sql
+SELECT *
+FROM table_name
+WHERE column_name1 > 1 AND column_name2 < 10;
+```
+
+```sql
+SELECT *
+FROM table_name
+WHERE column_name1 IN (1, 2, 3) OR column_name2 IS NULL;
+```
+
+#### 排序、分页与去重
+
+```sql
+SELECT *
+FROM table_name
+ORDER BY column_name1 ASC, column_name2 DESC;
+```
+
+```sql
+SELECT *
+FROM table_name
+ORDER BY id DESC
+LIMIT 0, 20;
+```
+
+#### 模糊匹配
+
+```sql
+SELECT *
+FROM table_name
+WHERE name LIKE 'prefix%';
+```
+
+```sql
+SELECT *
+FROM table_name
+WHERE name LIKE '_b%';
+```
+
+#### 计算与函数
+
+**算术表达式：**
+
+```sql
+SELECT price, quantity, price * quantity AS total_amount
+FROM order_table;
+```
+
+**CASE WHEN 条件判断：**
+
+```sql
+SELECT user_name,
+       CASE
+           WHEN score >= 90 THEN 'A'
+           WHEN score >= 80 THEN 'B'
+           WHEN score >= 60 THEN 'C'
+           ELSE 'D'
+       END AS grade
+FROM student_table;
+```
+
+**聚合函数：**
+
+```sql
+SELECT COUNT(*) AS total_count,
+       AVG(price) AS avg_price,
+       MAX(price) AS max_price
+FROM product_table;
+```
+
+**日期函数：**
+
+```sql
+SELECT NOW(), CURDATE(), CURTIME();
+SELECT DATE_ADD(NOW(), INTERVAL 7 DAY);
+SELECT DATEDIFF('2026-04-08', '2026-04-01');
+```
+
+**数值函数：**
+
+```sql
+SELECT ABS(-10), MOD(10, 3), RAND(), ROUND(3.14159, 2);
+```
+
+#### 字符串处理
+
+```sql
+SELECT CONCAT(TRIM(first_name), ' ', TRIM(last_name)) AS full_name
+FROM user_table;
+SELECT LEFT(phone_number, 3), RIGHT(phone_number, 4)
+FROM user_table;
+SELECT REPLACE(user_name, 'a', 'A')
+FROM user_table;
+```
+
+#### 分组与聚合
+
+```sql
+SELECT department_id, COUNT(*) AS total_count
+FROM employee_table
+GROUP BY department_id;
+SELECT department_id, COUNT(*) AS total_count
+FROM employee_table
+GROUP BY department_id
+HAVING COUNT(*) >= 2;
+```
+
+#### 子查询
+
+```sql
+SELECT *
+FROM order_table
+WHERE user_id IN (
+    SELECT id
+    FROM user_table
+    WHERE status = 1
+);
+```
+
+```sql
+SELECT *
+FROM user_table AS u
+WHERE EXISTS (
+    SELECT 1
+    FROM order_table AS o
+    WHERE o.user_id = u.id
+);
+```
+
+#### 连接查询
+
+```sql
+SELECT u.id, u.user_name, o.order_no
+FROM user_table AS u
+INNER JOIN order_table AS o
+ON u.id = o.user_id;
+```
+
+```sql
+SELECT u.id, u.user_name, o.order_no
+FROM user_table AS u
+LEFT JOIN order_table AS o
+ON u.id = o.user_id;
+```
+
+```sql
+SELECT e1.employee_name, e2.employee_name AS leader_name
+FROM employee_table AS e1
+RIGHT JOIN employee_table AS e2
+ON e1.leader_id = e2.id;
+```
+
+#### 组合查询
+
+```sql
+SELECT name
+FROM teacher_table
+UNION
+SELECT name
+FROM student_table;
+```
+
+```sql
+SELECT name
+FROM teacher_table
+UNION ALL
+SELECT name
+FROM student_table;
+```
+
+#### 高级查询
+
+```sql
+WITH order_summary AS (
+    SELECT user_id, COUNT(*) AS total_count
+    FROM order_table
+    GROUP BY user_id
+)
+SELECT *
+FROM order_summary
+WHERE total_count >= 3;
+```
+
+```sql
+SELECT employee_name,
+       department_id,
+       salary,
+       ROW_NUMBER() OVER (PARTITION BY department_id ORDER BY salary DESC) AS row_num
+FROM employee_table;
+```
+
+### DML：操作数据
+
+#### 插入
+
+```sql
+INSERT INTO table_name(column_name1, column_name2)
+VALUES(value1, value2);
+```
+
+```sql
+INSERT INTO table_name(column_name1, column_name2)
+VALUES
+    (value1, value2),
+    (value3, value4);
+```
+
+```sql
+INSERT INTO target_table(column_name1, column_name2)
+SELECT column_name1, column_name2
+FROM source_table;
+```
+
+```sql
+INSERT INTO table_name
+SET column_name1 = value1,
+    column_name2 = value2;
+```
+
+```sql
+INSERT INTO user_table(id, user_name, age)
+VALUES(1, 'Tom', 20)
+ON DUPLICATE KEY UPDATE
+    user_name = VALUES(user_name),
+    age = VALUES(age);
+```
+
+#### 更新
+
+```sql
+UPDATE table_name
+SET column_name1 = value1,
+    column_name2 = value2
+WHERE id = 1;
+```
+
+#### 删除
+
+```sql
+DELETE FROM table_name
+WHERE id = 1;
+DELETE FROM table_name;
+TRUNCATE TABLE table_name;
+```
+
+### DDL：定义数据库对象
+
+#### 数据库与表
+
+```sql
+CREATE DATABASE db_name;
+DROP DATABASE db_name;
+SHOW DATABASES;
+USE db_name;
+```
+
+```sql
+CREATE TABLE table_name (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    user_name VARCHAR(64) NOT NULL,
+    age INT DEFAULT 0,
+    created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id)
+);
+DROP TABLE table_name;
+RENAME TABLE old_table_name TO new_table_name;
+```
+
+#### 表结构修改
+
+```sql
+ALTER TABLE table_name ADD COLUMN email VARCHAR(128);
+ALTER TABLE table_name MODIFY COLUMN age BIGINT;
+ALTER TABLE table_name CHANGE COLUMN email user_email VARCHAR(128);
+ALTER TABLE table_name DROP COLUMN user_email;
+TRUNCATE TABLE table_name;
+```
+
+#### 字段约束
+
+```sql
+CREATE TABLE user_table (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(128) NOT NULL UNIQUE
+);
+```
+
+```sql
+CREATE TABLE order_table (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES user_table(id)
+);
+```
+
+#### 索引
+
+```sql
+CREATE INDEX idx_user_name ON user_table(user_name);
+CREATE UNIQUE INDEX uk_email ON user_table(email);
+CREATE INDEX idx_user_name_age ON user_table(user_name, age);
+DROP INDEX idx_user_name ON user_table;
+```
+
+### TCL：事务控制
+
+```sql
+START TRANSACTION;
+BEGIN;
+COMMIT;
+ROLLBACK;
+SAVEPOINT savepoint_name;
+ROLLBACK TO savepoint_name;
+```
+
+```sql
+SET autocommit = 0;
+SELECT @@transaction_isolation;
+SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
+```
+
+```sql
+SELECT *
+FROM account_table
+WHERE id = 1 FOR UPDATE;
+SELECT *
+FROM account_table
+WHERE id = 1 FOR SHARE;
+```
+
+### 数据库编程
+
+#### 视图
+
+```sql
+CREATE VIEW user_order_view AS
+SELECT u.id, u.user_name, o.order_no
+FROM user_table AS u
+LEFT JOIN order_table AS o
+ON u.id = o.user_id;
+ALTER VIEW user_order_view AS SELECT u.id, u.user_name FROM user_table AS u;
+DROP VIEW user_order_view;
+```
+
+#### 存储过程
+
+```sql
+delimiter //
+create procedure get_user_count(out total_count int)
+begin
+    select count(*) into total_count from user_table;
+end //
+delimiter ;
+call get_user_count(@total_count);
+select @total_count;
+```
+
+#### 游标
+
+```sql
+delimiter //
+create procedure read_user_ids()
+begin
+    declare done int default 0;
+    declare current_user_id bigint;
+    declare user_cursor cursor for select id from user_table;
+    declare continue handler for sqlstate '02000' set done = 1;
+    open user_cursor;
+    repeat fetch user_cursor into current_user_id;
+        if not done then select current_user_id; end if;
+    until done end repeat;
+    close user_cursor;
+end //
+delimiter ;
+```
+
+#### 触发器
+
+```sql
+CREATE TRIGGER trg_user_insert AFTER INSERT ON user_table FOR EACH ROW SELECT NEW.id INTO @new_user_id;
+```
+
+#### 事件
+
+```sql
+SET GLOBAL event_scheduler = ON;
+CREATE EVENT clear_log_event ON SCHEDULE EVERY 1 DAY DO DELETE FROM log_table WHERE created_time < NOW() - INTERVAL 30 DAY;
+DROP EVENT clear_log_event;
+```
+
+### DCL：权限控制
+
+```sql
+CREATE USER 'user_name'@'%' IDENTIFIED BY 'password';
+ALTER USER 'user_name'@'%' IDENTIFIED BY 'new_password';
+RENAME USER 'user_name'@'%' TO 'new_user_name'@'%';
+DROP USER 'new_user_name'@'%';
+SHOW GRANTS FOR 'user_name'@'%';
+GRANT SELECT, INSERT, UPDATE ON db_name.* TO 'user_name'@'%';
+REVOKE INSERT, UPDATE ON db_name.* FROM 'user_name'@'%';
+CREATE ROLE 'role_name';
+GRANT SELECT, INSERT, UPDATE, DELETE ON db_name.* TO 'role_name';
+GRANT 'role_name' TO 'user_name'@'%';
+```
+
+### 运维与诊断命令
+
+#### 元数据与结构查看
+
+```sql
+SHOW DATABASES;
+SHOW TABLES;
+DESC table_name;
+DESCRIBE table_name;
+SHOW CREATE TABLE table_name;
+SHOW INDEX FROM table_name;
+```
+
+#### 系统状态与连接管理
+
+```sql
+SHOW VARIABLES;
+SHOW STATUS;
+SHOW PROCESSLIST;
+SHOW FULL PROCESSLIST;
+KILL CONNECTION connection_id;
+```
+
+#### 执行计划分析
+
+```sql
+EXPLAIN SELECT * FROM table_name WHERE column_name = 1;
+EXPLAIN ANALYZE SELECT * FROM table_name WHERE column_name = 1;
+```
+
+#### 锁与事务排查
+
+```sql
+SELECT * FROM information_schema.innodb_trx;
+SELECT * FROM performance_schema.data_locks;
+SELECT * FROM performance_schema.data_lock_waits;
+SHOW ENGINE INNODB STATUS;
+```
+
+#### 字符集与校对规则
+
+```sql
+SHOW VARIABLES LIKE 'character_set%';
+SHOW VARIABLES LIKE 'collation%';
+CREATE TABLE table_name (name VARCHAR(50)) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+```
 
