@@ -1716,244 +1716,242 @@ GEOMETRY, POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON,
 
 ### MySql 语言 
 
-### DQL：查询数据
+#### DQL：查询数据
 
-#### 基础查询
+##### 基础查询
 
-```sql
-SELECT *
-FROM table_name;
-```
-
-**指定字段查询：**
+SQL的基础查询语句是
 
 ```sql
-SELECT column_name1, column_name2
-FROM table_name;
+SELECT column1, column2, ... FROM table1
 ```
 
-**使用别名：**
+在这个基础上我们进一步说明，首先是`column`语法槽，其本质是任何列容器，比如它可以是`*`，可以是列名，也可以是标量表达式，亦或者是聚合函数，窗口函数，还可以是条件判别表达式等等，在一些情况下我们可以使用简单的特数字来标记某个列容器进行特殊处理，也可以直接使用函数处理。其次是`table`语法槽位，其本质是任何行容器，其可以是表格，视图，CTE也可以是自己创建的若干行。在这个基础上我们可以进一步扩展从句，比如`WHERE`从句，`ORDER BY`从句，`JOIN`从句等等。后文将按照这个模式展开说明。
+
+##### WHERE 从句
 
 ```sql
-SELECT column_name1 AS alias_name1, column_name2 AS alias_name2
-FROM table_name;
+SELECT column1, column2, ... 
+FROM table1
+WHERE condition1 AND/OR/NOT condition2;
 ```
 
-**去重查询：**
+`WHERE`从句是最常见的筛选行从句，其后跟若干条件即可，但是要注意每个条件本身必须完整，应该能够作为一个布尔表达式出现。
+
+其中条件连接符是`AND OR NOT`。
+
+常见的条件形式有`比较大小`，`BETWEEN判断`，`IN判断`，`LIKE判断`，`正则表达式匹配`，`IS NUL/IS NOT NULL判断`。
+
+* `比较大小`：`value </<=/>/>=/=/!= target`
+* `BETWEEN判断`：`value BETWEEN min_target AND max_target` 
+* `IN判断`: `value IN values_list`
+* `LIKE判断`：`str LIKE partten`
+* `正则表达式匹配`：`str REGEXP 'pattern'`
+* `IS NULL/ IS NOT NULL`
+
+###### 字符串匹配
+
+其中分为模糊匹配和正则匹配两种，模糊匹配是一种简化的匹配规则，而正则表达式可以准确描述更多匹配规则。
+
+* **模糊匹配：**使用`%` 来匹配任意数量的字符，使用`_`匹配单字符。
+* **正则匹配**：正则匹配的规则比较多，如下：
 
 ```sql
-SELECT DISTINCT column_name1
-FROM table_name;
-# DISTINCT 需要加在前边而不是后边
+1. 使用 . 匹配任意单个字符
+str REGEXP 'a.c'
+即匹配字符串，其第一个字符为a，最后一个为c
+
+2. 使用 * 表示匹配前一个元素任意次数，即0或多次
+str REGEXP 'ab*c'
+即匹配字符串，其第一个字符为a，最后一个为c，中间可以匹配若干量的b
+
+3. 使用 + 表示匹配前一个元素至少一次
+str REGEXP 'ab+c'
+即匹配字符串，其第一个字符为a，最后一个为c，中间可以匹配至少一个b
+
+4. 使用 ? 表示可能匹配前一个元素一次
+str REGEXP 'ab?c'
+即匹配字符串，其第一个字符为a，最后一个为c，中间可能匹配一个b
+
+5. 使用 ^ 要求元素匹配开头
+str REGEXP '^abc'
+即匹配字符串，其以abc开头
+
+6. 使用 $ 要求元素匹配开头
+str REGEXP 'abc$'
+即匹配字符串，其以abc结尾
+
+7. 使用 [...] 表示匹配该集合内任一元素
+str REGEXP '[abc]'
+即匹配字符串，其为a、b、c一种
+
+8. 使用 [^...] 表示匹配该集合内任一元素
+str REGEXP '[^abc]'
+即匹配字符串，其不能为a、b、c一种。注意[^...] 与 ^[...]不一样，后者是要求某个元素必须为开头。
+
+9. 使用 | 表示匹配左右两侧一个元素
+str REGEXP 'ab|cd'
+即匹配字符串，其为ab或者cd
+
+10. 使用 () 表示匹配其内的表达式
+str REGEXP '(ab|cd)'
+即匹配字符串，其为ab或者cd
 ```
 
-**分页查询：**
+##### GROUP BY 从句
+
+使用`GROUP BY 与 HAVING`可以实现数据分组聚合，注意`HAVING` 必须出现在`GROUP BY`后，其用法与`WHERE`无异。
+
+注意，一旦使用`GROUP BY`, `SELECT`后的列表达式便只能使用 `GROUP BY`后的聚合列或者聚合函数处理后的列。
+
+```sql
+SELECT column1, MAX(column2) AS column3
+FROM table
+GROUP BY column2
+HAVING MAX(column2) > target;
+```
+
+##### LIMIT 从句
+
+使用`LIMIT从句`来实现有限数据和偏移。注意：如果带两个参数，则第一个是偏移量而非行限制数。
+
+```sql
+SELECT column1, column2, ... 
+FROM table1
+LIMIT row_count
+或者
+SELECT column1, column2, ... 
+FROM table1
+LIMIT offset，row_count
+```
+
+##### ORDER BY 从句
+
+使用`ORDER BY`来做列排序。列排序可以用`ASC`,`DESC`来实现结果排序。
 
 ```sql
 SELECT *
 FROM table_name
-LIMIT 10;
-
-SELECT *
-FROM table_name
-LIMIT 20, 10;
-# 其中 LIMIT 为 LIMIT NUM, OFFSET 
+ORDER BY col1 ASC, col2 DESC;
 ```
 
-#### 条件过滤
+##### JOIN 从句
+
+`JOIN`用于连接两个表，使用`ON`来实现连接条件表达。连接可以替换子查询，并且比子查询的效率一般会更快。
+
+* **内连接**：内连接又称等值连接，使用 INNER JOIN 关键字。要求两表的行要么一起匹配条件并出现在新表中，要么都不会出现。可以不明确使用 INNER JOIN，而使用普通查询并在 WHERE 中将两个表中要连接的列用等值方法连接起来。
+
+```sql
+SELECT A.value, B.value
+FROM tablea AS A INNER JOIN tableb AS B
+ON A.key = B.key;
+
+SELECT A.value, B.value
+FROM tablea AS A, tableb AS B
+WHERE A.key = B.key;
+```
+
+* **自然连接**：自然连接是把同名列通过等值测试连接起来的，同名列可以有多个。内连接和自然连接的区别：内连接提供连接的列，而自然连接自动连接所有同名列。因此自然连接不需要`ON`说明连接条件。
+
+```sql
+SELECT A.value, B.value
+FROM tablea AS A NATURAL JOIN tableb AS B;
+```
+
+* **外连接**：外连接是指将某个表与外部表进行连接，其效果是保留某表的全量内容，而满足条件的匹配行则连接外表内容，不满足的用缺省值代替。分为左连接，右连接，全连接。左连接就代表着保留左表没有关联的行，右连接就代表着保留右表没有关联的行，全连接相当于两表都保留。笛卡尔乘积是一种特殊的外连接，效果是无条件进行全连接。
 
 ```sql
 SELECT *
-FROM table_name
-WHERE column_name1 = 1;
+FROM table1
+LEFT OUTER JOIN table2
+ON table1.col = table2.col;
+
+
+SELECT *
+FROM table1
+RIGHT OUTER JOIN table2
+ON table1.col = table2.col;
+
+SELECT *
+FROM table1
+FULL OUTER JOIN table2
+ON table1.col = table2.col;
+
+SELECT *
+FROM table1
+CROSS JOIN table2;
 ```
 
-**逻辑运算：**
+注意一些语法细节，首先是一般`OUTER`可以省略，其次是我们应该将该从句视为自`FROM` 的延续  而非表的延续，也就是：
+
+```sql
+FROM table1
+LEFT OUTER JOIN table2
+ON table1.col = table2.col;
+而非
+FROM (table1 LEFT OUTER JOIN table2 ON table1.col = table2.col);
+```
+
+事实上第二种写法在一些Sql下是错误的。
+
+##### SELECT 子查询
+
+子查询中只能返回一个字段的数据。
+
+可以将子查询的结果作为 WHRER 语句的过滤条件：
 
 ```sql
 SELECT *
-FROM table_name
-WHERE column_name1 > 1 AND column_name2 < 10;
+FROM table1
+WHERE col1 IN (SELECT col2
+               FROM table2);
 ```
 
+##### 组合查询
+
+使用`UNION`，`UNION ALL`，`INTERSECT`，`EXCEPT`可以实现两个表的集合操作，不过需要注意与`JOIN`不同，它是一种行扩展而非列扩展，因此合并要求两表的列一致。
+
+* **UNION**: 合并两个表，但是相同行只保留一份。
+
 ```sql
-SELECT *
-FROM table_name
-WHERE column_name1 IN (1, 2, 3) OR column_name2 IS NULL;
+SELECT name, email FROM teacher_table
+UNION
+SELECT name, email FROM student_table
+ORDER BY name ASC;
 ```
 
-#### 排序、分页与去重
+* **UNION ALL** : 合并两个表，相同行都保留。
 
 ```sql
-SELECT *
-FROM table_name
-ORDER BY column_name1 ASC, column_name2 DESC;
+SELECT name, email FROM teacher_table
+UNION ALL
+SELECT name, email FROM student_table
+ORDER BY name ASC;
 ```
 
-```sql
-SELECT *
-FROM table_name
-ORDER BY id DESC
-LIMIT 0, 20;
-```
+* **INTERSECT** : 两个表做交集，并非所有MySql版本都支持。
+* **EXCEPT** : 两个表做差集，并非所有MySql版本都支持。
 
-#### 模糊匹配
+##### 列表达式
 
-```sql
-SELECT *
-FROM table_name
-WHERE name LIKE 'prefix%';
-```
+前边提到了`SELECT` 后不只可以跟随列名，而是各种列表达式，下面将介绍几个常用的内容，这些在实际查找中将会经常使用，因为之前介绍的命令并不带过多的逻辑判断和变量处理这些编程逻辑。
+
+* **一些表达式或者函数计算**：简单的表达式或者函数计算可以出现在列表达式上。
+
+* **CASE...WHEN...** ：`CASE ... WHEN ...`是一种常用的列表表达式形式，比如你想要根据某几列的情况来新增一个列并赋值，其基本格式如下:
 
 ```sql
-SELECT *
-FROM table_name
-WHERE name LIKE '_b%';
-```
-
-#### 计算与函数
-
-**算术表达式：**
-
-```sql
-SELECT price, quantity, price * quantity AS total_amount
-FROM order_table;
-```
-
-**CASE WHEN 条件判断：**
-
-```sql
-SELECT user_name,
+SELECT student_id,
        CASE
            WHEN score >= 90 THEN 'A'
            WHEN score >= 80 THEN 'B'
            WHEN score >= 60 THEN 'C'
            ELSE 'D'
        END AS grade
-FROM student_table;
+FROM score;
 ```
 
-**聚合函数：**
-
-```sql
-SELECT COUNT(*) AS total_count,
-       AVG(price) AS avg_price,
-       MAX(price) AS max_price
-FROM product_table;
-```
-
-**日期函数：**
-
-```sql
-SELECT NOW(), CURDATE(), CURTIME();
-SELECT DATE_ADD(NOW(), INTERVAL 7 DAY);
-SELECT DATEDIFF('2026-04-08', '2026-04-01');
-```
-
-**数值函数：**
-
-```sql
-SELECT ABS(-10), MOD(10, 3), RAND(), ROUND(3.14159, 2);
-```
-
-#### 字符串处理
-
-```sql
-SELECT CONCAT(TRIM(first_name), ' ', TRIM(last_name)) AS full_name
-FROM user_table;
-SELECT LEFT(phone_number, 3), RIGHT(phone_number, 4)
-FROM user_table;
-SELECT REPLACE(user_name, 'a', 'A')
-FROM user_table;
-```
-
-#### 分组与聚合
-
-```sql
-SELECT department_id, COUNT(*) AS total_count
-FROM employee_table
-GROUP BY department_id;
-SELECT department_id, COUNT(*) AS total_count
-FROM employee_table
-GROUP BY department_id
-HAVING COUNT(*) >= 2;
-```
-
-#### 子查询
-
-```sql
-SELECT *
-FROM order_table
-WHERE user_id IN (
-    SELECT id
-    FROM user_table
-    WHERE status = 1
-);
-```
-
-```sql
-SELECT *
-FROM user_table AS u
-WHERE EXISTS (
-    SELECT 1
-    FROM order_table AS o
-    WHERE o.user_id = u.id
-);
-```
-
-#### 连接查询
-
-```sql
-SELECT u.id, u.user_name, o.order_no
-FROM user_table AS u
-INNER JOIN order_table AS o
-ON u.id = o.user_id;
-```
-
-```sql
-SELECT u.id, u.user_name, o.order_no
-FROM user_table AS u
-LEFT JOIN order_table AS o
-ON u.id = o.user_id;
-```
-
-```sql
-SELECT e1.employee_name, e2.employee_name AS leader_name
-FROM employee_table AS e1
-RIGHT JOIN employee_table AS e2
-ON e1.leader_id = e2.id;
-```
-
-#### 组合查询
-
-```sql
-SELECT name
-FROM teacher_table
-UNION
-SELECT name
-FROM student_table;
-```
-
-```sql
-SELECT name
-FROM teacher_table
-UNION ALL
-SELECT name
-FROM student_table;
-```
-
-#### 高级查询
-
-```sql
-WITH order_summary AS (
-    SELECT user_id, COUNT(*) AS total_count
-    FROM order_table
-    GROUP BY user_id
-)
-SELECT *
-FROM order_summary
-WHERE total_count >= 3;
-```
+* **OVER(PARTITION BY )**：`... OVER (PARTITION BY...)` 使用窗口函数为分组后的数据增设数据，其中窗口函数是只作用在分组上的函数，这和聚合函数比较类似，其实窗口函数包含所有聚合函数。`PARTITION BY`与`GROUP BY`有所不同，其中前者是将数据分组但是不进行合并，使用的窗口函数会作用在每一行上；而后者将数据分组并合并，使用的聚合函数只会应用在聚合后的一行上。
 
 ```sql
 SELECT employee_name,
@@ -1963,117 +1961,445 @@ SELECT employee_name,
 FROM employee_table;
 ```
 
+* **IF**： 相当于简化版本的`CASE ... WHEN ...`
+
+```sql
+SELECT
+    *,
+    IF(score >= 60, "PASS", "FAIL") AS result
+FROM score;
+```
+
+* `EXISTS`: 一般用于判断某个标记或者条件，经常配合`SELECT 1`使用：
+
+```sql
+SELECT
+    s.*,
+    EXISTS (
+        SELECT 1
+        FROM subscription_events t
+        WHERE t.user_id = s.user_id
+          AND t.event_type = 'downgrade'
+    ) AS has_downgrade
+FROM subscription_events s;
+```
+
+*  **聚合函数与窗口函数本身**：聚合函数和窗口函数大多比较简单，其逻辑大概是Server层对相关数据逐行处理。常见的聚合函数与窗口函数如下：
+
+```sql
+聚合函数
+1. 统计列非NULL的数量 
+COUNT(column_name) 不过 COUNT(*)统计的是所有行，这是因为主索引总是非空的
+
+2. 统计数据列的和
+SUM(column_name)
+
+3. 统计数据列的平均值
+AVG(column_name)
+
+4. 统计列的最大值
+MAX(column_name)
+
+4. 统计列的最小值
+MIN(column_name)
+
+
+窗口函数
+1. 分组内的每行分配一个行号 
+ROW_NUMBER()
+
+2. 依据 ORDER BY 后指定的列在分组内的行排序，同值则并列排名，并取消下一个排名，比如并列第三就不存在第四名了
+RANK()
+
+3. 依据 ORDER BY 后指定的列在分组内的行排序，同值则并列排名，但是不取消下一个排名，比如并列第三名还是会有第四名
+DENSE_RANK()
+
+4. 聚合窗口函数，即上述聚合函数，但是统计后不做聚合
+```
+
+##### 表表达式
+
+前边提到了`FROM` 后不只可以跟随表名，而是各种表表达式，下面将介绍几个常用的内容，这部分没有列表达式常用。
+
+* **CTE**：使用`WITH ... AS ( )`，可以创建临时的表名，这个有点类似视图，不过要注意运行逻辑本身是先运行`AS`内的部分然后创建该部分为新别名，所以`AS` 内部应该是产生表内容且可以执行的`SELECT`语句。
+
+```sql
+WITH t AS (
+    SELECT * FROM table1
+)
+SELECT *
+FROM t
+```
+
+* **视图**： 视图本身可以看作没有实体的表。
+
+```sql
+CREATE VIEW view_name AS ...;
+```
+
+* **SELECT 子查询**：查询本身是一种表结果因此可以出现在表表达式部分，这其实也是子查询能够成立的原因。
+* **VALUES 行集**：事实上表本身就是行集合，部分SQL内允许这种操作。
+
+```sql
+FROM (VALUES (1, 'A'), (2, 'B')) AS t(id, name)
+```
+
+##### 常见函数
+
+各个 DBMS 的函数都是不相同的，因此不可移植，以下主要是 MySQL 的函数。
+
+###### 统计函数
+
+|  函 数  |      说 明       |
+| :-----: | :--------------: |
+|  AVG()  | 返回某列的平均值 |
+| COUNT() |  返回某列的行数  |
+|  MAX()  | 返回某列的最大值 |
+|  MIN()  | 返回某列的最小值 |
+|  SUM()  |  返回某列值之和  |
+
+AVG() 会忽略 NULL 行。
+
+使用 DISTINCT 可以汇总不同的值。
+
+```sql
+SELECT AVG(DISTINCT col1) AS avg_col
+FROM mytable;
+```
+
+###### 文本处理
+
+|   函数    |      说明      |
+| :-------: | :------------: |
+|  LEFT()   |   左边的字符   |
+|  RIGHT()  |   右边的字符   |
+|  LOWER()  | 转换为小写字符 |
+|  UPPER()  | 转换为大写字符 |
+|  LTRIM()  | 去除左边的空格 |
+|  RTRIM()  | 去除右边的空格 |
+| LENGTH()  |      长度      |
+| SOUNDEX() |  转换为语音值  |
+
+其中，  **SOUNDEX()**   可以将一个字符串转换为描述其语音表示的字母数字模式。
+
+```sql
+SELECT *
+FROM mytable
+WHERE SOUNDEX(col1) = SOUNDEX('apple')
+```
+
+###### 日期和时间处理
+
+
+- 日期格式：YYYY-MM-DD
+- 时间格式：HH:\<zero-width space\>MM:SS
+
+|     函 数     |             说 明              |
+| :-----------: | :----------------------------: |
+|   ADDDATE()   |    增加一个日期（天、周等）    |
+|   ADDTIME()   |    增加一个时间（时、分等）    |
+|   CURDATE()   |          返回当前日期          |
+|   CURTIME()   |          返回当前时间          |
+|    DATE()     |     返回日期时间的日期部分     |
+|  DATEDIFF()   |        计算两个日期之差        |
+|  DATE_ADD()   |     高度灵活的日期运算函数     |
+| DATE_FORMAT() |  返回一个格式化的日期或时间串  |
+|     DAY()     |     返回一个日期的天数部分     |
+|  DAYOFWEEK()  | 对于一个日期，返回对应的星期几 |
+|    HOUR()     |     返回一个时间的小时部分     |
+|   MINUTE()    |     返回一个时间的分钟部分     |
+|    MONTH()    |     返回一个日期的月份部分     |
+|     NOW()     |       返回当前日期和时间       |
+|   SECOND()    |      返回一个时间的秒部分      |
+|    TIME()     |   返回一个日期时间的时间部分   |
+|    YEAR()     |     返回一个日期的年份部分     |
+
+###### 数值处理
+
+|  函数  |  说明  |
+| :----: | :----: |
+| SIN()  |  正弦  |
+| COS()  |  余弦  |
+| TAN()  |  正切  |
+| ABS()  | 绝对值 |
+| SQRT() | 平方根 |
+| MOD()  |  余数  |
+| EXP()  |  指数  |
+|  PI()  | 圆周率 |
+| RAND() | 随机数 |
+
+##### 其他
+
+* **使用 DISTINCT**: 使用 `DISTINCT` 来修饰列实现去重操作，不过要注意应该写在前边而不是后边。
+* **使用 AS 起别名**： 你可以使用 `AS` 来为某些列起别名，也可以起表名，需要注意的是：子查询出现的所有新表都需要起表名，来防止主查询能够正确访问字段。列别名可以不用写 `AS`。
+* **使用 CAST(expression AS data_type) 来进行类型转换**： 可以对某些类做类型转换，不过这样就可能无法利用索引查询。
+
+```sql
+-- 将字符串转为整数
+SELECT CAST('123' AS UNSIGNED) AS num;
+
+-- 将日期转为字符串
+SELECT CAST(order_date AS CHAR) AS order_date_str
+FROM orders;
+
+-- 在计算中转换类型
+SELECT CAST(price AS DECIMAL(10,2)) * quantity AS total_amount
+FROM order_table;
+```
+
 ### DML：操作数据
 
-#### 插入
+从此之后的内容都是比较固定的，也没什么新花样了。
+
+#### 插入数据
+
+##### 基础插入
+
+基础插入的格式如下：
 
 ```sql
 INSERT INTO table_name(column_name1, column_name2)
 VALUES(value1, value2);
 ```
 
+实际上 语法上更像是:
+
+```sql
+INSERT INTO table_name(column_name1, column_name2)
+ROW_LISTS;
+```
+
+因此以下写法也是可以的：
+
 ```sql
 INSERT INTO table_name(column_name1, column_name2)
 VALUES
     (value1, value2),
-    (value3, value4);
-```
+    (value3, value4);  
 
-```sql
 INSERT INTO target_table(column_name1, column_name2)
 SELECT column_name1, column_name2
 FROM source_table;
-```
 
-```sql
 INSERT INTO table_name
 SET column_name1 = value1,
     column_name2 = value2;
 ```
 
+##### 触发用法
+
+使用`ON` 可以实现类似触发器的功能，可以视为某种简写：
+
 ```sql
-INSERT INTO user_table(id, user_name, age)
-VALUES(1, 'Tom', 20)
-ON DUPLICATE KEY UPDATE
-    user_name = VALUES(user_name),
-    age = VALUES(age);
+INSERT INTO users (id, name) VALUES (1, 'Alice')
+ON DUPLICATE KEY UPDATE name = VALUES(name);
 ```
 
 #### 更新
 
+##### 基础用法
+
+基础用法是先用`WHERE`确定更新范围，然后使用`SET` 更新字段。
+
 ```sql
 UPDATE table_name
-SET column_name1 = value1,
-    column_name2 = value2
-WHERE id = 1;
+SET column1 = value1,
+    column2 = value2
+WHERE condition;
+```
+
+由于table_name 本质是表内容，所以以下写法也是可以的：
+
+```sql
+UPDATE employee_table e
+JOIN dept_table d
+ON e.dept_id = d.id
+SET e.salary = e.salary * 1.1
+WHERE d.dept_name = 'Sales';
+```
+
+而 value1 本质是值内容，所以以下写法也是可以的：
+
+```sql
+UPDATE employee_table e
+SET e.salary = (
+    SELECT AVG(salary)
+    FROM employee_table
+    WHERE dept_id = e.dept_id
+)
+WHERE e.salary < 5000;
+```
+
+##### 有限更新
+
+可以使用 `ORDER BY` ，`LIMIT`从句实现有限更新。
+
+```sql
+UPDATE orders
+SET priority = 'high'
+ORDER BY created_at ASC
+LIMIT 5;
+```
+
+##### 条件更新
+
+可以使用`CASE ... WHEN ...` 实现条件更新。
+
+```sql
+UPDATE employee_table
+SET salary = CASE
+                WHEN dept_id = 1 THEN salary * 1.1
+                WHEN dept_id = 2 THEN salary * 1.05
+                ELSE salary
+             END;
 ```
 
 #### 删除
 
+##### 基础用法
+
+这里不多说了，基本用法和更新插入一个用法，不过是删除内容。
+
 ```sql
 DELETE FROM table_name
-WHERE id = 1;
+WHERE condition;
+```
+
+##### 清空表格
+
+有两种，都可以清空表格，后者更快，也会重置自增设置。
+
+```sql
 DELETE FROM table_name;
 TRUNCATE TABLE table_name;
 ```
 
-### DDL：定义数据库对象
+##### 删除表格
 
-#### 数据库与表
+使用`DROP` 来彻底删除表格。这意味着表格元数据彻底被删除。
 
 ```sql
-CREATE DATABASE db_name;
-DROP DATABASE db_name;
-SHOW DATABASES;
-USE db_name;
+DROP TABLE table_name;
 ```
+
+### DDL：定义数据库对象
+
+#### 数据库操作
+
+这里唯一需要说明的是最后一条命令并不需要使用 `DATABASES` ，神奇吧，SQL。
+
+```sql
+CREATE DATABASE db_name;       -- 创建数据库
+DROP DATABASE db_name;         -- 删除数据库
+SHOW DATABASES;                -- 查看所有数据库
+USE db_name;                   -- 选择当前数据库
+```
+
+#### 表操作
+
+##### 创建表
+
+表格创建主要由字段定义和约束定义两部分组成。
 
 ```sql
 CREATE TABLE table_name (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    user_name VARCHAR(64) NOT NULL,
-    age INT DEFAULT 0,
-    created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    id INT NOT NULL AUTO_INCREMENT,
+    field_name1 VARCHAR(64),
+    field_name2 VARCHAR(64),
     PRIMARY KEY (id)
-);
-DROP TABLE table_name;
-RENAME TABLE old_table_name TO new_table_name;
+);                                -- 创建表
 ```
 
-#### 表结构修改
+##### 修改表结构
+
+这个部分也比较简单，记住就行了。
 
 ```sql
-ALTER TABLE table_name ADD COLUMN email VARCHAR(128);
-ALTER TABLE table_name MODIFY COLUMN age BIGINT;
-ALTER TABLE table_name CHANGE COLUMN email user_email VARCHAR(128);
-ALTER TABLE table_name DROP COLUMN user_email;
+ALTER TABLE table_name ADD COLUMN col_name type_name; -- 增加一个type_name类型的列col_name
+ALTER TABLE table_name MODIFY COLUMN col_name type_name; -- 修改一个col_name 列为类型 type_name
+ALTER TABLE table_name CHANGE COLUMN old_col_name new_col_name type_name; -- 没什么好说的
+ALTER TABLE table_name DROP COLUMN col_name; -- 删除一个col_name 列
 TRUNCATE TABLE table_name;
 ```
 
-#### 字段约束
+##### 字段约束
+
+表格创建时，其定义由字段定义和约束定义两部分组成，约束定义比较复杂也比较重要。常见的约束有：
+
+- **NOT NULL**：非空约束。要求对应字段不能为空。
+
+```sql
+CREATE TABLE table_name (
+    id BIGINT NOT NULL,
+    field_name1 VARCHAR(64) NOT NULL
+);
+```
+
+- **DEFAULT**：这一列在插入时如果没提供值，就使用默认值。经常会分配当前时间作为记录时间。
+
+```sql
+CREATE TABLE table_name (
+    id BIGINT NOT NULL,
+    record_time DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+- **PRIMARY KEY**: 主键约束，效果上有点类似**UNIQUE + NOT NULL**，即非空且唯一，不过进一步说，它影响表的默认主索引。
 
 ```sql
 CREATE TABLE user_table (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    email VARCHAR(128) NOT NULL UNIQUE
+    id BIGINT PRIMARY KEY
+);
+
+CREATE TABLE user_table (
+    id BIGINT,
+    PRIMARY KEY(id)
 );
 ```
 
+- **UNIQUE**: 唯一约束,表示列唯一不重复。
+
 ```sql
-CREATE TABLE order_table (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    user_id BIGINT NOT NULL,
-    CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES user_table(id)
+CREATE TABLE user_table (
+    id BIGINT UNIQUE
 );
+
+CREATE TABLE user_table (
+    id BIGINT,
+    field_name VARCHAR(20),
+    UNIQUE(id, field_name)
+); -- 联合唯一约束
 ```
 
-#### 索引
+
+
+- **FOREIGN KEY**
+- **CHECK**
+- **AUTO_INCREMENT**
+
+##### 索引
+
+索引，在基础原理占据很大的篇幅，但是使用起来基本没什么命令，当指定两列及以上索引时，就涉及联合索引了。
 
 ```sql
-CREATE INDEX idx_user_name ON user_table(user_name);
-CREATE UNIQUE INDEX uk_email ON user_table(email);
-CREATE INDEX idx_user_name_age ON user_table(user_name, age);
+CREATE INDEX idx_user_name ON table_name(col_name1,col_name2);
+-- 创建索引，索引可以重复，可以为NULL
+CREATE UNIQUE INDEX uk_email ON user_table(col_name1,col_name2);
+-- 创建索引，索引唯一且非NULL
 DROP INDEX idx_user_name ON user_table;
+-- 删除索引
+```
+
+##### 删除表
+
+```sql
+DROP TABLE table_name;          -- 删除表
+```
+
+##### 重命名表
+
+```sql
+RENAME TABLE old_name TO new_name;  -- 重命名表
 ```
 
 ### TCL：事务控制
